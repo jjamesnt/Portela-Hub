@@ -10,6 +10,9 @@ import LiderancasPage from './pages/LiderancasPage';
 import AssessoresPage from './pages/AssessoresPage';
 import AgendaPage from './pages/AgendaPage';
 import ConfiguracoesPage from './pages/ConfiguracoesPage';
+import GestaoRecursosPage from './pages/GestaoRecursosPage';
+import DemandasPage from './pages/DemandasPage';
+import DemandaMunicipioPage from './pages/DemandaMunicipioPage';
 
 interface PageState {
   page: string;
@@ -39,6 +42,12 @@ const App: React.FC = () => {
         return <AssessoresPage navigateTo={navigateTo} />;
       case 'Agenda':
         return <AgendaPage navigateTo={navigateTo} />;
+      case 'Recursos':
+        return <GestaoRecursosPage navigateTo={navigateTo} />;
+      case 'Demandas':
+        return <DemandasPage navigateTo={navigateTo} />;
+      case 'DemandaMunicipio':
+        return <DemandaMunicipioPage municipioId={currentPage.params?.municipioId} municipioNome={currentPage.params?.municipioNome || ''} demandaId={currentPage.params?.demandaId} navigateTo={navigateTo} />;
       case 'Configurações':
         return <ConfiguracoesPage navigateTo={navigateTo} />;
       default:

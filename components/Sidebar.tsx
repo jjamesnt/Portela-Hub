@@ -13,6 +13,8 @@ const navItems = [
     { label: 'Lideranças', icon: 'groups' },
     { label: 'Assessores', icon: 'badge' },
     { label: 'Agenda', icon: 'calendar_today' },
+    { label: 'Recursos', icon: 'payments' },
+    { label: 'Demandas', icon: 'assignment' },
     { label: 'Configurações', icon: 'settings' },
 ];
 

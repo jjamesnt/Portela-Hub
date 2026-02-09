@@ -5,6 +5,7 @@ import { MunicipioDetalhado, Lideranca, Assessor, EventoAgenda, Demanda, Lideran
 const mapMunicipio = (m: any) => ({
     id: m.id,
     nome: m.nome,
+    codigoIBGE: m.codigo_ibge,
     regiao: m.regiao,
     populacao: m.populacao,
     idh: m.idh,
@@ -161,14 +162,14 @@ export const getRecursosTotais = async (): Promise<number> => {
 export const getAllRecursos = async (): Promise<Recurso[]> => {
     const { data, error } = await supabase
         .from('recursos')
-        .select('*')
+        .select('*, municipios(nome, regiao)')
         .order('created_at', { ascending: false });
 
     if (error) {
         console.error('Erro ao buscar todos os recursos:', error);
         return [];
     }
-    return data.map(r => ({
+    return data.map((r: any) => ({
         id: r.id,
         municipioId: r.municipio_id,
         tipo: r.tipo,
@@ -178,7 +179,9 @@ export const getAllRecursos = async (): Promise<Recurso[]> => {
         status: r.status,
         dataAprovacao: r.data_aprovacao,
         responsavel: r.responsavel,
-        observacoes: r.observacoes
+        observacoes: r.observacoes,
+        municipio_nome: r.municipios?.nome || 'Desconhecido',
+        regiao: r.municipios?.regiao || '-',
     })) as Recurso[];
 };
 
@@ -271,6 +274,11 @@ export const createDemanda = async (demanda: {
     prioridade?: string;
     origem?: string;
     prazo?: string;
+    solicitante?: string;
+    recebido_por?: string;
+    atribuido_a?: string;
+    redirecionado_para?: string;
+    area_responsavel?: string;
 }) => {
     const { data, error } = await supabase
         .from('demandas')
@@ -283,4 +291,62 @@ export const createDemanda = async (demanda: {
         throw error;
     }
     return data as Demanda;
+};
+
+export const getAllDemandas = async (): Promise<any[]> => {
+    const { data, error } = await supabase
+        .from('demandas')
+        .select('*, municipios(nome, regiao)')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Erro ao buscar todas as demandas:', error);
+        return [];
+    }
+    return data.map((d: any) => ({
+        id: d.id,
+        municipioId: d.municipio_id,
+        titulo: d.titulo || d.descricao,
+        descricao: d.descricao,
+        tipo: d.tipo,
+        status: d.status || 'Em Análise',
+        prioridade: d.prioridade || 'Média',
+        origem: d.origem,
+        prazo: d.prazo,
+        solicitante: d.solicitante || '',
+        recebido_por: d.recebido_por || '',
+        created_at: d.created_at,
+        municipio_nome: d.municipios?.nome || 'Desconhecido',
+        regiao: d.municipios?.regiao || '-',
+    }));
+};
+
+export const updateDemanda = async (id: string, updates: {
+    titulo?: string;
+    descricao?: string;
+    tipo?: string;
+    status?: string;
+    prioridade?: string;
+    origem?: string;
+    prazo?: string;
+    municipio_id?: string;
+    observacoes?: string;
+    solicitante?: string;
+    recebido_por?: string;
+    atribuido_a?: string;
+    redirecionado_para?: string;
+    area_responsavel?: string;
+}) => {
+    const { data, error } = await supabase
+        .from('demandas')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Erro ao atualizar demanda:', error);
+        throw error;
+    }
+    return data;
 };

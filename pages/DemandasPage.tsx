@@ -1,0 +1,515 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { getAllDemandas, updateDemanda, createDemanda, getMunicipios } from '../services/api';
+import Loader from '../components/Loader';
+import MandatoBadge from '../components/MandatoBadge';
+
+interface DemandaRow {
+    id: string;
+    municipioId: string;
+    titulo: string;
+    descricao: string;
+    tipo: string;
+    status: string;
+    prioridade: string;
+    origem: string;
+    prazo: string | null;
+    created_at: string;
+    municipio_nome: string;
+    regiao: string;
+}
+
+interface MunicipioOption {
+    id: string;
+    nome: string;
+}
+
+const statusOptions = ['Em Análise', 'Em Execução', 'Concluída'];
+const prioridadeOptions = ['Alta', 'Média', 'Baixa'];
+const tipoOptions = ['Infraestrutura', 'Saúde', 'Educação', 'Segurança', 'Social', 'Administrativo', 'Outro'];
+
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+    const styles: Record<string, string> = {
+        'Em Análise': 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-700/30',
+        'Em Execução': 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-700/30',
+        'Concluída': 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700/30',
+    };
+    return (
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold tracking-wider border whitespace-nowrap ${styles[status] || styles['Em Análise']}`}>
+            {status.toUpperCase()}
+        </span>
+    );
+};
+
+const PrioridadeBadge: React.FC<{ prioridade: string }> = ({ prioridade }) => {
+    const styles: Record<string, string> = {
+        'Alta': 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400',
+        'Média': 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400',
+        'Baixa': 'bg-slate-50 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400',
+    };
+    const icons: Record<string, string> = { 'Alta': 'priority_high', 'Média': 'drag_handle', 'Baixa': 'arrow_downward' };
+    return (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${styles[prioridade] || styles['Média']}`}>
+            <span className="material-symbols-outlined text-xs">{icons[prioridade] || 'drag_handle'}</span>
+            {prioridade}
+        </span>
+    );
+};
+
+const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void }> = ({ navigateTo }) => {
+    const [demandas, setDemandas] = useState<DemandaRow[]>([]);
+    const [municipios, setMunicipios] = useState<MunicipioOption[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState<Partial<DemandaRow>>({});
+    const [showNovaModal, setShowNovaModal] = useState(false);
+    const [novaForm, setNovaForm] = useState({ municipio_id: '', titulo: '', descricao: '', tipo: 'Infraestrutura', status: 'Em Análise', prioridade: 'Média', origem: 'Alê Portela', prazo: '' });
+    const [saving, setSaving] = useState(false);
+
+    // Filtros
+    const [filtroTexto, setFiltroTexto] = useState('');
+    const [filtroStatus, setFiltroStatus] = useState('Todos');
+    const [filtroPrioridade, setFiltroPrioridade] = useState('Todas');
+    const [filtroOrigem, setFiltroOrigem] = useState('Todos');
+    const [filtroMunicipio, setFiltroMunicipio] = useState('Todos');
+
+    const fetchData = async () => {
+        try {
+            setIsLoading(true);
+            const [demandasData, municipiosData] = await Promise.all([
+                getAllDemandas(),
+                getMunicipios()
+            ]);
+            setDemandas(demandasData as DemandaRow[]);
+            setMunicipios(municipiosData.map(m => ({ id: m.id, nome: m.nome })));
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchData(); }, []);
+
+    const municipiosList = useMemo(() => ['Todos', ...new Set(demandas.map(d => d.municipio_nome))].sort(), [demandas]);
+
+    const demandasFiltradas = useMemo(() => {
+        return demandas.filter(d => {
+            const matchText = (d.titulo || '').toLowerCase().includes(filtroTexto.toLowerCase()) ||
+                (d.descricao || '').toLowerCase().includes(filtroTexto.toLowerCase()) ||
+                (d.municipio_nome || '').toLowerCase().includes(filtroTexto.toLowerCase());
+            const matchStatus = filtroStatus === 'Todos' || d.status === filtroStatus;
+            const matchPrioridade = filtroPrioridade === 'Todas' || d.prioridade === filtroPrioridade;
+            const matchOrigem = filtroOrigem === 'Todos' || d.origem === filtroOrigem;
+            const matchMunicipio = filtroMunicipio === 'Todos' || d.municipio_nome === filtroMunicipio;
+            return matchText && matchStatus && matchPrioridade && matchOrigem && matchMunicipio;
+        });
+    }, [demandas, filtroTexto, filtroStatus, filtroPrioridade, filtroOrigem, filtroMunicipio]);
+
+    // Stats
+    const stats = useMemo(() => ({
+        total: demandasFiltradas.length,
+        emAnalise: demandasFiltradas.filter(d => d.status === 'Em Análise').length,
+        emExecucao: demandasFiltradas.filter(d => d.status === 'Em Execução').length,
+        concluidas: demandasFiltradas.filter(d => d.status === 'Concluída').length,
+    }), [demandasFiltradas]);
+
+    const startEdit = (demanda: DemandaRow) => {
+        setEditingId(demanda.id);
+        setEditForm({ ...demanda });
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setEditForm({});
+    };
+
+    const saveEdit = async () => {
+        if (!editingId) return;
+        setSaving(true);
+        try {
+            await updateDemanda(editingId, {
+                titulo: editForm.titulo,
+                descricao: editForm.descricao,
+                tipo: editForm.tipo,
+                status: editForm.status,
+                prioridade: editForm.prioridade,
+                origem: editForm.origem,
+                prazo: editForm.prazo || undefined,
+            });
+            setEditingId(null);
+            setEditForm({});
+            await fetchData();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!novaForm.municipio_id || !novaForm.titulo) return;
+        setSaving(true);
+        try {
+            await createDemanda({
+                municipio_id: novaForm.municipio_id,
+                titulo: novaForm.titulo,
+                descricao: novaForm.descricao,
+                tipo: novaForm.tipo,
+                status: novaForm.status,
+                prioridade: novaForm.prioridade,
+                origem: novaForm.origem,
+                prazo: novaForm.prazo || undefined,
+            });
+            setShowNovaModal(false);
+            setNovaForm({ municipio_id: '', titulo: '', descricao: '', tipo: 'Infraestrutura', status: 'Em Análise', prioridade: 'Média', origem: 'Alê Portela', prazo: '' });
+            await fetchData();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (isLoading) return <Loader />;
+
+    return (
+        <div className="p-4 md:p-8 space-y-6 animate-in fade-in duration-500">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-extrabold text-navy-dark dark:text-white tracking-tight">Gestão de Demandas</h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Controle e acompanhamento de demandas por município.</p>
+                </div>
+                <button
+                    onClick={() => setShowNovaModal(true)}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-turquoise text-white rounded-xl font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20"
+                >
+                    <span className="material-symbols-outlined">add_circle</span>
+                    Nova Demanda
+                </button>
+            </div>
+
+            {/* KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-turquoise/5 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">TOTAL</p>
+                    <h2 className="text-2xl font-black text-navy-dark dark:text-white">{stats.total}</h2>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/5 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">EM ANÁLISE</p>
+                    <h2 className="text-2xl font-black text-amber-600">{stats.emAnalise}</h2>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">EM EXECUÇÃO</p>
+                    <h2 className="text-2xl font-black text-blue-600">{stats.emExecucao}</h2>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">CONCLUÍDAS</p>
+                    <h2 className="text-2xl font-black text-emerald-600">{stats.concluidas}</h2>
+                </div>
+            </div>
+
+            {/* Tabela */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden text-sm">
+                {/* Filtros */}
+                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col gap-4 bg-slate-50/50 dark:bg-slate-900/20">
+                    <div className="relative w-full">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <span className="material-symbols-outlined text-lg">search</span>
+                        </span>
+                        <input
+                            type="text"
+                            placeholder="Buscar por título, descrição ou município..."
+                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-turquoise/30 outline-none transition-all"
+                            value={filtroTexto}
+                            onChange={(e) => setFiltroTexto(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <select value={filtroOrigem} onChange={e => setFiltroOrigem(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all font-bold text-navy-dark dark:text-white">
+                            <option value="Todos">Todos Deputados</option>
+                            <option value="Alê Portela">Alê Portela</option>
+                            <option value="Lincoln Portela">Lincoln Portela</option>
+                        </select>
+                        <select value={filtroMunicipio} onChange={e => setFiltroMunicipio(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
+                            {municipiosList.map(m => <option key={m} value={m}>{m === 'Todos' ? 'Todos Municípios' : m}</option>)}
+                        </select>
+                        <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
+                            <option value="Todos">Todos Status</option>
+                            {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <select value={filtroPrioridade} onChange={e => setFiltroPrioridade(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
+                            <option value="Todas">Todas Prioridades</option>
+                            {prioridadeOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[1000px]">
+                        <thead className="bg-slate-50/50 dark:bg-slate-900/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
+                            <tr>
+                                <th className="px-6 py-4">DEMANDA</th>
+                                <th className="px-6 py-4">MUNICÍPIO</th>
+                                <th className="px-6 py-4">TIPO</th>
+                                <th className="px-6 py-4 text-center">PRIORIDADE</th>
+                                <th className="px-6 py-4 text-center">ORIGEM</th>
+                                <th className="px-6 py-4">PRAZO</th>
+                                <th className="px-6 py-4 text-center">STATUS</th>
+                                <th className="px-6 py-4 text-center w-24">AÇÕES</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
+                            {demandasFiltradas.map((d) => (
+                                editingId === d.id ? (
+                                    // Linha de edição inline
+                                    <tr key={d.id} className="bg-turquoise/5">
+                                        <td className="px-6 py-3">
+                                            <input
+                                                value={editForm.titulo || ''}
+                                                onChange={e => setEditForm({ ...editForm, titulo: e.target.value })}
+                                                className="w-full px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                            />
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <p className="font-bold text-navy-dark dark:text-white text-xs">{d.municipio_nome}</p>
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <select
+                                                value={editForm.tipo || ''}
+                                                onChange={e => setEditForm({ ...editForm, tipo: e.target.value })}
+                                                className="w-full px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                            >
+                                                {tipoOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </td>
+                                        <td className="px-6 py-3 text-center">
+                                            <select
+                                                value={editForm.prioridade || 'Média'}
+                                                onChange={e => setEditForm({ ...editForm, prioridade: e.target.value })}
+                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                            >
+                                                {prioridadeOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                                            </select>
+                                        </td>
+                                        <td className="px-6 py-3 text-center">
+                                            <select
+                                                value={editForm.origem || ''}
+                                                onChange={e => setEditForm({ ...editForm, origem: e.target.value })}
+                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                            >
+                                                <option value="Alê Portela">Alê Portela</option>
+                                                <option value="Lincoln Portela">Lincoln Portela</option>
+                                            </select>
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <input
+                                                type="date"
+                                                value={editForm.prazo || ''}
+                                                onChange={e => setEditForm({ ...editForm, prazo: e.target.value })}
+                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                            />
+                                        </td>
+                                        <td className="px-6 py-3 text-center">
+                                            <select
+                                                value={editForm.status || 'Em Análise'}
+                                                onChange={e => setEditForm({ ...editForm, status: e.target.value })}
+                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                            >
+                                                {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                        </td>
+                                        <td className="px-6 py-3 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <button
+                                                    onClick={saveEdit}
+                                                    disabled={saving}
+                                                    className="size-8 rounded-lg bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/40 flex items-center justify-center transition-all"
+                                                    title="Salvar"
+                                                >
+                                                    <span className="material-symbols-outlined text-emerald-600 text-base">check</span>
+                                                </button>
+                                                <button
+                                                    onClick={cancelEdit}
+                                                    className="size-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/50 dark:hover:bg-slate-600/50 flex items-center justify-center transition-all"
+                                                    title="Cancelar"
+                                                >
+                                                    <span className="material-symbols-outlined text-slate-500 text-base">close</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    // Linha normal
+                                    <tr key={d.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors group">
+                                        <td className="px-6 py-4">
+                                            <div
+                                                className="cursor-pointer group/dem"
+                                                onClick={() => navigateTo('DemandaMunicipio', { municipioId: d.municipioId, municipioNome: d.municipio_nome, demandaId: d.id })}
+                                            >
+                                                <p className="font-medium text-slate-700 dark:text-slate-200 group-hover/dem:text-turquoise transition-colors">{d.titulo}</p>
+                                                {d.descricao && d.descricao !== d.titulo && (
+                                                    <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[250px]">{d.descricao}</p>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div
+                                                className="cursor-pointer group/mun"
+                                                onClick={() => navigateTo('DemandaMunicipio', { municipioId: d.municipioId, municipioNome: d.municipio_nome })}
+                                            >
+                                                <p className="font-bold text-navy-dark dark:text-white group-hover/mun:text-turquoise transition-colors">{d.municipio_nome}</p>
+                                                <p className="text-[10px] text-slate-400 uppercase font-medium">{d.regiao}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                                {d.tipo || '-'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center"><PrioridadeBadge prioridade={d.prioridade} /></td>
+                                        <td className="px-6 py-4 text-center"><MandatoBadge origem={d.origem} /></td>
+                                        <td className="px-6 py-4 text-slate-500 text-xs">
+                                            {d.prazo ? new Date(d.prazo).toLocaleDateString('pt-BR') : '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-center"><StatusBadge status={d.status} /></td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <button
+                                                    onClick={() => startEdit(d)}
+                                                    className="size-8 rounded-lg bg-turquoise/10 hover:bg-turquoise/20 flex items-center justify-center transition-all group/btn"
+                                                    title="Editar demanda"
+                                                >
+                                                    <span className="material-symbols-outlined text-turquoise text-base group-hover/btn:scale-110 transition-transform">edit</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => navigateTo('DemandaMunicipio', { municipioId: d.municipioId, municipioNome: d.municipio_nome })}
+                                                    className="size-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/50 dark:hover:bg-slate-600/50 flex items-center justify-center transition-all group/btn2"
+                                                    title={`Gestão de demandas: ${d.municipio_nome}`}
+                                                >
+                                                    <span className="material-symbols-outlined text-slate-500 text-sm group-hover/btn2:scale-110 transition-transform">open_in_new</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            ))}
+                        </tbody>
+                    </table>
+                    {demandasFiltradas.length === 0 && (
+                        <div className="p-20 text-center">
+                            <span className="material-symbols-outlined text-6xl text-slate-200">inbox</span>
+                            <p className="text-slate-400 mt-4 font-medium">Nenhuma demanda encontrada com os filtros aplicados.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Modal Nova Demanda */}
+            {showNovaModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowNovaModal(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-extrabold text-navy-dark dark:text-white">Nova Demanda</h3>
+                                <p className="text-sm text-slate-400">Registre uma nova demanda no sistema.</p>
+                            </div>
+                            <button onClick={() => setShowNovaModal(false)} className="size-9 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                                <span className="material-symbols-outlined text-slate-500">close</span>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreate} className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Município *</label>
+                                    <select
+                                        required
+                                        value={novaForm.municipio_id}
+                                        onChange={e => setNovaForm({ ...novaForm, municipio_id: e.target.value })}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30 font-medium"
+                                    >
+                                        <option value="">Selecione um município...</option>
+                                        {municipios.sort((a, b) => a.nome.localeCompare(b.nome)).map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                                    </select>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Título *</label>
+                                    <input
+                                        required
+                                        value={novaForm.titulo}
+                                        onChange={e => setNovaForm({ ...novaForm, titulo: e.target.value })}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                        placeholder="Ex: Reforma da UBS Central"
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Descrição</label>
+                                    <textarea
+                                        value={novaForm.descricao}
+                                        onChange={e => setNovaForm({ ...novaForm, descricao: e.target.value })}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30 resize-none h-20"
+                                        placeholder="Detalhes da demanda..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Tipo</label>
+                                    <select value={novaForm.tipo} onChange={e => setNovaForm({ ...novaForm, tipo: e.target.value })} className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30">
+                                        {tipoOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Prioridade</label>
+                                    <select value={novaForm.prioridade} onChange={e => setNovaForm({ ...novaForm, prioridade: e.target.value })} className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30">
+                                        {prioridadeOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Origem</label>
+                                    <select value={novaForm.origem} onChange={e => setNovaForm({ ...novaForm, origem: e.target.value })} className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30">
+                                        <option value="Alê Portela">Alê Portela</option>
+                                        <option value="Lincoln Portela">Lincoln Portela</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Prazo</label>
+                                    <input
+                                        type="date"
+                                        value={novaForm.prazo}
+                                        onChange={e => setNovaForm({ ...novaForm, prazo: e.target.value })}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNovaModal(false)}
+                                    className="px-5 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={saving || !novaForm.municipio_id || !novaForm.titulo}
+                                    className="px-6 py-2.5 bg-turquoise text-white rounded-xl text-sm font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20 disabled:opacity-50 disabled:pointer-events-none"
+                                >
+                                    {saving ? 'Salvando...' : 'Criar Demanda'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default DemandasPage;

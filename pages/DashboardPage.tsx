@@ -5,6 +5,7 @@ import KpiCard from '../components/KpiCard';
 import Loader from '../components/Loader';
 import { getMunicipios, getLiderancas, getAssessores, getAgendaEventos, getRecursosTotais, getDemandasTotais, getAllRecursos } from '../services/api';
 import { Municipio, Lideranca, Assessor, EventoAgenda, Recurso } from '../types';
+import VotacaoEstadualKPIs from '../components/VotacaoEstadualKPIs';
 
 interface RecursoResumo extends Recurso {
     municipio_nome: string;
@@ -38,7 +39,13 @@ const CITY_COORDINATES: Record<string, { top: string, left: string }> = {
     'Contagem': { top: '65.5%', left: '62.5%' },
 };
 
-const CoberturaMap: React.FC<{ municipios: Municipio[], navigateTo: (page: string, params?: { [key: string]: any }) => void }> = ({ municipios, navigateTo }) => {
+const CoberturaMap: React.FC<{ municipios: Municipio[], navigateTo: (page: string, params?: { [key: string]: any }) => void, selectedMandato: string }> = ({ municipios, navigateTo, selectedMandato }) => {
+    // Cores dinâmicas do mapa baseadas no mandato selecionado
+    const accentColor = selectedMandato === 'Lincoln Portela' ? '#8db641' : 'var(--color-primary)';
+    const accentClass = selectedMandato === 'Lincoln Portela' ? 'border-[#8db641] bg-[#8db641]' : 'border-turquoise bg-turquoise';
+    const accentBorderClass = selectedMandato === 'Lincoln Portela' ? 'border-[#8db641]' : 'border-turquoise';
+    const accentBgClass = selectedMandato === 'Lincoln Portela' ? 'bg-[#8db641]' : 'bg-turquoise';
+    const accentTextClass = selectedMandato === 'Lincoln Portela' ? 'text-[#8db641]' : 'text-turquoise';
     const [zoom, setZoom] = useState(1);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -142,14 +149,14 @@ const CoberturaMap: React.FC<{ municipios: Municipio[], navigateTo: (page: strin
                                 <div
                                     onClick={() => navigateTo('MunicipioDetalhes', { id: municipio.id })}
                                     className={`
-                                        relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-transform hover:scale-125 cursor-pointer z-10
+                                        relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all hover:scale-125 cursor-pointer z-10
                                         ${isActive ? 'size-5' : 'size-4'}
                                         rounded-full border-2 
-                                        ${isActive ? 'border-turquoise bg-white dark:bg-slate-800' : 'border-slate-400 bg-slate-200 dark:bg-slate-700'}
+                                        ${isActive ? `${accentBorderClass} bg-white dark:bg-slate-800` : 'border-slate-400 bg-slate-200 dark:bg-slate-700'}
                                         shadow-lg
                                     `}
                                 >
-                                    <div className={`rounded-full ${isActive ? 'size-2 bg-turquoise' : 'size-1.5 bg-slate-500'}`}></div>
+                                    <div className={`rounded-full ${isActive ? `size-2 ${accentBgClass}` : 'size-1.5 bg-slate-500'}`}></div>
                                 </div>
 
                                 {/* Tooltip */}
@@ -160,7 +167,7 @@ const CoberturaMap: React.FC<{ municipios: Municipio[], navigateTo: (page: strin
                                             <div className="flex justify-between items-center gap-4">
                                                 <span className="text-[10px] text-slate-400 uppercase font-bold">Status:</span>
                                                 <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${isActive
-                                                    ? 'bg-turquoise/10 text-turquoise'
+                                                    ? `${accentBgClass}/10 ${accentTextClass}`
                                                     : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                                                     }`}>
                                                     {municipio.statusAtividade}
@@ -214,13 +221,13 @@ const CoberturaMap: React.FC<{ municipios: Municipio[], navigateTo: (page: strin
                 <div className="absolute bottom-4 left-4 bg-white/95 dark:bg-slate-800/95 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-xs shadow-xl backdrop-blur-sm z-10 pointer-events-none">
                     <p className="font-bold text-navy-dark dark:text-white mb-2">Presença Regional</p>
                     <div className="space-y-2">
-                        <div className="flex items-center gap-2"><span className="size-3 border-2 border-turquoise rounded-full bg-white dark:bg-slate-800 flex items-center justify-center"><span className="size-1 bg-turquoise rounded-full"></span></span> Atividade Alta</div>
+                        <div className="flex items-center gap-2"><span className={`size-3 border-2 ${accentBorderClass} rounded-full bg-white dark:bg-slate-800 flex items-center justify-center`}><span className={`size-1 ${accentBgClass} rounded-full`}></span></span> Atividade Alta</div>
                         <div className="flex items-center gap-2"><span className="size-3 border border-slate-300 dark:border-slate-600 rounded-full bg-slate-100 dark:bg-slate-900"></span> Base Planejada</div>
                     </div>
                 </div>
             </div>
             {zoom > 1 && (
-                <div className="px-4 py-1.5 bg-turquoise/10 text-turquoise text-[10px] font-bold text-center uppercase tracking-widest border-t border-turquoise/20">
+                <div className={`px-4 py-1.5 ${accentBgClass}/10 ${accentTextClass} text-[10px] font-bold text-center uppercase tracking-widest border-t ${accentBorderClass}/20`}>
                     Modo Navegação Ativo: Arraste para mover o mapa
                 </div>
             )}
@@ -319,7 +326,7 @@ const RecursosDestaqueTable: React.FC<{ recursos: RecursoResumo[], navigateTo: D
                     <p className="text-slate-500 text-sm mt-0.5">Top municípios por volume de investimento</p>
                 </div>
                 <button
-                    onClick={() => navigateTo('Gestão de Recursos')}
+                    onClick={() => navigateTo('Recursos')}
                     className="flex items-center gap-2 px-5 py-2.5 bg-navy-dark text-white rounded-lg text-sm font-semibold hover:bg-navy-dark/90 transition-colors shadow-lg shadow-navy-dark/10"
                 >
                     <span className="material-symbols-outlined">analytics</span>
@@ -336,6 +343,7 @@ const RecursosDestaqueTable: React.FC<{ recursos: RecursoResumo[], navigateTo: D
                             <th className="px-6 py-3 tracking-wider">Destinação / Tipos</th>
                             <th className="px-6 py-3 tracking-wider text-center">Projetos</th>
                             <th className="px-6 py-3 tracking-wider text-right">Valor Total</th>
+                            <th className="px-6 py-3 tracking-wider text-center w-12"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -346,7 +354,14 @@ const RecursosDestaqueTable: React.FC<{ recursos: RecursoResumo[], navigateTo: D
                                         {index + 1}
                                     </span>
                                 </td>
-                                <td className="px-6 py-3 font-semibold text-navy-dark dark:text-white text-sm whitespace-nowrap">{item.municipio}</td>
+                                <td className="px-6 py-3">
+                                    <span
+                                        className="font-semibold text-navy-dark dark:text-white text-sm whitespace-nowrap cursor-pointer hover:text-turquoise transition-colors"
+                                        onClick={() => navigateTo('MunicipioDetalhes', { id: item.id })}
+                                    >
+                                        {item.municipio}
+                                    </span>
+                                </td>
                                 <td className="px-6 py-3 text-center">
                                     <div className="flex justify-center gap-1">
                                         {Array.from(item.origens).map(origem => (
@@ -395,6 +410,15 @@ const RecursosDestaqueTable: React.FC<{ recursos: RecursoResumo[], navigateTo: D
                                 </td>
                                 <td className="px-6 py-3 font-black text-sm text-navy-dark dark:text-white text-right whitespace-nowrap">
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.totalValor)}
+                                </td>
+                                <td className="px-6 py-3 text-center">
+                                    <button
+                                        onClick={() => navigateTo('MunicipioDetalhes', { id: item.id })}
+                                        className="size-7 rounded-lg bg-turquoise/10 hover:bg-turquoise/20 flex items-center justify-center transition-all group/btn"
+                                        title={`Ver detalhes de ${item.municipio}`}
+                                    >
+                                        <span className="material-symbols-outlined text-turquoise text-sm group-hover/btn:scale-110 transition-transform">open_in_new</span>
+                                    </button>
                                 </td>
                             </tr>
                         ))}
@@ -570,8 +594,10 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                             />
                         </div>
 
+                        <VotacaoEstadualKPIs selectedMandato={selectedMandato} />
+
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <CoberturaMap municipios={filteredData.municipios} navigateTo={navigateTo} />
+                            <CoberturaMap municipios={filteredData.municipios} navigateTo={navigateTo} selectedMandato={selectedMandato} />
                             <AgendaSummary events={filteredData.agenda} />
                         </div>
 

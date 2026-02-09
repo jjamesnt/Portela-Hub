@@ -9,6 +9,7 @@ import LiderancasLocaisCard from '../components/LiderancasLocaisCard';
 import Loader from '../components/Loader';
 import RecursosCard from '../components/RecursosCard';
 import DemandaModal from '../components/DemandaModal';
+import VotacaoKPIs from '../components/VotacaoKPIs';
 
 
 interface MunicipioDetalhesPageProps {
@@ -24,6 +25,7 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isDemandaModalOpen, setIsDemandaModalOpen] = useState(false);
+    const [votos, setVotos] = useState<{ l: number; a: number } | null>(null);
 
     const fetchMunicipio = async () => {
         try {
@@ -54,6 +56,10 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
     useEffect(() => {
         fetchMunicipio();
         fetchAllMunicipios();
+        fetch('/data/votos_resumo.json')
+            .then(r => r.json())
+            .then(data => { if (data[municipioId]) setVotos(null); })
+            .catch(() => { });
     }, [municipioId]);
 
 
@@ -97,10 +103,6 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
                         <div className="flex h-7 items-center justify-center gap-x-2 rounded bg-primary/10 px-3 border border-primary/20">
                             <span className="text-primary text-[10px] font-bold uppercase tracking-wider">{municipio.regiao}</span>
                         </div>
-                        <div className="flex h-7 items-center justify-center gap-x-2 rounded bg-slate-100 dark:bg-slate-700 px-3">
-                            <span className="material-symbols-outlined text-sm text-slate-500 dark:text-slate-400">groups</span>
-                            <span className="text-navy-custom dark:text-slate-300 text-[11px] font-bold whitespace-nowrap">População: {municipio.populacao.toLocaleString('pt-BR')} hab.</span>
-                        </div>
                     </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -117,22 +119,9 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
                 </div>
             </div>
 
-            {/* Row 1: Main KPIs - Recursos + Votos dos Deputados */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-3 opacity-10">
-                        <span className="material-symbols-outlined text-5xl text-emerald-600">payments</span>
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Recursos Ativos</p>
-                    <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(municipio.totalRecursos || 0)}
-                    </h3>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md mt-2 inline-block">
-                        +12% vs 2023
-                    </span>
-                </div>
 
-            </div>
+            {/* Row 1: Main KPIs - Recursos + Votos dos Deputados */}
+            <VotacaoKPIs municipioId={municipio.id} codigoIBGE={municipio.codigoIBGE} totalRecursos={municipio.totalRecursos || 0} />
 
             {/* Row 2: Operational KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
@@ -156,6 +145,7 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
                     <InfoGeraisCard
                         idh={municipio.idh}
                         pibPerCapita={municipio.pibPerCapita}
+                        codigoIBGE={municipio.codigoIBGE}
                     />
                 </div>
                 <div className="col-span-12 lg:col-span-8 space-y-8">

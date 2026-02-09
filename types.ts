@@ -107,3 +107,17 @@ export interface Recurso {
     responsavel: string;
     observacoes?: string;
 }
+
+export interface IBGEIndicator {
+    id: number;
+    posicao: string;
+    valor: string;
+}
+
+export interface FormattedIBGEData {
+    populacao: string;
+    pibPerCapita: string;
+    area: string;
+    densidade: string;
+    pibTotal?: string;
+}

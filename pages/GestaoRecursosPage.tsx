@@ -45,7 +45,7 @@ const TipoBadge: React.FC<{ tipo: string }> = ({ tipo }) => {
     );
 };
 
-const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) => void }> = ({ }) => {
+const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) => void }> = ({ navigateTo }) => {
     const [recursos, setRecursos] = useState<ExtendedRecurso[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filtroTexto, setFiltroTexto] = useState('');
@@ -195,6 +195,7 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                                 <th className="px-6 py-4">DATA</th>
                                 <th className="px-6 py-4 text-right">VALOR</th>
                                 <th className="px-6 py-4 text-center">STATUS</th>
+                                <th className="px-6 py-4 text-center w-14"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
@@ -206,8 +207,11 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div>
-                                            <p className="font-bold text-navy-dark dark:text-white">{r.municipio_nome}</p>
+                                        <div
+                                            className="cursor-pointer group/mun"
+                                            onClick={() => navigateTo('MunicipioDetalhes', { id: r.municipioId })}
+                                        >
+                                            <p className="font-bold text-navy-dark dark:text-white group-hover/mun:text-turquoise transition-colors">{r.municipio_nome}</p>
                                             <p className="text-[10px] text-slate-400 uppercase font-medium">{r.regiao}</p>
                                         </div>
                                     </td>
@@ -224,6 +228,15 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r.valor)}
                                     </td>
                                     <td className="px-6 py-4 text-center"><StatusBadge status={r.status} /></td>
+                                    <td className="px-6 py-4 text-center">
+                                        <button
+                                            onClick={() => navigateTo('MunicipioDetalhes', { id: r.municipioId })}
+                                            className="size-8 rounded-lg bg-turquoise/10 hover:bg-turquoise/20 flex items-center justify-center transition-all group/btn"
+                                            title={`Ver detalhes de ${r.municipio_nome}`}
+                                        >
+                                            <span className="material-symbols-outlined text-turquoise text-base group-hover/btn:scale-110 transition-transform">open_in_new</span>
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
