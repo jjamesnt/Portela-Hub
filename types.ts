@@ -121,3 +121,18 @@ export interface FormattedIBGEData {
     densidade: string;
     pibTotal?: string;
 }
+
+export interface SolicitacaoAgenda {
+    id: string;
+    solicitante: string;
+    titulo: string;
+    descricao?: string;
+    data: string; // YYYY-MM-DD
+    hora_inicio: string; // HH:mm
+    hora_fim: string; // HH:mm
+    local: string;
+    status: 'Pendente' | 'Aprovado' | 'Recusado';
+    origem: 'Alê Portela' | 'Lincoln Portela';
+    municipio_id?: string;
+    created_at?: string;
+}

@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { MunicipioDetalhado, Lideranca, Assessor, EventoAgenda, Demanda, LiderancaLocal, Recurso } from '../types';
+import { MunicipioDetalhado, Lideranca, Assessor, EventoAgenda, Demanda, LiderancaLocal, Recurso, SolicitacaoAgenda } from '../types';
 
 // Helper to map snake_case to CamelCase for Municipality
 const mapMunicipio = (m: any) => ({
@@ -144,6 +144,33 @@ export const getAgendaEventos = async (): Promise<EventoAgenda[]> => {
         return [];
     }
     return data as EventoAgenda[];
+};
+
+export const getSolicitacoesAgenda = async (): Promise<SolicitacaoAgenda[]> => {
+    const { data, error } = await supabase
+        .from('solicitacoes_agenda')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Erro ao buscar solicitações de agenda:', error);
+        return [];
+    }
+    return data as SolicitacaoAgenda[];
+};
+
+export const createSolicitacaoAgenda = async (solicitacao: Omit<SolicitacaoAgenda, 'id' | 'created_at' | 'status'>) => {
+    const { data, error } = await supabase
+        .from('solicitacoes_agenda')
+        .insert([solicitacao])
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Erro ao criar solicitação de agenda:', error);
+        throw error;
+    }
+    return data as SolicitacaoAgenda;
 };
 
 // --- Recursos ---
