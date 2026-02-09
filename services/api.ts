@@ -336,6 +336,7 @@ export const updateDemanda = async (id: string, updates: {
     atribuido_a?: string;
     redirecionado_para?: string;
     area_responsavel?: string;
+    historico_redirecionamentos?: any[];
 }) => {
     const { data, error } = await supabase
         .from('demandas')

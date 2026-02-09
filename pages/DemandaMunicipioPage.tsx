@@ -39,7 +39,7 @@ const generateDemandaCode = (d: any, index: number, municipioNome: string) => {
     const year = d.created_at ? new Date(d.created_at).getFullYear().toString().slice(-2) : '26';
     const fullYear = d.created_at ? new Date(d.created_at).getFullYear().toString() : '2026';
     const cidadeIniciais = municipioNome.split(/\s+/).map(w => w[0]?.toUpperCase() || '').join('').slice(0, 3);
-    const assessor = (d.atribuido_a || d.recebido_por || '').trim();
+    const assessor = (d.recebido_por || '').trim();
     const assessorIniciais = assessor ? assessor.split(/\s+/).map((w: string) => w[0]?.toUpperCase() || '').join('').slice(0, 2) : '';
     const tipoCode = tipoAbrev[d.tipo] || (d.tipo || 'OUT').slice(0, 3).toUpperCase();
     const parts = [num + '/' + year, cidadeIniciais, tipoCode];
@@ -92,6 +92,7 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                 atribuido_a: d.atribuido_a || '',
                 redirecionado_para: d.redirecionado_para || '',
                 area_responsavel: d.area_responsavel || '',
+                historico_redirecionamentos: d.historico_redirecionamentos || [],
                 created_at: d.created_at,
             }));
             setDemandas(mapped);
@@ -129,6 +130,28 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
         if (!selectedDemanda) return;
         setSaving(true);
         try {
+            // Track redirection history
+            let historico = [...(selectedDemanda.historico_redirecionamentos || [])];
+            const oldRedir = selectedDemanda.redirecionado_para || '';
+            const newRedir = editForm.redirecionado_para || '';
+            if (newRedir && newRedir !== oldRedir) {
+                historico.push({
+                    de: editForm.atribuido_a || editForm.recebido_por || 'Gabinete',
+                    para: newRedir,
+                    data: new Date().toISOString(),
+                });
+            }
+            // Track atribuido_a changes
+            const oldAtrib = selectedDemanda.atribuido_a || '';
+            const newAtrib = editForm.atribuido_a || '';
+            if (newAtrib && newAtrib !== oldAtrib && oldAtrib) {
+                historico.push({
+                    de: oldAtrib,
+                    para: newAtrib,
+                    data: new Date().toISOString(),
+                });
+            }
+
             await updateDemanda(selectedDemanda.id, {
                 titulo: editForm.titulo,
                 descricao: editForm.descricao,
@@ -143,6 +166,7 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                 atribuido_a: editForm.atribuido_a,
                 redirecionado_para: editForm.redirecionado_para,
                 area_responsavel: editForm.area_responsavel,
+                historico_redirecionamentos: historico,
             } as any);
             const freshData = await getDemandasByMunicipio(municipioId);
             const mapped = freshData.map((d: any) => ({
@@ -160,6 +184,7 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                 atribuido_a: d.atribuido_a || '',
                 redirecionado_para: d.redirecionado_para || '',
                 area_responsavel: d.area_responsavel || '',
+                historico_redirecionamentos: d.historico_redirecionamentos || [],
                 created_at: d.created_at,
             }));
             setDemandas(mapped);
@@ -424,6 +449,26 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                                         </span>
                                     </div>
                                 </div>
+
+                                {/* Histórico de Redirecionamentos */}
+                                {(selectedDemanda.historico_redirecionamentos || []).length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                                        <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-xs">history</span>
+                                            Histórico de Redirecionamentos
+                                        </p>
+                                        <div className="space-y-1.5">
+                                            {(selectedDemanda.historico_redirecionamentos || []).map((h: any, i: number) => (
+                                                <div key={i} className="flex items-center gap-2 text-[10px] bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700">
+                                                    <span className="text-slate-400">{new Date(h.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                                    <span className="font-medium text-slate-500">{h.de}</span>
+                                                    <span className="material-symbols-outlined text-orange-400 text-xs">arrow_forward</span>
+                                                    <span className="font-bold text-orange-600 dark:text-orange-400">{h.para}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Campos editáveis */}
@@ -506,12 +551,14 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                                     </div>
                                     <div>
                                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Recebido por</label>
-                                        <input
+                                        <select
                                             value={editForm.recebido_por || ''}
                                             onChange={e => setEditForm({ ...editForm, recebido_por: e.target.value })}
-                                            placeholder="Nome do assessor que recebeu..."
-                                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30 transition-all"
-                                        />
+                                            className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                        >
+                                            <option value="">Selecione o assessor...</option>
+                                            {assessores.map(a => <option key={a.id} value={a.nome}>{a.nome}</option>)}
+                                        </select>
                                     </div>
                                 </div>
 
