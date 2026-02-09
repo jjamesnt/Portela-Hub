@@ -14,28 +14,54 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     assessor: 'Todos',
     municipio: 'Todos',
   });
-  
+
   const [theme, setTheme] = useState<Theme>(() => {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const storedTheme = window.localStorage.getItem('theme') as Theme;
-        return storedTheme || 'light';
-      }
-      return 'light';
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const storedTheme = window.localStorage.getItem('theme') as Theme;
+      return storedTheme || 'light';
+    }
+    return 'light';
   });
 
   useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove(theme === 'light' ? 'dark' : 'light');
-    root.classList.add(theme);
     localStorage.setItem('theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, [theme]);
 
+  const [selectedMandato, setSelectedMandatoState] = useState<string>(() => {
+    return localStorage.getItem('portela_hub_selected_mandato') || 'Todos';
+  });
+
+  useEffect(() => {
+    if (selectedMandato === 'Lincoln Portela') {
+      document.body.classList.add('mandato-lincoln');
+    } else {
+      document.body.classList.remove('mandato-lincoln');
+    }
+  }, [selectedMandato]);
+
+  const setSelectedMandato = (mandato: string) => {
+    setSelectedMandatoState(mandato);
+    localStorage.setItem('portela_hub_selected_mandato', mandato);
+  };
+
   const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
   return (
-    <AppContext.Provider value={{ filters, setFilters, theme, toggleTheme }}>
+    <AppContext.Provider value={{
+      filters,
+      setFilters,
+      theme,
+      toggleTheme,
+      selectedMandato,
+      setSelectedMandato
+    }}>
       {children}
     </AppContext.Provider>
   );

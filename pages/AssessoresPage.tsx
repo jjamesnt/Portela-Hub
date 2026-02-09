@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useAppContext } from '../hooks/useAppContext';
 import { getAssessores } from '../services/api';
 import { Assessor } from '../types';
 import Loader from '../components/Loader';
@@ -29,6 +30,12 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
         fetchAssessores();
     }, []);
 
+    const { selectedMandato } = useAppContext();
+
+    const assessoresFiltrados = assessores.filter(a =>
+        selectedMandato === 'Todos' || a.origem === selectedMandato
+    );
+
     return (
         <div className="p-8">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
@@ -41,10 +48,10 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                     Adicionar Assessor
                 </button>
             </div>
-            
+
             {isLoading ? <Loader /> : error ? <div className="p-8 text-center text-red-500">{error}</div> : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                    {assessores.map(assessor => (
+                    {assessoresFiltrados.map(assessor => (
                         <div key={assessor.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 text-center p-6 flex flex-col items-center">
                             <img src={assessor.avatarUrl} alt={assessor.nome} className="size-24 rounded-full border-4 border-white dark:border-slate-700 shadow-md -mt-16" />
                             <h3 className="mt-4 text-lg font-bold text-navy-dark dark:text-white">{assessor.nome}</h3>

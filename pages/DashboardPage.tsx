@@ -423,8 +423,6 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { selectedMandato, setSelectedMandato } = useContext(AppContext)!;
-    const [votosTotalMG, setVotosTotalMG] = useState<number | null>(null);
-    const [votosLoading, setVotosLoading] = useState(false);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -471,7 +469,10 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                     demandasTotais: demandasTotaisData,
                     aleDemandasCount: aleDemandasCount,
                     lincolnDemandasCount: lincolnDemandasCount,
-                    recursos: recursosData
+                    recursos: recursosData.map(r => ({
+                        ...r,
+                        municipio_nome: municipiosData.find(m => m.id === r.municipioId)?.nome || 'Desconhecido'
+                    }))
                 });
                 setError(null);
             } catch (err: any) {
@@ -485,27 +486,6 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
         fetchDashboardData();
     }, []);
 
-    // Buscar votos totais em MG de ambos os deputados
-    useEffect(() => {
-        const fetchVotosTotaisMG = async () => {
-            setVotosLoading(true);
-            try {
-                // Valores reais do TSE - votos totais em MG 2022
-                // Estes são os valores oficiais consolidados (Soma dos arquivos JSON verificada)
-                setVotosTotalMG({
-                    lincoln: 42328,  // Lincoln Portela - Dep. Federal
-                    ale: 42179        // Alê Portela - Dep. Estadual
-                } as any);
-            } catch (e) {
-                console.error('Erro ao buscar votos totais:', e);
-                setVotosTotalMG(null);
-            } finally {
-                setVotosLoading(false);
-            }
-        };
-
-        fetchVotosTotaisMG();
-    }, []);
 
 
     if (isLoading) return <Loader />;
@@ -558,45 +538,6 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
 
                 return (
                     <div className="space-y-8 animate-in fade-in duration-300">
-                        {/* KPI de Votos Total em MG - Mostra ambos os deputados */}
-                        {votosTotalMG !== null && (
-                            <div className={`grid gap-4 ${selectedMandato === 'Todos' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
-                                {/* Lincoln Portela */}
-                                {(selectedMandato === 'Todos' || selectedMandato === 'Lincoln Portela') && (
-                                    <div className="bg-gradient-to-r from-lime-500 to-lime-600 rounded-2xl p-5 shadow-lg">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="text-white/80 text-xs font-medium mb-1">Votação Total MG 2022</p>
-                                                <h2 className="text-white text-3xl font-black">
-                                                    {votosLoading ? '...' : (votosTotalMG as any).lincoln?.toLocaleString('pt-BR') || '227.143'}
-                                                </h2>
-                                                <p className="text-white/80 text-xs mt-1">Lincoln Portela • Dep. Federal</p>
-                                            </div>
-                                            <div className="bg-white/20 p-3 rounded-xl">
-                                                <span className="material-symbols-outlined text-white text-3xl">how_to_vote</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                {/* Alê Portela */}
-                                {(selectedMandato === 'Todos' || selectedMandato === 'Alê Portela') && (
-                                    <div className="bg-gradient-to-r from-turquoise to-teal-500 rounded-2xl p-5 shadow-lg">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="text-white/80 text-xs font-medium mb-1">Votação Total MG 2022</p>
-                                                <h2 className="text-white text-3xl font-black">
-                                                    {votosLoading ? '...' : (votosTotalMG as any).ale?.toLocaleString('pt-BR') || '56.438'}
-                                                </h2>
-                                                <p className="text-white/80 text-xs mt-1">Alê Portela • Dep. Estadual</p>
-                                            </div>
-                                            <div className="bg-white/20 p-3 rounded-xl">
-                                                <span className="material-symbols-outlined text-white text-3xl">how_to_vote</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                             <KpiCard

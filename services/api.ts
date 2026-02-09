@@ -75,20 +75,12 @@ export const getMunicipioById = async (id: string): Promise<MunicipioDetalhado |
     }
 
     // Busca dados relacionados em paralelo
-    const [demandasRes, liderancasRes, eleitoradoRes, recursosRes] = await Promise.all([
+    const [demandasRes, liderancasRes, recursosRes] = await Promise.all([
         supabase.from('demandas').select('*').eq('municipio_id', id),
         supabase.from('liderancas_locais').select('*').eq('municipio_id', id),
-        supabase.from('eleitorado').select('*').eq('municipio_id', id).single(),
         supabase.from('recursos').select('valor').eq('municipio_id', id)
     ]);
 
-    // Mapeamento dos votos
-    const { data: votosData } = await supabase.from('votos').select('*').eq('municipio_id', id);
-    const votosMap: any = {};
-    votosData?.forEach(v => {
-        if (!votosMap[v.ano]) votosMap[v.ano] = {};
-        votosMap[v.ano][v.cargo] = v.quantidade;
-    });
 
     return {
         ...mapMunicipio(municipio),
@@ -99,14 +91,6 @@ export const getMunicipioById = async (id: string): Promise<MunicipioDetalhado |
             cargo: l.cargo,
             avatarInitials: l.avatar_initials
         })) as LiderancaLocal[],
-        eleitorado: {
-            total: eleitoradoRes.data?.total || 0,
-            votos: votosMap,
-            genero: {
-                feminino: eleitoradoRes.data?.genero_feminino || 0,
-                masculino: eleitoradoRes.data?.genero_masculino || 0
-            }
-        },
         totalRecursos: recursosRes.data?.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0) || 0
     } as MunicipioDetalhado;
 };
@@ -247,10 +231,16 @@ export const createRecurso = async (recurso: {
     return data;
 };
 
-export const getDemandasTotais = async (): Promise<number> => {
-    const { count, error } = await supabase
+export const getDemandasTotais = async (origem?: string): Promise<number> => {
+    let query = supabase
         .from('demandas')
         .select('*', { count: 'exact', head: true });
+
+    if (origem) {
+        query = query.eq('origem', origem);
+    }
+
+    const { count, error } = await query;
 
     if (error) {
         console.error('Erro ao contar demandas:', error);

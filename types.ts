@@ -51,26 +51,11 @@ export interface LiderancaLocal {
     origem?: 'Alê Portela' | 'Lincoln Portela';
 }
 
-export interface VotosPorAnoCargo {
-    [ano: number]: {
-        [cargo: string]: number;
-    };
-}
-
-export interface Eleitorado {
-    total: number;
-    votos: VotosPorAnoCargo;
-    genero: {
-        feminino: number;
-        masculino: number;
-    };
-}
 
 export interface MunicipioDetalhado extends Municipio {
     populacao: number;
     idh: number;
     pibPerCapita: number;
-    eleitorado: Eleitorado;
     demandas: Demanda[];
     liderancas: LiderancaLocal[];
 }

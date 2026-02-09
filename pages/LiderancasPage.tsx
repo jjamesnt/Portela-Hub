@@ -1,5 +1,5 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
+import { useAppContext } from '../hooks/useAppContext';
 import { getLiderancas, getMunicipios } from '../services/api';
 import { Lideranca, Municipio } from '../types';
 import Loader from '../components/Loader';
@@ -16,7 +16,7 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
 
     const [busca, setBusca] = useState('');
     const [filtroMunicipio, setFiltroMunicipio] = useState('Todos');
-    
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -37,13 +37,16 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
         fetchData();
     }, []);
 
+    const { selectedMandato } = useAppContext();
+
     const liderancasFiltradas = useMemo(() => {
         return liderancas.filter(l => {
             const correspondeBusca = l.nome.toLowerCase().includes(busca.toLowerCase());
             const correspondeMunicipio = filtroMunicipio === 'Todos' || l.municipio === filtroMunicipio;
-            return correspondeBusca && correspondeMunicipio;
+            const correspondeMandato = selectedMandato === 'Todos' || l.origem === selectedMandato;
+            return correspondeBusca && correspondeMunicipio && correspondeMandato;
         });
-    }, [busca, filtroMunicipio, liderancas]);
+    }, [busca, filtroMunicipio, liderancas, selectedMandato]);
 
     const statusStyle = (status: Lideranca['status']) => {
         switch (status) {
@@ -81,7 +84,7 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                             <tbody className="text-sm divide-y divide-slate-100 dark:divide-slate-700">
                                 {liderancasFiltradas.map(l => (
                                     <tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
-                                        <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="size-9 rounded-full bg-navy-dark dark:bg-slate-700 text-white flex items-center justify-center font-bold text-xs">{l.nome.split(' ').map(n=>n[0]).join('')}</div><div><div className="font-bold text-navy-dark dark:text-white">{l.nome}</div></div></div></td>
+                                        <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="size-9 rounded-full bg-navy-dark dark:bg-slate-700 text-white flex items-center justify-center font-bold text-xs">{l.nome.split(' ').map(n => n[0]).join('')}</div><div><div className="font-bold text-navy-dark dark:text-white">{l.nome}</div></div></div></td>
                                         <td className="px-6 py-4"><div className="font-medium text-slate-700 dark:text-slate-300">{l.municipio}</div><div className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">{l.regiao}</div></td>
                                         <td className="px-6 py-4"><div className="font-medium text-slate-700 dark:text-slate-300">{l.partido}</div><div className="text-[11px] text-slate-500">{l.cargo}</div></td>
                                         <td className="px-6 py-4 font-mono text-xs text-slate-500">{l.contato}</td>

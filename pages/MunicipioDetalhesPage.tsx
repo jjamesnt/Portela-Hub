@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import { getMunicipioById, getMunicipios } from '../services/api';
 import { MunicipioDetalhado } from '../types';
 import { AppContext } from '../context/AppContext';
-import EleitoradoCard from '../components/EleitoradoCard';
 import InfoGeraisCard from '../components/InfoGeraisCard';
 import DemandasCard from '../components/DemandasCard';
 import KpiResumoCard from '../components/KpiResumoCard';
@@ -17,14 +16,6 @@ interface MunicipioDetalhesPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
 }
 
-// Fallback rápido para códigos TSE mais usados
-const COMMON_IBGE_TSE: Record<string, string> = {
-    '3106200': '41238', // BH
-    '3118601': '43710', // Contagem
-    '3170206': '54038', // Uberlândia
-    '3136702': '47333', // Juiz de Fora
-    '3127701': '46256', // Governador Valadares
-};
 
 const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipioId, navigateTo }) => {
     const { selectedMandato } = useContext(AppContext) || { selectedMandato: 'Todos' };
@@ -33,8 +24,6 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isDemandaModalOpen, setIsDemandaModalOpen] = useState(false);
-    const [votosMandato, setVotosMandato] = useState<number | null>(null);
-    const [votosLoading, setVotosLoading] = useState(false);
 
     const fetchMunicipio = async () => {
         try {
@@ -67,59 +56,6 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
         fetchAllMunicipios();
     }, [municipioId]);
 
-    // Buscar votos de AMBOS os deputados neste município
-    useEffect(() => {
-        const fetchVotosMandato = async () => {
-            if (!municipio?.codigoIBGE) {
-                setVotosMandato(null);
-                return;
-            }
-
-            setVotosLoading(true);
-            try {
-                // Converter IBGE para TSE
-                let tseCode = COMMON_IBGE_TSE[municipio.codigoIBGE];
-                if (!tseCode) {
-                    const res = await fetch('https://raw.githubusercontent.com/betafcc/Municipios-Brasileiros-TSE/master/municipios_brasileiros_tse.json');
-                    if (res.ok) {
-                        const data = await res.json();
-                        const entry = data.find((m: any) => String(m.codigo_ibge) === municipio.codigoIBGE);
-                        if (entry) tseCode = String(entry.codigo_tse);
-                    }
-                }
-
-                if (!tseCode) {
-                    setVotosMandato(null);
-                    return;
-                }
-
-                // Buscar arquivo de votos
-                const votosRes = await fetch(`/data/votos/${tseCode}.json`);
-                if (!votosRes.ok) {
-                    setVotosMandato(null);
-                    return;
-                }
-
-                const votosData = await votosRes.json();
-
-                // Buscar votos de AMBOS os deputados
-                const lincolnCandidato = votosData.f?.find((c: any) => c.nr === '2233');
-                const aleCandidato = votosData.e?.find((c: any) => c.nr === '22333');
-
-                setVotosMandato({
-                    lincoln: lincolnCandidato?.v || 0,
-                    ale: aleCandidato?.v || 0
-                } as any);
-            } catch (e) {
-                console.error('Erro ao buscar votos do mandato:', e);
-                setVotosMandato(null);
-            } finally {
-                setVotosLoading(false);
-            }
-        };
-
-        fetchVotosMandato();
-    }, [municipio?.codigoIBGE]);
 
     if (isLoading) {
         return <div className="p-8"><Loader /></div>;
@@ -183,7 +119,6 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
 
             {/* Row 1: Main KPIs - Recursos + Votos dos Deputados */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                {/* Recursos Ativos */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-3 opacity-10">
                         <span className="material-symbols-outlined text-5xl text-emerald-600">payments</span>
@@ -197,45 +132,6 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
                     </span>
                 </div>
 
-                {/* KPI de Votos dos Deputados */}
-                {votosMandato !== null && (
-                    <>
-                        {/* Lincoln Portela */}
-                        {(selectedMandato === 'Todos' || selectedMandato === 'Lincoln Portela') && (
-                            <div className="bg-gradient-to-br from-lime-500 to-lime-600 rounded-xl p-5 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-3 opacity-20">
-                                    <span className="material-symbols-outlined text-5xl text-white">how_to_vote</span>
-                                </div>
-                                <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider mb-1">
-                                    Votos Lincoln (2022)
-                                </p>
-                                <h3 className="text-2xl font-black text-white">
-                                    {votosLoading ? '...' : (votosMandato as any).lincoln?.toLocaleString('pt-BR') || '0'}
-                                </h3>
-                                <span className="text-[10px] font-bold text-white/80 mt-2 inline-block">
-                                    Dep. Federal
-                                </span>
-                            </div>
-                        )}
-                        {/* Alê Portela */}
-                        {(selectedMandato === 'Todos' || selectedMandato === 'Alê Portela') && (
-                            <div className="bg-gradient-to-br from-turquoise to-teal-500 rounded-xl p-5 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-3 opacity-20">
-                                    <span className="material-symbols-outlined text-5xl text-white">how_to_vote</span>
-                                </div>
-                                <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider mb-1">
-                                    Votos Alê (2022)
-                                </p>
-                                <h3 className="text-2xl font-black text-white">
-                                    {votosLoading ? '...' : (votosMandato as any).ale?.toLocaleString('pt-BR') || '0'}
-                                </h3>
-                                <span className="text-[10px] font-bold text-white/80 mt-2 inline-block">
-                                    Dep. Estadual
-                                </span>
-                            </div>
-                        )}
-                    </>
-                )}
             </div>
 
             {/* Row 2: Operational KPIs */}
@@ -257,13 +153,7 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
 
             <div className="grid grid-cols-12 gap-8">
                 <div className="col-span-12 lg:col-span-4 space-y-8">
-                    <EleitoradoCard
-                        eleitoradoData={municipio.eleitorado}
-                        codigoIBGE={municipio.codigoIBGE}
-                    />
                     <InfoGeraisCard
-                        codigoIBGE={municipio.codigoIBGE}
-                        populacao={municipio.populacao}
                         idh={municipio.idh}
                         pibPerCapita={municipio.pibPerCapita}
                     />

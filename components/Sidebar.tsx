@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useAppContext } from '../hooks/useAppContext';
 
 interface SidebarProps {
     activePage: string;
@@ -16,6 +17,8 @@ const navItems = [
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
+    const { selectedMandato } = useAppContext();
+
     const isActive = (itemLabel: string) => {
         if (itemLabel === 'Municípios' && activePage === 'MunicipioDetalhes') {
             return true;
@@ -25,14 +28,36 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
 
     return (
         <aside className="w-64 bg-navy-dark text-white flex flex-col shrink-0">
-            <div className="p-6 flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-turquoise flex items-center justify-center shadow-lg shadow-turquoise/20">
-                    <span className="material-symbols-outlined text-white font-bold">hub</span>
-                </div>
-                <div>
-                    <h1 className="text-lg font-extrabold tracking-tight leading-none text-white">Portela <span className="text-turquoise">Hub</span></h1>
-                    <p className="text-[10px] text-turquoise/70 uppercase tracking-widest font-bold mt-0.5">Gestão Inteligente</p>
-                </div>
+            <div className="p-6 flex items-center gap-3 border-b border-white/5 bg-navy-darker">
+                {selectedMandato === 'Alê Portela' ? (
+                    <div className="h-12 w-full flex items-center justify-center p-1 bg-white/5 rounded-lg overflow-hidden group transition-all hover:bg-white/10">
+                        <img
+                            src="/assets/logos/ale_logo_v1.png"
+                            alt="Alê Portela"
+                            className="max-h-full max-w-full object-contain"
+                        />
+                    </div>
+                ) : selectedMandato === 'Lincoln Portela' ? (
+                    <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-lg bg-turquoise flex items-center justify-center shadow-lg shadow-turquoise/20">
+                            <span className="material-symbols-outlined text-white font-bold">account_balance</span>
+                        </div>
+                        <div>
+                            <h1 className="text-sm font-extrabold tracking-tight leading-none text-white">Dep. Federal</h1>
+                            <h2 className="text-lg font-black text-turquoise tracking-tighter">Lincoln Portela</h2>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-lg bg-turquoise flex items-center justify-center shadow-lg shadow-turquoise/20">
+                            <span className="material-symbols-outlined text-white font-bold">hub</span>
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-extrabold tracking-tight leading-none text-white">Portela <span className="text-turquoise">Hub</span></h1>
+                            <p className="text-[10px] text-turquoise/70 uppercase tracking-widest font-bold mt-0.5">Gestão Inteligente</p>
+                        </div>
+                    </div>
+                )}
             </div>
             <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
                 {navItems.map(item => (

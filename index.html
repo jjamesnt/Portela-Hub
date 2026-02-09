@@ -17,11 +17,11 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#008B8B",
-                        "navy-dark": "#002147",
+                        "primary": "var(--color-primary)",
+                        "navy-dark": "var(--color-navy-dark)",
                         "background-light": "#f5f8f8",
                         "background-dark": "#0f2323",
-                        "turquoise": "#008B8B"
+                        "turquoise": "var(--color-primary)"
                     },
                     fontFamily: {
                         "display": ["Public Sans", "sans-serif"]
@@ -35,6 +35,16 @@
         }
     </script>
     <style type="text/tailwindcss">
+        :root {
+            --color-primary: #008B8B;
+            --color-navy-dark: #002147;
+        }
+
+        .mandato-lincoln {
+            --color-primary: #8db641;
+            --color-navy-dark: #0e1c2c;
+        }
+
         body {
             font-family: "Public Sans", sans-serif;
         }
@@ -43,7 +53,7 @@
         }
         .sidebar-active {
             background-color: rgba(0, 139, 139, 0.2);
-            border-left: 4px solid #008B8B;
+            border-left: 4px solid var(--color-primary);
         }
         .mg-map-bg {
             background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuDMqFZcikANryCUTE0XJETMHJ15c2juG8_-RssYEFroh0pa_bfV8HBEfdnZm5Jd3zZkBWQqrljSuY_W4X4g4eAp6Z9OhJeLBTT9WHS6T0cLCpIIlB3zwAniM7yAVbkCl58syE2MTLB47tkABMBhu7ln46pagfemhImSLg0YXT11qWevvU1edbWhNmCE0DKmSvlmbCJ5U9Pe6rHz58DJsFRonYQd-oPx1bQ9zEFCFYZJ_0Y3ae01FCCWRhKPvsmXl8-JBQv3RS4ni1cu);

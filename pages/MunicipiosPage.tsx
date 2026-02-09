@@ -2,28 +2,13 @@
 import React, { useState, useMemo, useEffect, useContext, useCallback } from 'react';
 import { getMunicipios, createMunicipio, getAssessores } from '../services/api';
 import { Municipio, Assessor } from '../types';
+import { useAppContext } from '../hooks/useAppContext';
 import { AppContext } from '../context/AppContext';
 
 interface MunicipiosPageProps {
     navigateTo: (page: string, params: { id: string }) => void;
 }
 
-// Mapeamento IBGE -> TSE para municípios principais
-const COMMON_IBGE_TSE: Record<string, string> = {
-    '3106200': '41238',  // Belo Horizonte
-    '3118601': '43710',  // Contagem
-    '3170206': '54038',  // Uberlândia
-    '3136702': '47333',  // Juiz de Fora
-    '3143302': '49123',  // Montes Claros
-    '3106705': '41513',  // Betim
-    '3154606': '50415',  // Ribeirão das Neves
-    '3127701': '45492',  // Governador Valadares
-    '3129806': '45978',  // Ipatinga
-    '3168606': '53731',  // Uberaba
-    '3151800': '49942',  // Poços de Caldas
-    '3137601': '47627',  // Lavras
-    '3122306': '44636',  // Divinópolis
-};
 
 // Cores por Mesorregião de MG
 const REGION_COLORS: Record<string, { bg: string, text: string }> = {
@@ -89,10 +74,10 @@ const HighlightText: React.FC<{ text: string, highlight: string }> = ({ text, hi
 
 // Sort direction type
 type SortDirection = 'asc' | 'desc' | null;
-type SortField = 'nome' | 'regiao' | 'votosLincoln' | 'votosAle' | 'totalRecursos' | 'totalDemandas' | 'statusAtividade' | 'populacao';
+type SortField = 'nome' | 'regiao' | 'totalRecursos' | 'totalDemandas' | 'statusAtividade' | 'populacao';
 
 const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
-    const { selectedMandato } = useContext(AppContext) || { selectedMandato: 'Todos' };
+    const { selectedMandato } = useAppContext();
 
     const [municipios, setMunicipios] = useState<Municipio[]>([]);
     const [assessores, setAssessores] = useState<Assessor[]>([]);
@@ -114,7 +99,6 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
     const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
     // Votes data
-    const [votosData, setVotosData] = useState<Record<string, { lincoln: number, ale: number }>>({});
 
     // Form state
     const [formData, setFormData] = useState({
@@ -146,25 +130,6 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                 setAssessores(assessoresData);
                 setError(null);
 
-                // Fetch votes summary (MUCH FASTER)
-                try {
-                    const res = await fetch('/data/votos_resumo.json');
-                    if (res.ok) {
-                        const resumo = await res.json();
-                        const votosMap: Record<string, { lincoln: number, ale: number }> = {};
-
-                        municipiosData.forEach((m: Municipio) => {
-                            const data = resumo[m.codigoIBGE];
-                            votosMap[m.id] = {
-                                lincoln: data?.l || 0,
-                                ale: data?.a || 0
-                            };
-                        });
-                        setVotosData(votosMap);
-                    }
-                } catch (e) {
-                    console.error('Erro ao buscar resumo de votos:', e);
-                }
 
             } catch (err) {
                 setError('Falha ao carregar os dados.');
@@ -219,8 +184,6 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                 switch (sortField) {
                     case 'nome': aVal = a.nome; bVal = b.nome; break;
                     case 'regiao': aVal = a.regiao; bVal = b.regiao; break;
-                    case 'votosLincoln': aVal = votosData[a.id]?.lincoln || 0; bVal = votosData[b.id]?.lincoln || 0; break;
-                    case 'votosAle': aVal = votosData[a.id]?.ale || 0; bVal = votosData[b.id]?.ale || 0; break;
                     case 'totalRecursos': aVal = a.totalRecursos || 0; bVal = b.totalRecursos || 0; break;
                     case 'totalDemandas': aVal = a.totalDemandas || 0; bVal = b.totalDemandas || 0; break;
                     case 'statusAtividade': aVal = a.statusAtividade; bVal = b.statusAtividade; break;
@@ -235,16 +198,13 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
         }
 
         return filtered;
-    }, [debouncedSearch, filterRegion, filterStatus, filterInvestment, municipios, sortField, sortDirection, votosData]);
+    }, [debouncedSearch, filterRegion, filterStatus, filterInvestment, municipios, sortField, sortDirection]);
 
     // Summary stats
     const summaryStats = useMemo(() => ({
         total: municipiosFiltrados.length,
         totalInvestimento: municipiosFiltrados.reduce((acc, m) => acc + (m.totalRecursos || 0), 0),
         totalDemandas: municipiosFiltrados.reduce((acc, m) => acc + (m.totalDemandas || 0), 0),
-        // Votos mostram o total estadual oficial de MG (2022) para evitar confusão com a lista filtrada
-        totalVotosLincoln: 42328,
-        totalVotosAle: 42179,
     }), [municipiosFiltrados]);
 
     // Format population
@@ -278,7 +238,9 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
             };
 
             const novoMunicipio = await createMunicipio(municipioData);
-            setMunicipios(prev => [...prev, novoMunicipio]);
+            // Recarregar municípios para garantir dados frescos e tipos corretos
+            const municipiosData = await getMunicipios();
+            setMunicipios(municipiosData);
             setSuccessMessage('Município cadastrado com sucesso!');
             setShowModal(false);
             setFormData({
@@ -367,18 +329,6 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                     <p className="text-[10px] font-bold text-slate-400 uppercase">Demandas</p>
                     <p className="text-xl font-black text-navy-custom dark:text-white">{summaryStats.totalDemandas}</p>
                 </div>
-                {(selectedMandato === 'Todos' || selectedMandato === 'Lincoln Portela') && (
-                    <div className="bg-gradient-to-br from-lime-500 to-lime-600 rounded-xl p-4">
-                        <p className="text-[10px] font-bold text-white/80 uppercase">Votos Lincoln</p>
-                        <p className="text-xl font-black text-white">{summaryStats.totalVotosLincoln.toLocaleString('pt-BR')}</p>
-                    </div>
-                )}
-                {(selectedMandato === 'Todos' || selectedMandato === 'Alê Portela') && (
-                    <div className="bg-gradient-to-br from-turquoise to-teal-500 rounded-xl p-4">
-                        <p className="text-[10px] font-bold text-white/80 uppercase">Votos Alê</p>
-                        <p className="text-xl font-black text-white">{summaryStats.totalVotosAle.toLocaleString('pt-BR')}</p>
-                    </div>
-                )}
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
@@ -460,16 +410,6 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                                 <th className="px-6 py-4 cursor-pointer hover:text-turquoise transition-colors" onClick={() => handleSort('regiao')}>
                                     <div className="flex items-center gap-1">Região <SortIcon field="regiao" /></div>
                                 </th>
-                                {(selectedMandato === 'Todos' || selectedMandato === 'Lincoln Portela') && (
-                                    <th className="px-4 py-4 cursor-pointer hover:text-turquoise transition-colors text-center" onClick={() => handleSort('votosLincoln')}>
-                                        <div className="flex items-center justify-center gap-1">Lincoln <SortIcon field="votosLincoln" /></div>
-                                    </th>
-                                )}
-                                {(selectedMandato === 'Todos' || selectedMandato === 'Alê Portela') && (
-                                    <th className="px-4 py-4 cursor-pointer hover:text-turquoise transition-colors text-center" onClick={() => handleSort('votosAle')}>
-                                        <div className="flex items-center justify-center gap-1">Alê <SortIcon field="votosAle" /></div>
-                                    </th>
-                                )}
                                 <th className="px-6 py-4 cursor-pointer hover:text-turquoise transition-colors text-center" onClick={() => handleSort('totalRecursos')}>
                                     <div className="flex items-center justify-center gap-1">Investimento <SortIcon field="totalRecursos" /></div>
                                 </th>
@@ -500,7 +440,6 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                                 ) : (
                                     municipiosFiltrados.map(municipio => {
                                         const regionColor = getRegionColor(municipio.regiao);
-                                        const votes = votosData[municipio.id] || { lincoln: 0, ale: 0 };
 
                                         return (
                                             <tr
@@ -523,20 +462,6 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                                                         {municipio.regiao}
                                                     </span>
                                                 </td>
-                                                {(selectedMandato === 'Todos' || selectedMandato === 'Lincoln Portela') && (
-                                                    <td className="px-4 py-4 text-center">
-                                                        <span className="text-xs font-bold text-lime-600 bg-lime-50 dark:bg-lime-900/30 px-2 py-1 rounded">
-                                                            {votes.lincoln.toLocaleString('pt-BR')}
-                                                        </span>
-                                                    </td>
-                                                )}
-                                                {(selectedMandato === 'Todos' || selectedMandato === 'Alê Portela') && (
-                                                    <td className="px-4 py-4 text-center">
-                                                        <span className="text-xs font-bold text-turquoise bg-turquoise/10 px-2 py-1 rounded">
-                                                            {votes.ale.toLocaleString('pt-BR')}
-                                                        </span>
-                                                    </td>
-                                                )}
                                                 <td className="px-6 py-4 text-center font-bold text-emerald-600 whitespace-nowrap">
                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(municipio.totalRecursos || 0)}
                                                 </td>
