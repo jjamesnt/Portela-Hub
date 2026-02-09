@@ -1,0 +1,288 @@
+import React, { useState, useEffect, useContext } from 'react';
+import { getMunicipioById, getMunicipios } from '../services/api';
+import { MunicipioDetalhado } from '../types';
+import { AppContext } from '../context/AppContext';
+import EleitoradoCard from '../components/EleitoradoCard';
+import InfoGeraisCard from '../components/InfoGeraisCard';
+import DemandasCard from '../components/DemandasCard';
+import KpiResumoCard from '../components/KpiResumoCard';
+import LiderancasLocaisCard from '../components/LiderancasLocaisCard';
+import Loader from '../components/Loader';
+import RecursosCard from '../components/RecursosCard';
+import DemandaModal from '../components/DemandaModal';
+
+
+interface MunicipioDetalhesPageProps {
+    municipioId: string;
+    navigateTo: (page: string, params?: { [key: string]: any }) => void;
+}
+
+// Fallback rápido para códigos TSE mais usados
+const COMMON_IBGE_TSE: Record<string, string> = {
+    '3106200': '41238', // BH
+    '3118601': '43710', // Contagem
+    '3170206': '54038', // Uberlândia
+    '3136702': '47333', // Juiz de Fora
+    '3127701': '46256', // Governador Valadares
+};
+
+const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipioId, navigateTo }) => {
+    const { selectedMandato } = useContext(AppContext) || { selectedMandato: 'Todos' };
+    const [municipio, setMunicipio] = useState<MunicipioDetalhado | null>(null);
+    const [allMunicipios, setAllMunicipios] = useState<{ id: string, nome: string }[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isDemandaModalOpen, setIsDemandaModalOpen] = useState(false);
+    const [votosMandato, setVotosMandato] = useState<number | null>(null);
+    const [votosLoading, setVotosLoading] = useState(false);
+
+    const fetchMunicipio = async () => {
+        try {
+            setIsLoading(true);
+            const data = await getMunicipioById(municipioId);
+            if (data) {
+                setMunicipio(data);
+                setError(null);
+            } else {
+                setError(`Município com ID '${municipioId}' não encontrado.`);
+            }
+        } catch (err) {
+            setError('Falha ao carregar os dados do município.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const fetchAllMunicipios = async () => {
+        try {
+            const data = await getMunicipios();
+            setAllMunicipios(data.map(m => ({ id: m.id, nome: m.nome })).sort((a, b) => a.nome.localeCompare(b.nome)));
+        } catch (err) {
+            console.error('Erro ao buscar lista de municípios:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchMunicipio();
+        fetchAllMunicipios();
+    }, [municipioId]);
+
+    // Buscar votos de AMBOS os deputados neste município
+    useEffect(() => {
+        const fetchVotosMandato = async () => {
+            if (!municipio?.codigoIBGE) {
+                setVotosMandato(null);
+                return;
+            }
+
+            setVotosLoading(true);
+            try {
+                // Converter IBGE para TSE
+                let tseCode = COMMON_IBGE_TSE[municipio.codigoIBGE];
+                if (!tseCode) {
+                    const res = await fetch('https://raw.githubusercontent.com/betafcc/Municipios-Brasileiros-TSE/master/municipios_brasileiros_tse.json');
+                    if (res.ok) {
+                        const data = await res.json();
+                        const entry = data.find((m: any) => String(m.codigo_ibge) === municipio.codigoIBGE);
+                        if (entry) tseCode = String(entry.codigo_tse);
+                    }
+                }
+
+                if (!tseCode) {
+                    setVotosMandato(null);
+                    return;
+                }
+
+                // Buscar arquivo de votos
+                const votosRes = await fetch(`/data/votos/${tseCode}.json`);
+                if (!votosRes.ok) {
+                    setVotosMandato(null);
+                    return;
+                }
+
+                const votosData = await votosRes.json();
+
+                // Buscar votos de AMBOS os deputados
+                const lincolnCandidato = votosData.f?.find((c: any) => c.nr === '2233');
+                const aleCandidato = votosData.e?.find((c: any) => c.nr === '22333');
+
+                setVotosMandato({
+                    lincoln: lincolnCandidato?.v || 0,
+                    ale: aleCandidato?.v || 0
+                } as any);
+            } catch (e) {
+                console.error('Erro ao buscar votos do mandato:', e);
+                setVotosMandato(null);
+            } finally {
+                setVotosLoading(false);
+            }
+        };
+
+        fetchVotosMandato();
+    }, [municipio?.codigoIBGE]);
+
+    if (isLoading) {
+        return <div className="p-8"><Loader /></div>;
+    }
+
+    if (error || !municipio) {
+        return <div className="p-8 text-center text-red-500">{error || 'Município não encontrado.'}</div>;
+    }
+
+    return (
+        <div className="max-w-[1400px] mx-auto p-4 md:p-8">
+            <nav className="flex flex-wrap items-center gap-2 mb-6 text-xs md:sm font-medium">
+                <button onClick={() => navigateTo('Dashboard')} className="text-primary hover:text-primary/80">Dashboard</button>
+                <span className="text-slate-300 dark:text-slate-600">/</span>
+                <button onClick={() => navigateTo('Municípios')} className="text-primary hover:text-primary/80">Minas Gerais</button>
+                <span className="text-slate-300 dark:text-slate-600">/</span>
+                <span className="text-navy-custom dark:text-slate-300 font-bold">{municipio.nome}</span>
+            </nav>
+
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-navy-custom dark:text-white text-3xl md:text-5xl font-black tracking-tight truncate">{municipio.nome}</h2>
+                        <div className="relative group">
+                            <select
+                                onChange={(e) => navigateTo('MunicipioDetalhes', { id: e.target.value })}
+                                value={municipioId}
+                                className="appearance-none bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border-none rounded-full px-4 pr-10 py-1.5 text-xs font-bold text-slate-500 dark:text-slate-300 cursor-pointer focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                            >
+                                <option value="" disabled>Trocar Município</option>
+                                {allMunicipios.map(m => (
+                                    <option key={m.id} value={m.id}>{m.nome}</option>
+                                ))}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">swap_horiz</span>
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap gap-3 items-center">
+                        <div className="flex h-7 items-center justify-center gap-x-2 rounded bg-primary/10 px-3 border border-primary/20">
+                            <span className="text-primary text-[10px] font-bold uppercase tracking-wider">{municipio.regiao}</span>
+                        </div>
+                        <div className="flex h-7 items-center justify-center gap-x-2 rounded bg-slate-100 dark:bg-slate-700 px-3">
+                            <span className="material-symbols-outlined text-sm text-slate-500 dark:text-slate-400">groups</span>
+                            <span className="text-navy-custom dark:text-slate-300 text-[11px] font-bold whitespace-nowrap">População: {municipio.populacao.toLocaleString('pt-BR')} hab.</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <button className="flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-navy-custom dark:text-slate-200 text-sm font-bold px-5 py-2.5 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-all w-full sm:w-auto">
+                        <span className="material-symbols-outlined text-[20px] text-primary">file_download</span>
+                        Relatório
+                    </button>
+                    <button
+                        onClick={() => setIsDemandaModalOpen(true)}
+                        className="flex items-center justify-center gap-2 bg-primary text-white text-sm font-bold px-6 py-2.5 rounded-lg shadow-lg shadow-primary/20 hover:brightness-110 transition-all w-full sm:w-auto">
+                        <span className="material-symbols-outlined text-[20px]">add_circle</span>
+                        Nova Demanda
+                    </button>
+                </div>
+            </div>
+
+            {/* Row 1: Main KPIs - Recursos + Votos dos Deputados */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                {/* Recursos Ativos */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-10">
+                        <span className="material-symbols-outlined text-5xl text-emerald-600">payments</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Recursos Ativos</p>
+                    <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(municipio.totalRecursos || 0)}
+                    </h3>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-md mt-2 inline-block">
+                        +12% vs 2023
+                    </span>
+                </div>
+
+                {/* KPI de Votos dos Deputados */}
+                {votosMandato !== null && (
+                    <>
+                        {/* Lincoln Portela */}
+                        {(selectedMandato === 'Todos' || selectedMandato === 'Lincoln Portela') && (
+                            <div className="bg-gradient-to-br from-lime-500 to-lime-600 rounded-xl p-5 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-3 opacity-20">
+                                    <span className="material-symbols-outlined text-5xl text-white">how_to_vote</span>
+                                </div>
+                                <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider mb-1">
+                                    Votos Lincoln (2022)
+                                </p>
+                                <h3 className="text-2xl font-black text-white">
+                                    {votosLoading ? '...' : (votosMandato as any).lincoln?.toLocaleString('pt-BR') || '0'}
+                                </h3>
+                                <span className="text-[10px] font-bold text-white/80 mt-2 inline-block">
+                                    Dep. Federal
+                                </span>
+                            </div>
+                        )}
+                        {/* Alê Portela */}
+                        {(selectedMandato === 'Todos' || selectedMandato === 'Alê Portela') && (
+                            <div className="bg-gradient-to-br from-turquoise to-teal-500 rounded-xl p-5 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-3 opacity-20">
+                                    <span className="material-symbols-outlined text-5xl text-white">how_to_vote</span>
+                                </div>
+                                <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider mb-1">
+                                    Votos Alê (2022)
+                                </p>
+                                <h3 className="text-2xl font-black text-white">
+                                    {votosLoading ? '...' : (votosMandato as any).ale?.toLocaleString('pt-BR') || '0'}
+                                </h3>
+                                <span className="text-[10px] font-bold text-white/80 mt-2 inline-block">
+                                    Dep. Estadual
+                                </span>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {/* Row 2: Operational KPIs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                <KpiResumoCard title="Taxa de Conclusão" value="64%" trend="+5.2%">
+                    <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full mt-4 overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: '64%' }}></div></div>
+                </KpiResumoCard>
+
+                <KpiResumoCard title="Tempo de Resposta" value="12d" meta="Meta: 10d">
+                    <div className="flex gap-1 mt-4">
+                        <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
+                        <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
+                        <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
+                        <div className="h-1.5 flex-1 bg-slate-100 dark:bg-slate-700 rounded-full"></div>
+                    </div>
+                </KpiResumoCard>
+            </div>
+
+
+            <div className="grid grid-cols-12 gap-8">
+                <div className="col-span-12 lg:col-span-4 space-y-8">
+                    <EleitoradoCard
+                        eleitoradoData={municipio.eleitorado}
+                        codigoIBGE={municipio.codigoIBGE}
+                    />
+                    <InfoGeraisCard
+                        codigoIBGE={municipio.codigoIBGE}
+                        populacao={municipio.populacao}
+                        idh={municipio.idh}
+                        pibPerCapita={municipio.pibPerCapita}
+                    />
+                </div>
+                <div className="col-span-12 lg:col-span-8 space-y-8">
+                    <RecursosCard municipioId={municipio.id} />
+                    <DemandasCard demandas={municipio.demandas} />
+                    <LiderancasLocaisCard liderancas={municipio.liderancas} />
+                </div>
+            </div>
+
+            <DemandaModal
+                municipioId={municipio.id}
+                isOpen={isDemandaModalOpen}
+                onClose={() => setIsDemandaModalOpen(false)}
+                onSuccess={fetchMunicipio}
+            />
+        </div>
+    );
+};
+
+export default MunicipioDetalhesPage;
