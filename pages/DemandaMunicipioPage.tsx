@@ -387,37 +387,51 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                                 {/* Flow: origin → people → time */}
                                 <div className="flex flex-wrap items-center gap-2 text-[11px]">
                                     {/* Origem */}
-                                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                                        <span className="material-symbols-outlined text-xs text-slate-400">flag</span>
-                                        <span className="text-slate-500">Origem:</span>
-                                        <span className="font-bold text-navy-dark dark:text-white">{editForm.origem || '-'}</span>
+                                    <div className="flex flex-col items-center gap-0.5">
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                            <span className="material-symbols-outlined text-xs text-slate-400">flag</span>
+                                            <span className="text-slate-500">Origem:</span>
+                                            <span className="font-bold text-navy-dark dark:text-white">{editForm.origem || '-'}</span>
+                                        </div>
+                                        <span className="text-[8px] text-slate-400">{selectedDemanda.created_at ? new Date(selectedDemanda.created_at).toLocaleDateString('pt-BR') : ''}</span>
                                     </div>
 
                                     {/* People flow */}
                                     {editForm.solicitante && (
                                         <>
                                             <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward</span>
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                                                <span className="material-symbols-outlined text-xs text-amber-500">person</span>
-                                                <span className="font-medium text-slate-600 dark:text-slate-300">{editForm.solicitante}</span>
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                                    <span className="material-symbols-outlined text-xs text-amber-500">person</span>
+                                                    <span className="font-medium text-slate-600 dark:text-slate-300">{editForm.solicitante}</span>
+                                                </div>
+                                                <span className="text-[8px] text-slate-400">{selectedDemanda.created_at ? new Date(selectedDemanda.created_at).toLocaleDateString('pt-BR') : ''}</span>
                                             </div>
                                         </>
                                     )}
                                     {editForm.recebido_por && (
                                         <>
                                             <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward</span>
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                                                <span className="material-symbols-outlined text-xs text-blue-500">how_to_reg</span>
-                                                <span className="font-medium text-slate-600 dark:text-slate-300">{editForm.recebido_por}</span>
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                                    <span className="material-symbols-outlined text-xs text-blue-500">how_to_reg</span>
+                                                    <span className="font-medium text-slate-600 dark:text-slate-300">{editForm.recebido_por}</span>
+                                                </div>
+                                                <span className="text-[8px] text-slate-400">{selectedDemanda.created_at ? new Date(selectedDemanda.created_at).toLocaleDateString('pt-BR') : ''}</span>
                                             </div>
                                         </>
                                     )}
                                     {editForm.atribuido_a && (
                                         <>
                                             <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward</span>
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700/30">
-                                                <span className="material-symbols-outlined text-xs text-indigo-500">assignment_ind</span>
-                                                <span className="font-bold text-indigo-600 dark:text-indigo-400">{editForm.atribuido_a}</span>
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700/30">
+                                                    <span className="material-symbols-outlined text-xs text-indigo-500">assignment_ind</span>
+                                                    <span className="font-bold text-indigo-600 dark:text-indigo-400">{editForm.atribuido_a}</span>
+                                                </div>
+                                                <span className="text-[8px] text-indigo-400">
+                                                    {(() => { const h = (selectedDemanda.historico_redirecionamentos || []).find((r: any) => r.para === editForm.atribuido_a); return h ? new Date(h.data).toLocaleDateString('pt-BR') : selectedDemanda.created_at ? new Date(selectedDemanda.created_at).toLocaleDateString('pt-BR') : ''; })()}
+                                                </span>
                                             </div>
                                         </>
                                     )}
