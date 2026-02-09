@@ -146,6 +146,20 @@ export const getAgendaEventos = async (): Promise<EventoAgenda[]> => {
     return data as EventoAgenda[];
 };
 
+export const createEvento = async (evento: Omit<EventoAgenda, 'id'>) => {
+    const { data, error } = await supabase
+        .from('agenda')
+        .insert([evento])
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Erro ao criar evento:', error);
+        throw error;
+    }
+    return data as EventoAgenda;
+};
+
 export const getSolicitacoesAgenda = async (): Promise<SolicitacaoAgenda[]> => {
     const { data, error } = await supabase
         .from('solicitacoes_agenda')
