@@ -74,6 +74,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                     </button>
                 </div>
             </div>
+
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 text-xs text-center text-slate-400">
+                v2.0.1 (Deploy Fix)
+            </div>
         </aside>
     );
 }
