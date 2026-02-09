@@ -39,7 +39,7 @@ const generateDemandaCode = (d: any, index: number, municipioNome: string) => {
     const year = d.created_at ? new Date(d.created_at).getFullYear().toString().slice(-2) : '26';
     const fullYear = d.created_at ? new Date(d.created_at).getFullYear().toString() : '2026';
     const cidadeIniciais = municipioNome.split(/\s+/).map(w => w[0]?.toUpperCase() || '').join('').slice(0, 3);
-    const assessor = (d.recebido_por || '').trim();
+    const assessor = (d.atribuido_a || d.recebido_por || '').trim();
     const assessorIniciais = assessor ? assessor.split(/\s+/).map((w: string) => w[0]?.toUpperCase() || '').join('').slice(0, 2) : '';
     const tipoCode = tipoAbrev[d.tipo] || (d.tipo || 'OUT').slice(0, 3).toUpperCase();
     const parts = [num + '/' + year, cidadeIniciais, tipoCode];
@@ -144,10 +144,27 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                 redirecionado_para: editForm.redirecionado_para,
                 area_responsavel: editForm.area_responsavel,
             } as any);
-            await fetchDemandas();
-            // Re-select to refresh
-            const updated = demandas.find(d => d.id === selectedDemanda.id);
-            if (updated) selectDemanda({ ...updated, observacoes: observacao });
+            const freshData = await getDemandasByMunicipio(municipioId);
+            const mapped = freshData.map((d: any) => ({
+                id: d.id,
+                titulo: d.titulo || d.descricao,
+                descricao: d.descricao,
+                tipo: d.tipo,
+                status: d.status || 'Em Análise',
+                prioridade: d.prioridade || 'Média',
+                origem: d.origem,
+                prazo: d.prazo,
+                observacoes: d.observacoes || '',
+                solicitante: d.solicitante || '',
+                recebido_por: d.recebido_por || '',
+                atribuido_a: d.atribuido_a || '',
+                redirecionado_para: d.redirecionado_para || '',
+                area_responsavel: d.area_responsavel || '',
+                created_at: d.created_at,
+            }));
+            setDemandas(mapped);
+            const updated = mapped.find((d: any) => d.id === selectedDemanda.id);
+            if (updated) selectDemanda(updated);
         } catch (err) {
             console.error(err);
         } finally {
@@ -280,7 +297,7 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                                 <div>
                                     <div className="flex items-center gap-3">
                                         {(() => {
-                                            const { code, breakdown } = generateDemandaCode(selectedDemanda, demandas.findIndex(d => d.id === selectedDemanda.id), municipioNome);
+                                            const { code, breakdown } = generateDemandaCode({ ...editForm, created_at: selectedDemanda.created_at }, demandas.findIndex(d => d.id === selectedDemanda.id), municipioNome);
                                             return (
                                                 <div className="relative group/id cursor-help">
                                                     <span className="px-3 py-1 bg-navy-dark text-white rounded-lg text-xs font-mono font-black tracking-wider">
