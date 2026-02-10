@@ -49,6 +49,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     localStorage.setItem('portela_hub_selected_mandato', mandato);
   };
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(prev => !prev);
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsSidebarOpen(true);
+      } else {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
@@ -60,7 +79,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       theme,
       toggleTheme,
       selectedMandato,
-      setSelectedMandato
+      setSelectedMandato,
+      isSidebarOpen,
+      toggleSidebar
     }}>
       {children}
     </AppContext.Provider>

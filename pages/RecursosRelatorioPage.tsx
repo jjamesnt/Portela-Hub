@@ -67,27 +67,27 @@ const RecursosRelatorioPage: React.FC = () => {
     }
 
     return (
-        <div className="bg-white min-h-screen text-slate-800 print:text-black">
+        <div className="bg-white min-h-screen-dynamic text-slate-800 print:text-black w-full overflow-x-hidden">
             {/* Controles do Relatório - Ocultos na Impressão */}
-            <div className="max-w-[210mm] mx-auto py-6 flex justify-between items-center print:hidden border-b border-slate-100 mb-8 px-4">
+            <div className="w-full max-w-[210mm] mx-auto py-6 flex flex-col sm:flex-row justify-between items-center print:hidden border-b border-slate-100 mb-8 px-4 gap-4">
                 <button
                     onClick={() => window.close()}
-                    className="flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors text-xs font-bold"
+                    className="flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors text-xs font-bold self-start sm:self-auto"
                 >
                     <span className="material-symbols-outlined text-base">arrow_back</span>
                     VOLTAR
                 </button>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                     <button
                         onClick={handleShare}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200"
                     >
                         <span className="material-symbols-outlined text-base">share</span>
                         COMPARTILHAR
                     </button>
                     <button
                         onClick={handlePrint}
-                        className="flex items-center gap-2 px-4 py-2 bg-navy-dark text-white rounded-lg text-xs font-bold hover:brightness-110 shadow-lg"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-navy-dark text-white rounded-lg text-xs font-bold hover:brightness-110 shadow-lg"
                     >
                         <span className="material-symbols-outlined text-base">print</span>
                         IMPRIMIR A4
@@ -95,8 +95,8 @@ const RecursosRelatorioPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Conteúdo do Relatório - Largura Fixa A4 (210mm) com Margens de Segurança */}
-            <div className="max-w-[210mm] mx-auto px-12 py-16 md:px-20 print:p-0 print:mx-0 print:max-w-none">
+            {/* Conteúdo do Relatório - Largura Fixa A4 (210mm) com Margens de Segurança em Desktop */}
+            <div className="w-full max-w-[210mm] mx-auto px-4 sm:px-12 py-8 sm:py-16 md:px-20 print:p-0 print:mx-0 print:max-w-none">
                 {/* Cabeçalho Minimalista Expandido */}
                 <div className="border-b-2 border-slate-900 pb-10 mb-12">
                     <div className="flex justify-between items-start mb-6">
@@ -143,8 +143,8 @@ const RecursosRelatorioPage: React.FC = () => {
                 </div>
 
                 {/* Tabela Organizada com Larguras Fixas Otimizadas */}
-                <div className="overflow-hidden border border-slate-200 rounded-lg">
-                    <table className="w-full text-left border-collapse table-fixed">
+                <div className="overflow-x-auto border border-slate-200 rounded-lg w-full">
+                    <table className="w-full text-left border-collapse sm:table-fixed min-w-[600px] sm:min-w-0">
                         <thead>
                             <tr className="bg-slate-50 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">
                                 <th className="px-4 py-4 w-[20%]">Município</th>

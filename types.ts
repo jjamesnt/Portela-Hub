@@ -17,6 +17,8 @@ export interface AppContextType {
     toggleTheme: () => void;
     selectedMandato: string;
     setSelectedMandato: (mandato: string) => void;
+    isSidebarOpen: boolean;
+    toggleSidebar: () => void;
 }
 
 export interface Municipio {

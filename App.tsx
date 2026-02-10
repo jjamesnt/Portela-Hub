@@ -78,14 +78,14 @@ const App: React.FC = () => {
 
   return (
     <AppProvider>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen-dynamic w-full overflow-hidden">
         <Sidebar
           activePage={currentPage.page}
           setActivePage={(page) => navigateTo(page)}
         />
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-full">
           <Header />
-          <main className="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark w-full px-safe-left px-safe-right">
             {renderContent()}
           </main>
         </div>

@@ -291,7 +291,7 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
     };
 
     return (
-        <div className="p-8">
+        <div className="p-4 md:p-8">
             {/* Success Message */}
             {successMessage && (
                 <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 animate-fade-in">

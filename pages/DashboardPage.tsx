@@ -91,7 +91,7 @@ const CoberturaMap: React.FC<{ municipios: Municipio[], navigateTo: (page: strin
     };
 
     return (
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm h-[500px] flex flex-col select-none">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm h-[350px] md:h-[500px] flex flex-col select-none">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 z-10">
                 <h4 className="font-bold text-navy-dark dark:text-white">Cobertura Portela Hub (Minas Gerais)</h4>
                 <div className="flex gap-2 text-[10px] text-slate-400 font-medium">
@@ -333,9 +333,9 @@ const RecursosDestaqueTable: React.FC<{ recursos: RecursoResumo[], navigateTo: D
                     Gestão Completa
                 </button>
             </div>
-            <div className="overflow-x-auto">
-                <table className="w-full text-left bg-white dark:bg-slate-800 min-w-[750px]">
-                    <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100 dark:border-slate-700">
+            <div className="overflow-x-auto w-full">
+                <table className="w-full text-left bg-white dark:bg-slate-800 min-w-[800px] md:min-w-0">
+                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
                         <tr>
                             <th className="px-6 py-3 tracking-wider w-12">#</th>
                             <th className="px-6 py-3 tracking-wider">Município</th>

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
     <title>Portela Hub - Dashboard</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&amp;display=swap"
@@ -30,6 +30,9 @@
                         "lg": "0.5rem",
                         "xl": "0.75rem",
                     },
+                    height: {
+                        'screen-dynamic': '100dvh',
+                    }
                 },
             },
         }
@@ -47,7 +50,34 @@
 
         body {
             font-family: "Public Sans", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+            width: 100%;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
+        
+        #root {
+            min-height: 100dvh;
+            width: 100%;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .px-safe-left {
+            padding-left: env(safe-area-inset-left);
+        }
+        .px-safe-right {
+            padding-right: env(safe-area-inset-right);
+        }
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .pt-safe {
+            padding-top: env(safe-area-inset-top);
+        }
+
         .material-symbols-outlined {
             font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
         }
@@ -60,6 +90,13 @@
             background-repeat: no-repeat;
             background-position: center;
             background-size: contain;
+        }
+
+        /* Prevent horizontal scroll on mobile */
+        html, body {
+            position: relative;
+            max-width: 100%;
+            overflow-x: hidden;
         }
     </style>
 
