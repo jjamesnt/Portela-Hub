@@ -563,33 +563,33 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                 return (
                     <div className="space-y-8 animate-in fade-in duration-300">
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                             <KpiCard
-                                title="Municípios Atendidos"
+                                title="Municípios"
                                 value={filteredData.municipios.length.toString()}
                                 icon="location_on"
                                 trend="+2 este mês"
                                 trendDirection="up"
                             />
                             <KpiCard
-                                title="Lideranças Ativas"
+                                title="Lideranças"
                                 value={filteredData.liderancas.length.toString()}
                                 icon="groups"
-                                trend="+12% vs. mês anterior"
+                                trend="+12%"
                                 trendDirection="up"
                             />
                             <KpiCard
-                                title="Recursos Totais"
+                                title="Recursos"
                                 value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(filteredData.recursosTotais)}
                                 icon="payments"
-                                trend="Meta anual: 85%"
+                                trend="85%"
                                 trendDirection="neutral"
                             />
                             <KpiCard
-                                title="Demandas Pendentes"
+                                title="Demandas"
                                 value={(filteredData.demandasTotais || 0).toString()}
                                 icon="assignment_late"
-                                trend="-5 resolvidos hoje"
+                                trend="-5 hoje"
                                 trendDirection="up"
                             />
                         </div>
