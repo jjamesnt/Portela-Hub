@@ -22,6 +22,8 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
     const [filteredLiderancas, setFilteredLiderancas] = useState<Lideranca[]>([]);
     const searchRef = useRef<HTMLDivElement>(null);
 
+    const [selectedOrigens, setSelectedOrigens] = useState<string[]>(['Alê Portela']);
+
     const [formData, setFormData] = useState({
         solicitante: '',
         assessor_responsavel: '',
@@ -31,8 +33,10 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
         hora_inicio: '',
         hora_fim: '',
         local: '',
-        descricao: '',
-        origem: 'Alê Portela' as 'Alê Portela' | 'Lincoln Portela'
+        tipo_evento: '' as any,
+        tipo_local: '' as any,
+        tempo_participacao: '',
+        descricao: ''
     });
 
     useEffect(() => {
@@ -56,7 +60,6 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
         }
     }, [isOpen]);
 
-    // Lógica de busca inteligente
     useEffect(() => {
         if (searchTerm.length < 2) {
             setFilteredLiderancas([]);
@@ -74,7 +77,6 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
         setFilteredLiderancas(matches.slice(0, 5));
     }, [searchTerm, liderancas]);
 
-    // Fechar sugestões ao clicar fora
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -92,6 +94,14 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleOrigemToggle = (origem: string) => {
+        setSelectedOrigens(prev =>
+            prev.includes(origem)
+                ? prev.filter(o => o !== origem)
+                : [...prev, origem]
+        );
+    };
+
     const handleSelectLideranca = (l: Lideranca) => {
         setFormData(prev => ({ ...prev, solicitante: l.nome }));
         setSearchTerm(l.nome);
@@ -100,6 +110,12 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (selectedOrigens.length === 0) {
+            setError('Selecione pelo menos uma pessoa para a agenda (Alê ou Lincoln).');
+            return;
+        }
+
         setIsSaving(true);
         setError(null);
 
@@ -112,9 +128,12 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                 hora_fim: formData.hora_fim,
                 local: formData.local,
                 descricao: formData.descricao,
-                origem: formData.origem,
+                origem: selectedOrigens.join(', '),
                 assessor_responsavel: formData.assessor_responsavel,
                 estimativa_publico: formData.estimativa_publico ? parseInt(formData.estimativa_publico) : undefined,
+                tipo_evento: formData.tipo_evento || undefined,
+                tipo_local: formData.tipo_local || undefined,
+                tempo_participacao: formData.tempo_participacao || undefined
             } as any);
             onSuccess();
             onClose();
@@ -128,10 +147,13 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                 hora_inicio: '',
                 hora_fim: '',
                 local: '',
-                descricao: '',
-                origem: 'Alê Portela'
+                tipo_evento: '',
+                tipo_local: '',
+                tempo_participacao: '',
+                descricao: ''
             });
             setSearchTerm('');
+            setSelectedOrigens(['Alê Portela']);
         } catch (err: any) {
             setError(err.message || 'Erro ao enviar solicitação');
         } finally {
@@ -156,8 +178,8 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
 
+                    {/* Linha 1: Assessor e Público */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Assessor Responsável - SEMPRE O PRIMEIRO */}
                         <div>
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                                 <span className="material-symbols-outlined text-[14px]">person_check</span>
@@ -177,7 +199,6 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                             </select>
                         </div>
 
-                        {/* Estimativa de Público */}
                         <div>
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                                 <span className="material-symbols-outlined text-[14px]">groups</span>
@@ -188,13 +209,13 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                                 name="estimativa_publico"
                                 value={formData.estimativa_publico}
                                 onChange={handleInputChange}
-                                placeholder="Quantidade de pessoas"
+                                placeholder="Quantidade"
                                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
                             />
                         </div>
                     </div>
 
-                    {/* Solicitante com Busca Inteligente */}
+                    {/* Solicitante Inteligente */}
                     <div ref={searchRef} className="relative">
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                             <span className="material-symbols-outlined text-[14px]">search</span>
@@ -230,14 +251,10 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
 
                                 {filteredLiderancas.length === 0 && searchTerm.length >= 2 && (
                                     <div className="p-4 text-center">
-                                        <p className="text-xs text-slate-500 mb-3 font-medium">Liderança não encontrada</p>
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                onClose();
-                                                navigateTo('Lideranças');
-                                            }}
-                                            className="w-full py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-black hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all border border-indigo-100 dark:border-indigo-800/30 flex items-center justify-center gap-2"
+                                            onClick={() => { onClose(); navigateTo('Lideranças'); }}
+                                            className="w-full py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-black hover:bg-indigo-100 transition-all border border-indigo-100 flex items-center justify-center gap-2"
                                         >
                                             <span className="material-symbols-outlined text-sm">person_add</span>
                                             CADASTRAR NOVA LIDERANÇA
@@ -246,6 +263,37 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                                 )}
                             </div>
                         )}
+                    </div>
+
+                    {/* Origem - SELEÇÃO MÚLTIPLA */}
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">diversity_3</span>
+                            Para quem é a agenda? *
+                        </label>
+                        <div className="flex gap-4">
+                            <button
+                                type="button"
+                                onClick={() => handleOrigemToggle('Alê Portela')}
+                                className={`flex-1 flex items-center gap-3 p-3 border rounded-xl transition-all ${selectedOrigens.includes('Alê Portela') ? 'bg-turquoise/10 border-turquoise shadow-sm' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}
+                            >
+                                <div className={`size-5 rounded border flex items-center justify-center ${selectedOrigens.includes('Alê Portela') ? 'border-turquoise bg-turquoise text-white' : 'border-slate-300 bg-white dark:bg-slate-800'}`}>
+                                    {selectedOrigens.includes('Alê Portela') && <span className="material-symbols-outlined text-[14px] font-black">check</span>}
+                                </div>
+                                <span className={`text-sm font-bold ${selectedOrigens.includes('Alê Portela') ? 'text-turquoise' : 'text-slate-500'}`}>Alê Portela</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleOrigemToggle('Lincoln Portela')}
+                                className={`flex-1 flex items-center gap-3 p-3 border rounded-xl transition-all ${selectedOrigens.includes('Lincoln Portela') ? 'bg-blue-600/10 border-blue-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}
+                            >
+                                <div className={`size-5 rounded border flex items-center justify-center ${selectedOrigens.includes('Lincoln Portela') ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white dark:bg-slate-800'}`}>
+                                    {selectedOrigens.includes('Lincoln Portela') && <span className="material-symbols-outlined text-[14px] font-black">check</span>}
+                                </div>
+                                <span className={`text-sm font-bold ${selectedOrigens.includes('Lincoln Portela') ? 'text-blue-600' : 'text-slate-500'}`}>Lincoln Portela</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div>
@@ -261,8 +309,47 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Tipos de Evento e Local */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px]">category</span>
+                                Tipo de Evento
+                            </label>
+                            <select
+                                name="tipo_evento"
+                                value={formData.tipo_evento}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-turquoise/20 dark:text-white"
+                            >
+                                <option value="">Selecione...</option>
+                                <option value="Evento formal (dispositivo de honra)">Evento formal (dispositivo de honra)</option>
+                                <option value="Encontro">Encontro</option>
+                                <option value="Reunião">Reunião</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px]">location_home</span>
+                                Tipo de Local
+                            </label>
+                            <select
+                                name="tipo_local"
+                                value={formData.tipo_local}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-turquoise/20 dark:text-white"
+                            >
+                                <option value="">Selecione...</option>
+                                <option value="Igreja">Igreja</option>
+                                <option value="Casa/Apto">Casa/Apto</option>
+                                <option value="Evento de rua">Evento de rua</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                        <div className="md:col-span-1">
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Data *</label>
                             <input
                                 type="date"
@@ -270,89 +357,74 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                                 value={formData.data}
                                 onChange={handleInputChange}
                                 required
-                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Início *</label>
-                            <input
-                                type="time"
-                                name="hora_inicio"
-                                value={formData.hora_inicio}
-                                onChange={handleInputChange}
-                                required
-                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Fim *</label>
-                            <input
-                                type="time"
-                                name="hora_fim"
-                                value={formData.hora_fim}
-                                onChange={handleInputChange}
-                                required
-                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
-                            />
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px]">schedule</span>
+                                Período (Início - Fim)
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="time"
+                                    name="hora_inicio"
+                                    value={formData.hora_inicio}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs dark:text-white"
+                                />
+                                <span className="text-slate-400">-</span>
+                                <input
+                                    type="time"
+                                    name="hora_fim"
+                                    value={formData.hora_fim}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs dark:text-white"
+                                />
+                            </div>
                         </div>
                     </div>
 
+                    {/* Tempo de Participação */}
                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 font-black">Para quem é a agenda? *</label>
-                        <div className="flex gap-4">
-                            <label className={`flex-1 flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-all ${formData.origem === 'Alê Portela' ? 'bg-turquoise/10 border-turquoise shadow-sm' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                                <div className={`size-4 rounded-full border flex items-center justify-center ${formData.origem === 'Alê Portela' ? 'border-turquoise bg-turquoise' : 'border-slate-300'}`}>
-                                    {formData.origem === 'Alê Portela' && <div className="size-1.5 bg-white rounded-full"></div>}
-                                </div>
-                                <input
-                                    type="radio"
-                                    name="origem"
-                                    value="Alê Portela"
-                                    checked={formData.origem === 'Alê Portela'}
-                                    onChange={handleInputChange}
-                                    className="hidden"
-                                />
-                                <span className={`text-sm font-bold ${formData.origem === 'Alê Portela' ? 'text-turquoise' : 'text-slate-500'}`}>Alê Portela</span>
-                            </label>
-
-                            <label className={`flex-1 flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-all ${formData.origem === 'Lincoln Portela' ? 'bg-blue-600/10 border-blue-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                                <div className={`size-4 rounded-full border flex items-center justify-center ${formData.origem === 'Lincoln Portela' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'}`}>
-                                    {formData.origem === 'Lincoln Portela' && <div className="size-1.5 bg-white rounded-full"></div>}
-                                </div>
-                                <input
-                                    type="radio"
-                                    name="origem"
-                                    value="Lincoln Portela"
-                                    checked={formData.origem === 'Lincoln Portela'}
-                                    onChange={handleInputChange}
-                                    className="hidden"
-                                />
-                                <span className={`text-sm font-bold ${formData.origem === 'Lincoln Portela' ? 'text-blue-600' : 'text-slate-500'}`}>Lincoln Portela</span>
-                            </label>
-                        </div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">timer</span>
+                            Tempo de Permanência do Convidado
+                        </label>
+                        <input
+                            type="text"
+                            name="tempo_participacao"
+                            value={formData.tempo_participacao}
+                            onChange={handleInputChange}
+                            placeholder="Ex: 1 hora, 30 minutos..."
+                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 transition-all dark:text-white"
+                        />
+                        <p className="text-[9px] text-slate-400 mt-1 italic">Este campo reflete quanto tempo o convidado ficará no local, independente da duração total do evento.</p>
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Local</label>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Local / Endereço</label>
                         <input
                             type="text"
                             name="local"
                             value={formData.local}
                             onChange={handleInputChange}
-                            placeholder="Ex: Assembleia Legislativa ou Online"
-                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
+                            placeholder="Ponto de referência ou endereço completo"
+                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Descrição / Informações Adicionais</label>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Informações Adicionais</label>
                         <textarea
                             name="descricao"
                             value={formData.descricao}
                             onChange={handleInputChange}
-                            placeholder="Forneça detalhes que ajudem o gestor a entender o objetivo do compromisso..."
-                            rows={3}
-                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white resize-none"
+                            placeholder="Pauta da reunião, observações importantes..."
+                            rows={2}
+                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 transition-all dark:text-white resize-none"
                         />
                     </div>
 
@@ -367,7 +439,7 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-black hover:bg-slate-200 dark:hover:bg-slate-600 transition-all uppercase tracking-wider"
+                            className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-black hover:bg-slate-200 transition-all uppercase tracking-wider"
                         >
                             Cancelar
                         </button>
@@ -376,11 +448,7 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                             disabled={isSaving}
                             className="flex-1 px-4 py-3 bg-turquoise text-white rounded-xl text-sm font-black hover:brightness-110 shadow-lg shadow-turquoise/20 transition-all disabled:opacity-70 flex justify-center items-center gap-2 uppercase tracking-wider"
                         >
-                            {isSaving ? (
-                                <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
-                            ) : (
-                                <span className="material-symbols-outlined text-[20px]">send</span>
-                            )}
+                            {isSaving ? <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> : <span className="material-symbols-outlined text-[20px]">send</span>}
                             Enviar Solicitação
                         </button>
                     </div>

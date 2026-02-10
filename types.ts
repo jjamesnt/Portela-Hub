@@ -133,8 +133,11 @@ export interface SolicitacaoAgenda {
     local: string;
     estimativa_publico?: number;
     assessor_responsavel?: string;
+    tipo_evento?: 'Evento formal (dispositivo de honra)' | 'Encontro' | 'Reunião';
+    tipo_local?: 'Igreja' | 'Casa/Apto' | 'Evento de rua';
+    tempo_participacao?: string;
     status: 'Pendente' | 'Aprovado' | 'Recusado';
-    origem: 'Alê Portela' | 'Lincoln Portela';
+    origem: string;
     municipio_id?: string;
     created_at?: string;
 }

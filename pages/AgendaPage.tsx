@@ -156,10 +156,12 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex justify-center">
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${s.origem === 'Alê Portela' ? 'bg-turquoise/10 text-turquoise' : 'bg-blue-100 text-blue-600'}`}>
-                                                    {s.origem}
-                                                </span>
+                                            <div className="flex justify-center flex-wrap gap-1">
+                                                {s.origem.split(', ').map(o => (
+                                                    <span key={o} className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap ${o === 'Alê Portela' ? 'bg-turquoise/10 text-turquoise' : 'bg-blue-600/10 text-blue-600'}`}>
+                                                        {o}
+                                                    </span>
+                                                ))}
                                             </div>
                                         </td>
                                     </tr>
