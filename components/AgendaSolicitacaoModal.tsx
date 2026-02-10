@@ -32,6 +32,7 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
         data: '',
         hora_inicio: '',
         hora_fim: '',
+        horario_chegada: '',
         local: '',
         tipo_evento: '' as any,
         tipo_local: '' as any,
@@ -126,6 +127,7 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                 data: formData.data,
                 hora_inicio: formData.hora_inicio,
                 hora_fim: formData.hora_fim,
+                horario_chegada: formData.horario_chegada || undefined,
                 local: formData.local,
                 descricao: formData.descricao,
                 origem: selectedOrigens.join(', '),
@@ -146,6 +148,7 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                 data: '',
                 hora_inicio: '',
                 hora_fim: '',
+                horario_chegada: '',
                 local: '',
                 tipo_evento: '',
                 tipo_local: '',
@@ -178,7 +181,6 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
 
-                    {/* Linha 1: Assessor e Público */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
@@ -209,13 +211,14 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                                 name="estimativa_publico"
                                 value={formData.estimativa_publico}
                                 onChange={handleInputChange}
-                                placeholder="Quantidade"
+                                step="50"
+                                min="0"
+                                placeholder="Escala de 50 em 50"
                                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
                             />
                         </div>
                     </div>
 
-                    {/* Solicitante Inteligente */}
                     <div ref={searchRef} className="relative">
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                             <span className="material-symbols-outlined text-[14px]">search</span>
@@ -265,7 +268,6 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                         )}
                     </div>
 
-                    {/* Origem - SELEÇÃO MÚLTIPLA */}
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
                             <span className="material-symbols-outlined text-[14px]">diversity_3</span>
@@ -309,7 +311,6 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                         />
                     </div>
 
-                    {/* Tipos de Evento e Local */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
@@ -348,9 +349,12 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                        <div className="md:col-span-1">
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Data *</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px]">event</span>
+                                Data *
+                            </label>
                             <input
                                 type="date"
                                 name="data"
@@ -362,46 +366,63 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                         </div>
                         <div>
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[14px]">schedule</span>
-                                Período (Início - Fim)
+                                <span className="material-symbols-outlined text-[14px]">login</span>
+                                Horário de Chegada
                             </label>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="time"
-                                    name="hora_inicio"
-                                    value={formData.hora_inicio}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs dark:text-white"
-                                />
-                                <span className="text-slate-400">-</span>
-                                <input
-                                    type="time"
-                                    name="hora_fim"
-                                    value={formData.hora_fim}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs dark:text-white"
-                                />
-                            </div>
+                            <input
+                                type="time"
+                                name="horario_chegada"
+                                value={formData.horario_chegada}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
+                            />
                         </div>
                     </div>
 
-                    {/* Tempo de Participação */}
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">schedule</span>
+                            Duração do Evento (Início - Fim) *
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="time"
+                                name="hora_inicio"
+                                value={formData.hora_inicio}
+                                onChange={handleInputChange}
+                                required
+                                className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs dark:text-white"
+                            />
+                            <span className="text-slate-400">-</span>
+                            <input
+                                type="time"
+                                name="hora_fim"
+                                value={formData.hora_fim}
+                                onChange={handleInputChange}
+                                required
+                                className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs dark:text-white"
+                            />
+                        </div>
+                    </div>
+
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                             <span className="material-symbols-outlined text-[14px]">timer</span>
                             Tempo de Permanência do Convidado
                         </label>
-                        <input
-                            type="text"
+                        <select
                             name="tempo_participacao"
                             value={formData.tempo_participacao}
                             onChange={handleInputChange}
-                            placeholder="Ex: 1 hora, 30 minutos..."
-                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 transition-all dark:text-white"
-                        />
-                        <p className="text-[9px] text-slate-400 mt-1 italic">Este campo reflete quanto tempo o convidado ficará no local, independente da duração total do evento.</p>
+                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-turquoise/20 dark:text-white"
+                        >
+                            <option value="">Selecione o tempo...</option>
+                            <option value="15 minutos">15 minutos</option>
+                            <option value="30 minutos">30 minutos</option>
+                            <option value="45 minutos">45 minutos</option>
+                            <option value="1 hora">1 hora</option>
+                        </select>
+                        <p className="text-[9px] text-slate-400 mt-1 italic">Escala de 15 em 15 minutos (máximo de 1 hora).</p>
                     </div>
 
                     <div>

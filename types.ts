@@ -136,6 +136,7 @@ export interface SolicitacaoAgenda {
     tipo_evento?: 'Evento formal (dispositivo de honra)' | 'Encontro' | 'Reunião';
     tipo_local?: 'Igreja' | 'Casa/Apto' | 'Evento de rua';
     tempo_participacao?: string;
+    horario_chegada?: string;
     status: 'Pendente' | 'Aprovado' | 'Recusado';
     origem: string;
     municipio_id?: string;
