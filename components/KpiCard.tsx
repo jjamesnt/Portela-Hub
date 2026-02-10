@@ -17,19 +17,19 @@ const KpiCard: React.FC<KpiCardProps> = ({ title, value, icon, trend, trendDirec
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-            <div className="flex justify-between items-start mb-2 md:mb-4">
-                <div className="p-1.5 md:p-2 bg-turquoise/10 rounded-lg">
-                    <span className="material-symbols-outlined text-turquoise text-lg md:text-xl">{icon}</span>
+        <div className="bg-white dark:bg-slate-800 p-3 md:p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:shadow-md">
+            <div className="flex justify-between items-start mb-1 md:mb-2">
+                <div className="p-1.5 md:p-2 bg-turquoise/10 rounded-xl">
+                    <span className="material-symbols-outlined text-turquoise text-sm md:text-lg">{icon}</span>
                 </div>
-                <span className={`${trendColor[trendDirection]} text-[10px] md:text-xs font-bold flex items-center`}>
-                    {trendDirection === 'up' && <span className="material-symbols-outlined text-xs md:text-sm">trending_up</span>}
-                    {trendDirection === 'down' && <span className="material-symbols-outlined text-xs md:text-sm">trending_down</span>}
+                <span className={`${trendColor[trendDirection]} text-[9px] md:text-xs font-black flex items-center gap-0.5`}>
+                    {trendDirection === 'up' && <span className="material-symbols-outlined text-[12px] md:text-sm">trending_up</span>}
+                    {trendDirection === 'down' && <span className="material-symbols-outlined text-[12px] md:text-sm">trending_down</span>}
                     {trend}
                 </span>
             </div>
-            <p className="text-[10px] md:text-sm text-slate-500 font-medium truncate">{title}</p>
-            <h3 className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1 text-navy-dark dark:text-white truncate">{value}</h3>
+            <p className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-widest truncate">{title}</p>
+            <h3 className="text-xl md:text-3xl font-black mt-0.5 text-navy-dark dark:text-white truncate tracking-tight">{value}</h3>
         </div>
     );
 };

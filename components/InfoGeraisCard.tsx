@@ -23,22 +23,24 @@ const InfoGeraisCard: React.FC<InfoGeraisCardProps> = ({ idh, pibPerCapita, codi
     }, [codigoIBGE]);
 
     const InfoRow = ({ label, value, icon, color }: { label: string; value: string; icon: string; color?: string }) => (
-        <div className="flex justify-between items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-700">
+        <div className="flex justify-between items-center p-2.5 md:p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-700 group">
             <div className="flex items-center gap-2">
-                <span className={`material-symbols-outlined text-base ${color || 'text-slate-400'}`}>{icon}</span>
-                <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase">{label}</span>
+                <div className={`size-7 md:size-8 rounded-lg ${color?.replace('text-', 'bg-').split(' ')[0]}/10 flex items-center justify-center`}>
+                    <span className={`material-symbols-outlined text-sm md:text-base ${color || 'text-slate-400'}`}>{icon}</span>
+                </div>
+                <span className="text-slate-500 dark:text-slate-400 text-[10px] md:text-[11px] font-black uppercase tracking-tight">{label}</span>
             </div>
-            <span className="text-navy-dark dark:text-white font-extrabold text-sm">{value}</span>
+            <span className="text-navy-dark dark:text-white font-black text-xs md:text-sm">{value}</span>
         </div>
     );
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                <h3 className="text-navy-dark dark:text-white text-lg font-bold">Informações Gerais</h3>
-                <span className="material-symbols-outlined text-slate-400">explore</span>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="px-4 md:px-5 py-3 md:py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/10">
+                <h3 className="text-navy-dark dark:text-white text-sm md:text-lg font-black uppercase tracking-widest">Geral</h3>
+                <span className="material-symbols-outlined text-slate-300 text-lg md:text-xl">explore</span>
             </div>
-            <div className="p-5 space-y-2">
+            <div className="p-3 md:p-5 space-y-2">
                 <InfoRow label="IDH Município" value={`${idh.toFixed(3)} (${idh >= 0.8 ? 'Muito Alto' : idh >= 0.7 ? 'Alto' : 'Médio'})`} icon="trending_up" color="text-emerald-500" />
                 <InfoRow label="PIB per Capita" value={`R$ ${pibPerCapita.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon="payments" color="text-blue-500" />
 

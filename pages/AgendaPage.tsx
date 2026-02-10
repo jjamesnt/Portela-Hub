@@ -79,46 +79,46 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
     }
 
     return (
-        <div className="p-8">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div className="p-4 md:p-8 pb-24 md:pb-8">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 md:mb-8 text-left">
                 <div>
-                    <h2 className="text-3xl font-black tracking-tight text-navy-dark dark:text-white">Agenda</h2>
-                    <p className="text-slate-500 dark:text-slate-400">Organize seus compromissos e eventos.</p>
+                    <h2 className="text-2xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white">Agenda</h2>
+                    <p className="text-xs md:text-base text-slate-500 dark:text-slate-400">Organize seus compromissos e eventos.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2 w-full md:w-auto">
                     <button
                         onClick={() => setIsRequestModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3 md:px-5 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs md:text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
                     >
                         <span className="material-symbols-outlined text-lg text-turquoise">add_task</span>
-                        Solicitar Agenda
+                        Solicitar
                     </button>
                     <button
                         onClick={() => setIsEventModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-turquoise text-white rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3 md:px-5 py-2.5 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20"
                     >
                         <span className="material-symbols-outlined text-lg">add</span>
-                        Novo Evento
+                        Novo
                     </button>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-8">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 md:p-6 mb-8">
                 {isLoading ? <Loader /> : error ? <div className="text-center text-red-500">{error}</div> : (
                     <>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-navy-dark dark:text-white capitalize">{monthName} {year}</h3>
-                            <div className="flex gap-2">
-                                <button onClick={() => changeMonth(-1)} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"><span className="material-symbols-outlined">chevron_left</span></button>
-                                <button onClick={() => changeMonth(1)} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"><span className="material-symbols-outlined">chevron_right</span></button>
+                        <div className="flex justify-between items-center mb-4 md:mb-6">
+                            <h3 className="text-base md:text-lg font-bold text-navy-dark dark:text-white capitalize">{monthName} {year}</h3>
+                            <div className="flex gap-1 md:gap-2">
+                                <button onClick={() => changeMonth(-1)} className="p-1.5 md:p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"><span className="material-symbols-outlined text-xl">chevron_left</span></button>
+                                <button onClick={() => changeMonth(1)} className="p-1.5 md:p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"><span className="material-symbols-outlined text-xl">chevron_right</span></button>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-7 gap-px bg-slate-100 dark:bg-slate-700 border border-slate-100 dark:border-slate-700">
-                            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                                <div key={day} className="text-center py-2 bg-white dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{day}</div>
+                        <div className="grid grid-cols-7 gap-px bg-slate-100 dark:bg-slate-700 border border-slate-100 dark:border-slate-700 rounded-lg overflow-hidden">
+                            {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, idx) => (
+                                <div key={idx} className="text-center py-1.5 md:py-2 bg-slate-50 dark:bg-slate-900/50 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">{day}</div>
                             ))}
-                            {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="bg-slate-50/50 dark:bg-slate-800/50 min-h-[120px]"></div>)}
+                            {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="bg-slate-50/30 dark:bg-slate-800/30 min-h-[50px] md:min-h-[120px]"></div>)}
                             {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
                                 const day = dayIndex + 1;
                                 const dayEvents = eventsByDay[day] || [];
@@ -131,19 +131,19 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                                 });
 
                                 return (
-                                    <div key={day} className="p-2 bg-white dark:bg-slate-800 min-h-[120px] flex flex-col">
-                                        <span className={`font-bold text-xs ${isToday(day) ? 'bg-turquoise text-white rounded-full size-6 flex items-center justify-center' : 'text-slate-600 dark:text-slate-300'}`}>{day}</span>
-                                        <div className="mt-1 space-y-1">
+                                    <div key={day} className="p-0.5 md:p-2 bg-white dark:bg-slate-800 min-h-[50px] md:min-h-[120px] flex flex-col border-b border-r border-slate-50 dark:border-slate-700/50">
+                                        <div className="flex justify-between items-start mb-0.5 md:mb-1">
+                                            <span className={`font-black text-[9px] md:text-xs ${isToday(day) ? 'bg-turquoise text-white rounded-full size-4 md:size-6 flex items-center justify-center' : 'text-slate-500 dark:text-slate-400'}`}>{day}</span>
+                                        </div>
+                                        <div className="flex-1 space-y-0.5 pointer-events-none">
                                             {dayEvents.map(event => (
-                                                <div key={event.id} className={`p-1 rounded text-white text-[10px] font-bold flex items-center gap-1 ${tipoStyle(event.tipo)}`}>
-                                                    <div className="size-1.5 rounded-full bg-white/50"></div>
-                                                    <span className="truncate">{event.titulo}</span>
+                                                <div key={event.id} className={`px-1 py-0.5 rounded-[3px] text-white text-[6px] md:text-[10px] font-bold truncate leading-tight ${tipoStyle(event.tipo)}`}>
+                                                    {event.titulo}
                                                 </div>
                                             ))}
                                             {approvedSol.map(s => (
-                                                <div key={s.id} className="p-1 rounded bg-turquoise/90 text-white text-[10px] font-bold flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[10px]">verified</span>
-                                                    <span className="truncate">{s.titulo}</span>
+                                                <div key={s.id} className="px-1 py-0.5 rounded-[3px] bg-sky-500 text-white text-[6px] md:text-[10px] font-bold truncate leading-tight">
+                                                    {s.titulo}
                                                 </div>
                                             ))}
                                         </div>
@@ -163,15 +163,15 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                         <h3 className="font-black text-sm text-navy-dark dark:text-white uppercase tracking-wider">Histórico de Solicitações</h3>
                     </div>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                <div className="overflow-x-auto scrollbar-hide">
+                    <table className="w-full text-left border-collapse min-w-[600px] md:min-w-0">
                         <thead>
                             <tr className="bg-slate-50/30 dark:bg-slate-900/10">
-                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Solicitante</th>
-                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Compromisso</th>
-                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Data/Hora</th>
-                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status / Aprovação</th>
-                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Origem</th>
+                                <th className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Solicitante</th>
+                                <th className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Compromisso</th>
+                                <th className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">Data/Hora</th>
+                                <th className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">Status</th>
+                                <th className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">Origem</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -182,43 +182,37 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                             ) : (
                                 solicitacoes.map(s => (
                                     <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="size-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-                                                    <span className="material-symbols-outlined text-slate-400 text-sm">person</span>
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4">
+                                            <div className="flex items-center gap-2 md:gap-3">
+                                                <div className="size-6 md:size-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0">
+                                                    <span className="material-symbols-outlined text-slate-400 text-[10px] md:text-sm">person</span>
                                                 </div>
-                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{s.solicitante}</span>
+                                                <span className="text-[10px] md:text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[80px] md:max-w-none">{s.solicitante}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm font-bold text-navy-dark dark:text-white">{s.titulo}</p>
-                                            <p className="text-[10px] text-slate-400 truncate max-w-[200px]">{s.descricao || s.local}</p>
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4">
+                                            <p className="text-[10px] md:text-sm font-bold text-navy-dark dark:text-white truncate max-w-[120px] md:max-w-none">{s.titulo}</p>
+                                            <p className="text-[8px] md:text-[10px] text-slate-400 truncate max-w-[120px] md:max-w-[200px]">{s.descricao || s.local}</p>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <p className="text-xs font-bold text-slate-600 dark:text-slate-300">{new Date(s.data).toLocaleDateString('pt-BR')}</p>
-                                            <p className="text-[10px] text-slate-400">{s.hora_inicio} - {s.hora_fim}</p>
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4 text-center">
+                                            <p className="text-[9px] md:text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">{new Date(s.data).toLocaleDateString('pt-BR')}</p>
+                                            <p className="text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">{s.hora_inicio} - {s.hora_fim}</p>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${s.status === 'Aprovado' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4">
+                                            <div className="flex flex-col items-center">
+                                                <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[7px] md:text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${s.status === 'Aprovado' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
                                                     s.status === 'Recusado' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
                                                         'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
                                                     }`}>
                                                     {s.status}
                                                 </span>
-                                                {s.status === 'Aprovado' && s.data_aprovacao && (
-                                                    <span className="text-[9px] text-emerald-500 font-bold flex items-center gap-1">
-                                                        <span className="material-symbols-outlined text-[12px]">done_all</span>
-                                                        Aprovado em: {new Date(s.data_aprovacao).toLocaleDateString('pt-BR')}
-                                                    </span>
-                                                )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4">
                                             <div className="flex justify-center flex-wrap gap-1">
                                                 {s.origem.split(', ').map(o => (
-                                                    <span key={o} className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap ${o === 'Alê Portela' ? 'bg-turquoise/10 text-turquoise' : 'bg-blue-600/10 text-blue-600'}`}>
-                                                        {o}
+                                                    <span key={o} className={`px-1.5 py-0.5 rounded text-[7px] md:text-[10px] font-bold whitespace-nowrap ${o === 'Alê Portela' ? 'bg-turquoise/10 text-turquoise' : 'bg-blue-600/10 text-blue-600'}`}>
+                                                        {o.split(' ')[0]}
                                                     </span>
                                                 ))}
                                             </div>

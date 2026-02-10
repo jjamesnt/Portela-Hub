@@ -99,11 +99,26 @@ const CoberturaMap: React.FC<{ municipios: Municipio[], navigateTo: (page: strin
                 </div>
             </div>
             <div
-                className={`flex-1 relative bg-slate-50 dark:bg-slate-900/50 overflow-hidden flex items-center justify-center p-8 ${zoom > 1 ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                className={`flex-1 relative bg-slate-50 dark:bg-slate-900/50 overflow-hidden flex items-center justify-center p-8 ${zoom > 1 ? 'cursor-grab active:cursor-grabbing' : ''} touch-none`}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
+                onTouchStart={(e) => {
+                    if (zoom > 1) {
+                        setIsDragging(true);
+                        setLastPos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+                    }
+                }}
+                onTouchMove={(e) => {
+                    if (isDragging) {
+                        const dx = e.touches[0].clientX - lastPos.x;
+                        const dy = e.touches[0].clientY - lastPos.y;
+                        setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+                        setLastPos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+                    }
+                }}
+                onTouchEnd={() => setIsDragging(false)}
                 onWheel={handleWheel}
                 onClick={handleMapClick}
             >
@@ -218,17 +233,17 @@ const CoberturaMap: React.FC<{ municipios: Municipio[], navigateTo: (page: strin
                 </div>
 
                 {/* Legend Overlay */}
-                <div className="absolute bottom-4 left-4 bg-white/95 dark:bg-slate-800/95 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-xs shadow-xl backdrop-blur-sm z-10 pointer-events-none">
-                    <p className="font-bold text-navy-dark dark:text-white mb-2">Presença Regional</p>
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2"><span className={`size-3 border-2 ${accentBorderClass} rounded-full bg-white dark:bg-slate-800 flex items-center justify-center`}><span className={`size-1 ${accentBgClass} rounded-full`}></span></span> Atividade Alta</div>
-                        <div className="flex items-center gap-2"><span className="size-3 border border-slate-300 dark:border-slate-600 rounded-full bg-slate-100 dark:bg-slate-900"></span> Base Planejada</div>
+                <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4 bg-white/95 dark:bg-slate-800/95 p-2 md:p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-[9px] md:text-xs shadow-xl backdrop-blur-sm z-10 pointer-events-none max-w-[120px] md:max-w-none">
+                    <p className="font-bold text-navy-dark dark:text-white mb-1 md:mb-2">Presença Regional</p>
+                    <div className="space-y-1 md:space-y-2">
+                        <div className="flex items-center gap-2"><span className={`size-2 md:size-3 border-2 ${accentBorderClass} rounded-full bg-white dark:bg-slate-800 flex items-center justify-center`}><span className={`size-0.5 md:size-1 ${accentBgClass} rounded-full`}></span></span> Atividade Alta</div>
+                        <div className="flex items-center gap-2"><span className="size-2 md:size-3 border border-slate-300 dark:border-slate-600 rounded-full bg-slate-100 dark:bg-slate-900"></span> Base Planejada</div>
                     </div>
                 </div>
             </div>
             {zoom > 1 && (
-                <div className={`px-4 py-1.5 ${accentBgClass}/10 ${accentTextClass} text-[10px] font-bold text-center uppercase tracking-widest border-t ${accentBorderClass}/20`}>
-                    Modo Navegação Ativo: Arraste para mover o mapa
+                <div className={`px-4 py-1 ${accentBgClass}/10 ${accentTextClass} text-[8px] md:text-[10px] font-bold text-center uppercase tracking-widest border-t ${accentBorderClass}/20`}>
+                    Navegação: Arraste o mapa
                 </div>
             )}
         </div>
@@ -239,37 +254,42 @@ const CoberturaMap: React.FC<{ municipios: Municipio[], navigateTo: (page: strin
 
 const AgendaSummary: React.FC<{ events: EventoAgenda[] }> = ({ events }) => (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-            <h4 className="font-bold text-navy-dark dark:text-white">Resumo da Agenda</h4>
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <h4 className="font-bold text-navy-dark dark:text-white text-sm md:text-base">Resumo da Agenda</h4>
         </div>
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
             {events.slice(0, 4).map((event, index) => (
-                <div key={event.id} className="flex gap-4 items-start">
+                <div key={event.id} className="flex gap-3 md:gap-4 items-start">
                     <div className="shrink-0 flex flex-col items-center">
-                        <span className="text-xs font-bold text-turquoise uppercase">{event.hora}</span>
-                        {index < 3 && <div className="w-px h-8 bg-slate-100 dark:bg-slate-700 mt-2 rounded-full"></div>}
+                        <span className="text-[10px] md:text-xs font-bold text-turquoise uppercase">{event.hora}</span>
+                        {index < 3 && <div className="w-px h-6 md:h-8 bg-slate-100 dark:bg-slate-700 mt-2 rounded-full"></div>}
                     </div>
                     <div>
-                        <p className="text-sm font-bold text-navy-dark dark:text-white">{event.titulo}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                            <span className="material-symbols-outlined text-turquoise text-[14px]">location_on</span>
-                            <p className="text-xs text-slate-500">{event.local}</p>
+                        <p className="text-xs md:text-sm font-bold text-navy-dark dark:text-white">{event.titulo}</p>
+                        <div className="flex items-center gap-1 mt-0.5 md:mt-1">
+                            <span className="material-symbols-outlined text-turquoise text-[12px] md:text-[14px]">location_on</span>
+                            <p className="text-[10px] md:text-xs text-slate-500 truncate max-w-[150px] md:max-w-none">{event.local}</p>
                         </div>
                         {event.origem === 'Lincoln Portela' && (
-                            <span className="inline-block mt-1 px-1.5 py-0.5 bg-navy-dark/10 text-navy-dark dark:bg-blue-900/40 dark:text-blue-300 text-[9px] font-bold rounded border border-navy-dark/20 dark:border-blue-700/50">
-                                Lincoln Portela
+                            <span className="inline-block mt-1 px-1 py-0.5 bg-navy-dark/10 text-navy-dark dark:bg-blue-900/40 dark:text-blue-300 text-[8px] md:text-[9px] font-bold rounded border border-navy-dark/20 dark:border-blue-700/50">
+                                Lincoln
                             </span>
                         )}
                         {(event.origem === 'Alê Portela' || !event.origem) && (
-                            <span className="inline-block mt-1 px-1.5 py-0.5 bg-turquoise/10 text-turquoise dark:bg-turquoise/20 text-[9px] font-bold rounded border border-turquoise/20">
-                                Alê Portela
+                            <span className="inline-block mt-1 px-1 py-0.5 bg-turquoise/10 text-turquoise dark:bg-turquoise/20 text-[8px] md:text-[9px] font-bold rounded border border-turquoise/20">
+                                Alê
                             </span>
                         )}
                     </div>
                 </div>
             ))}
         </div>
-        <div className="p-4 mt-auto border-t border-slate-200 dark:border-slate-700"><button className="w-full text-xs font-bold text-turquoise hover:underline flex items-center justify-center gap-1">Ver Agenda Completa<span className="material-symbols-outlined text-xs">arrow_forward</span></button></div>
+        <div className="p-3 md:p-4 mt-auto border-t border-slate-200 dark:border-slate-700">
+            <button className="w-full text-[10px] md:text-xs font-bold text-turquoise hover:underline flex items-center justify-center gap-1">
+                Ver Agenda Completa
+                <span className="material-symbols-outlined text-sm md:text-xs">arrow_forward</span>
+            </button>
+        </div>
     </div>
 );
 
@@ -280,7 +300,7 @@ const StatusBadge: React.FC<{ status: Municipio['statusAtividade'] }> = ({ statu
         'Manutenção': 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400',
         'Atenção': 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400',
     };
-    return <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold tracking-wider ${styles[status]}`}>{status}</span>;
+    return <span className={`inline-flex items-center px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[9px] md:text-[10px] font-bold tracking-wider ${styles[status]}`}>{status}</span>;
 }
 
 const RecursosDestaqueTable: React.FC<{ recursos: RecursoResumo[], navigateTo: DashboardProps['navigateTo'] }> = ({ recursos, navigateTo }) => {
@@ -319,105 +339,77 @@ const RecursosDestaqueTable: React.FC<{ recursos: RecursoResumo[], navigateTo: D
     const sortedMunicipios = Object.values(recursosPorMunicipio).sort((a, b) => b.totalValor - a.totalValor);
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm mb-8">
-            <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm mb-6 md:mb-8">
+            <div className="px-4 md:px-8 py-4 md:py-6 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:justify-between md:items-center gap-3 md:gap-4">
                 <div>
-                    <h4 className="font-extrabold text-navy-dark dark:text-white text-lg tracking-tight uppercase">Ranking de Recursos (Municípios)</h4>
-                    <p className="text-slate-500 text-sm mt-0.5">Top municípios por volume de investimento</p>
+                    <h4 className="font-extrabold text-navy-dark dark:text-white text-sm md:text-lg tracking-tight uppercase">Ranking de Recursos</h4>
+                    <p className="text-slate-500 text-[10px] md:text-sm mt-0.5">Top municípios por volume de investimento</p>
                 </div>
                 <button
                     onClick={() => navigateTo('Recursos')}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-navy-dark text-white rounded-lg text-sm font-semibold hover:bg-navy-dark/90 transition-colors shadow-lg shadow-navy-dark/10"
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-navy-dark text-white rounded-lg text-xs font-semibold hover:bg-navy-dark/90 transition-colors shadow-lg shadow-navy-dark/10 w-full md:w-auto"
                 >
-                    <span className="material-symbols-outlined">analytics</span>
-                    Gestão Completa
+                    <span className="material-symbols-outlined text-base">analytics</span>
+                    Ver Tudo
                 </button>
             </div>
-            <div className="overflow-x-auto w-full">
-                <table className="w-full text-left bg-white dark:bg-slate-800 min-w-[800px] md:min-w-0">
-                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
+            <div className="overflow-x-auto w-full scrollbar-hide">
+                <table className="w-full text-left bg-white dark:bg-slate-800 min-w-[600px] md:min-w-0">
+                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
                         <tr>
-                            <th className="px-6 py-3 tracking-wider w-12">#</th>
-                            <th className="px-6 py-3 tracking-wider">Município</th>
-                            <th className="px-6 py-3 tracking-wider text-center">Origem</th>
-                            <th className="px-6 py-3 tracking-wider">Destinação / Tipos</th>
-                            <th className="px-6 py-3 tracking-wider text-center">Projetos</th>
-                            <th className="px-6 py-3 tracking-wider text-right">Valor Total</th>
-                            <th className="px-6 py-3 tracking-wider text-center w-12"></th>
+                            <th className="px-4 md:px-6 py-3 w-8 md:w-12">#</th>
+                            <th className="px-4 md:px-6 py-3">Município</th>
+                            <th className="px-4 md:px-6 py-3 text-center">Origem</th>
+                            <th className="px-4 md:px-6 py-3 text-center">Projetos</th>
+                            <th className="px-4 md:px-6 py-3 text-right">Valor Total</th>
+                            <th className="px-4 md:px-6 py-3 text-center w-10 md:w-12"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                         {sortedMunicipios.slice(0, 5).map((item, index) => (
                             <tr key={item.municipio} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                                <td className="px-6 py-3">
-                                    <span className={`font-black text-xs ${index === 0 ? 'text-amber-500' : index === 1 ? 'text-slate-400' : index === 2 ? 'text-orange-400' : 'text-slate-300'}`}>
+                                <td className="px-4 md:px-6 py-2 md:py-3">
+                                    <span className={`font-black text-[10px] md:text-xs ${index === 0 ? 'text-amber-500' : index === 1 ? 'text-slate-400' : index === 2 ? 'text-orange-400' : 'text-slate-300'}`}>
                                         {index + 1}
                                     </span>
                                 </td>
-                                <td className="px-6 py-3">
+                                <td className="px-4 md:px-6 py-2 md:py-3">
                                     <span
-                                        className="font-semibold text-navy-dark dark:text-white text-sm whitespace-nowrap cursor-pointer hover:text-turquoise transition-colors"
+                                        className="font-semibold text-navy-dark dark:text-white text-xs md:text-sm whitespace-nowrap cursor-pointer hover:text-turquoise transition-colors"
                                         onClick={() => navigateTo('MunicipioDetalhes', { id: item.id })}
                                     >
                                         {item.municipio}
                                     </span>
                                 </td>
-                                <td className="px-6 py-3 text-center">
+                                <td className="px-4 md:px-6 py-2 md:py-3 text-center">
                                     <div className="flex justify-center gap-1">
                                         {Array.from(item.origens).map(origem => (
                                             <span
                                                 key={origem}
-                                                className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${origem === 'Lincoln Portela'
+                                                className={`px-1 py-0.5 rounded text-[7px] md:text-[8px] font-black uppercase border ${origem === 'Lincoln Portela'
                                                     ? 'bg-navy-dark/10 text-navy-dark border-navy-dark/20 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/30'
                                                     : 'bg-turquoise/10 text-turquoise border-turquoise/20 dark:bg-turquoise/20 dark:text-turquoise dark:border-turquoise/30'
                                                     }`}
                                             >
-                                                {origem.split(' ')[0]} {/* Apenas o primeiro nome para ser compacto */}
+                                                {origem.split(' ')[0]}
                                             </span>
                                         ))}
                                     </div>
                                 </td>
-                                <td className="px-6 py-3">
-                                    <div className="flex flex-wrap gap-1">
-                                        {Array.from(item.tipos).slice(0, 3).map((tipo, tIndex) => {
-                                            const colors = [
-                                                'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800/30',
-                                                'bg-violet-50 text-violet-600 border-violet-100 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-800/30',
-                                                'bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100 dark:bg-fuchsia-900/20 dark:text-fuchsia-300 dark:border-fuchsia-800/30',
-                                                'bg-sky-50 text-sky-600 border-sky-100 dark:bg-sky-900/20 dark:text-sky-300 dark:border-sky-800/30',
-                                                'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-800/30',
-                                                'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/30',
-                                            ];
-                                            const colorClass = colors[tIndex % colors.length];
-                                            return (
-                                                <span
-                                                    key={tipo}
-                                                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${colorClass}`}
-                                                >
-                                                    {tipo}
-                                                </span>
-                                            );
-                                        })}
-                                        {item.tipos.size > 3 && (
-                                            <span className="text-[9px] text-slate-400 font-bold">+{item.tipos.size - 3}</span>
-                                        )}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-3 text-sm text-slate-600 dark:text-slate-300 text-center">
-                                    <span className="inline-block px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-bold">
+                                <td className="px-4 md:px-6 py-2 md:py-3 text-center">
+                                    <span className="inline-block px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-[10px] md:text-xs font-bold">
                                         {item.quantidade}
                                     </span>
                                 </td>
-                                <td className="px-6 py-3 font-black text-sm text-navy-dark dark:text-white text-right whitespace-nowrap">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.totalValor)}
+                                <td className="px-4 md:px-6 py-2 md:py-3 font-black text-xs md:text-sm text-navy-dark dark:text-white text-right whitespace-nowrap">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(item.totalValor)}
                                 </td>
-                                <td className="px-6 py-3 text-center">
+                                <td className="px-4 md:px-6 py-2 md:py-3 text-center">
                                     <button
                                         onClick={() => navigateTo('MunicipioDetalhes', { id: item.id })}
-                                        className="size-7 rounded-lg bg-turquoise/10 hover:bg-turquoise/20 flex items-center justify-center transition-all group/btn"
-                                        title={`Ver detalhes de ${item.municipio}`}
+                                        className="size-6 md:size-7 rounded-lg bg-turquoise/10 hover:bg-turquoise/20 flex items-center justify-center transition-all group/btn"
                                     >
-                                        <span className="material-symbols-outlined text-turquoise text-sm group-hover/btn:scale-110 transition-transform">open_in_new</span>
+                                        <span className="material-symbols-outlined text-turquoise text-[14px] md:text-sm group-hover/btn:scale-110 transition-transform">open_in_new</span>
                                     </button>
                                 </td>
                             </tr>
@@ -430,14 +422,50 @@ const RecursosDestaqueTable: React.FC<{ recursos: RecursoResumo[], navigateTo: D
 };
 
 const RecentActivity = () => (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col mb-8">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"><h4 className="font-bold text-navy-dark dark:text-white">Atividades Recentes - Portela Hub</h4></div>
-        <div className="p-6 space-y-6">
-            <div className="relative flex gap-4"><div className="absolute left-4 top-8 bottom-0 w-px bg-slate-200 dark:bg-slate-700"></div><div className="shrink-0 size-8 rounded-full bg-turquoise/20 flex items-center justify-center z-10"><span className="material-symbols-outlined text-turquoise text-sm">person_add</span></div><div><p className="text-sm font-bold text-navy-dark dark:text-white">Nova Liderança</p><p className="text-xs text-slate-500 mt-1">João Silva adicionou um novo líder em <span className="text-turquoise font-medium">Contagem</span>.</p><p className="text-[10px] text-slate-400 uppercase mt-2 font-bold tracking-wider">Há 5 minutos</p></div></div>
-            <div className="relative flex gap-4"><div className="absolute left-4 top-8 bottom-0 w-px bg-slate-200 dark:bg-slate-700"></div><div className="shrink-0 size-8 rounded-full bg-turquoise/20 flex items-center justify-center z-10"><span className="material-symbols-outlined text-turquoise text-sm">description</span></div><div><p className="text-sm font-bold text-navy-dark dark:text-white">Ofício Enviado</p><p className="text-xs text-slate-500 mt-1">Relatório ministerial concluído e enviado para a prefeitura de <span className="text-turquoise font-medium">Betim</span>.</p><p className="text-[10px] text-slate-400 uppercase mt-2 font-bold tracking-wider">Há 42 minutos</p></div></div>
-            <div className="relative flex gap-4"><div className="shrink-0 size-8 rounded-full bg-turquoise/20 flex items-center justify-center z-10"><span className="material-symbols-outlined text-turquoise text-sm">edit</span></div><div><p className="text-sm font-bold text-navy-dark dark:text-white">Perfil Atualizado</p><p className="text-xs text-slate-500 mt-1">Assessor Marcos atualizou os dados cadastrais de 15 lideranças rurais no Portela Hub.</p><p className="text-[10px] text-slate-400 uppercase mt-2 font-bold tracking-wider">Há 5 horas</p></div></div>
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col mb-6 md:mb-8">
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <h4 className="font-bold text-navy-dark dark:text-white text-sm md:text-base">Atividades Recentes</h4>
         </div>
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700"><button className="w-full text-xs font-bold text-turquoise hover:underline flex items-center justify-center gap-1">Ver Histórico Completo<span className="material-symbols-outlined text-xs">arrow_forward</span></button></div>
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+            <div className="relative flex gap-3 md:gap-4">
+                <div className="absolute left-3 md:left-4 top-8 bottom-0 w-px bg-slate-200 dark:bg-slate-700"></div>
+                <div className="shrink-0 size-6 md:size-8 rounded-full bg-turquoise/20 flex items-center justify-center z-10">
+                    <span className="material-symbols-outlined text-turquoise text-xs md:text-sm">person_add</span>
+                </div>
+                <div className="min-w-0">
+                    <p className="text-xs md:text-sm font-bold text-navy-dark dark:text-white truncate">Nova Liderança</p>
+                    <p className="text-[10px] md:text-xs text-slate-500 mt-0.5">João Silva adicionou um novo líder em <span className="text-turquoise font-medium">Contagem</span>.</p>
+                    <p className="text-[8px] md:text-[9px] text-slate-400 uppercase mt-1.5 font-bold tracking-wider">Há 5 min</p>
+                </div>
+            </div>
+            <div className="relative flex gap-3 md:gap-4">
+                <div className="absolute left-3 md:left-4 top-8 bottom-0 w-px bg-slate-200 dark:bg-slate-700"></div>
+                <div className="shrink-0 size-6 md:size-8 rounded-full bg-turquoise/20 flex items-center justify-center z-10">
+                    <span className="material-symbols-outlined text-turquoise text-xs md:text-sm">description</span>
+                </div>
+                <div className="min-w-0">
+                    <p className="text-xs md:text-sm font-bold text-navy-dark dark:text-white truncate">Ofício Enviado</p>
+                    <p className="text-[10px] md:text-xs text-slate-500 mt-0.5">Relatório ministerial concluído em <span className="text-turquoise font-medium">Betim</span>.</p>
+                    <p className="text-[8px] md:text-[9px] text-slate-400 uppercase mt-1.5 font-bold tracking-wider">Há 42 min</p>
+                </div>
+            </div>
+            <div className="relative flex gap-3 md:gap-4">
+                <div className="shrink-0 size-6 md:size-8 rounded-full bg-turquoise/20 flex items-center justify-center z-10">
+                    <span className="material-symbols-outlined text-turquoise text-xs md:text-sm">edit</span>
+                </div>
+                <div className="min-w-0">
+                    <p className="text-xs md:text-sm font-bold text-navy-dark dark:text-white truncate">Perfil Atualizado</p>
+                    <p className="text-[10px] md:text-xs text-slate-500 mt-0.5">Assessor Marcos atualizou os dados de 15 líderes.</p>
+                    <p className="text-[8px] md:text-[9px] text-slate-400 uppercase mt-1.5 font-bold tracking-wider">Há 5 horas</p>
+                </div>
+            </div>
+        </div>
+        <div className="p-3 md:p-4 border-t border-slate-200 dark:border-slate-700">
+            <button className="w-full text-[10px] md:text-xs font-bold text-turquoise hover:underline flex items-center justify-center gap-1">
+                Ver Histórico
+                <span className="material-symbols-outlined text-sm md:text-xs">arrow_forward</span>
+            </button>
+        </div>
     </div>
 );
 
@@ -533,15 +561,15 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
     if (!data) return null;
 
     return (
-        <div className="p-4 md:p-8 space-y-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white">Dashboard Geral</h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base">Visão estratégica e indicadores de desempenho.</p>
+        <div className="p-4 md:p-8 space-y-6 md:space-y-8 pb-24 md:pb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4">
+                <div className="min-w-0">
+                    <h2 className="text-xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white truncate">Dashboard Geral</h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-[10px] md:text-base">Visão estratégica e indicadores.</p>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-500 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm hidden md:flex">
-                    <span className="material-symbols-outlined text-turquoise">calendar_today</span>
-                    <span>{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                <div className="flex items-center gap-2 text-[10px] md:text-sm text-slate-500 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm w-fit">
+                    <span className="material-symbols-outlined text-turquoise text-base md:text-lg">calendar_today</span>
+                    <span>{new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                 </div>
             </div>
 

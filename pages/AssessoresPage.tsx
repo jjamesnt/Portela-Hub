@@ -129,107 +129,117 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
 
     return (
         <div className="p-4 md:p-8 animate-in fade-in duration-500 pb-24 md:pb-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 md:mb-8">
                 <div>
-                    <h2 className="text-2xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white">Equipe de Assessores</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Conheça o time que impulsiona nossa gestão.</p>
+                    <h2 className="text-xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white">Equipe de Assessores</h2>
+                    <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">Conheça o time que impulsiona nossa gestão.</p>
                 </div>
                 <button
                     onClick={() => { setEditingAssessor({}); setIsModalOpen(true); }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-turquoise text-white rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20 active:scale-95"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20 active:scale-95"
                 >
-                    <span className="material-symbols-outlined text-xl">add</span>
-                    Adicionar Assessor
+                    <span className="material-symbols-outlined text-lg md:text-xl">add</span>
+                    Novo Assessor
                 </button>
             </div>
 
-            {/* Barra de Filtros (Estilo Lideranças) */}
-            <div className={`grid grid-cols-1 md:grid-cols-12 gap-3 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 transition-all ${filtersActive ? 'ring-2 ring-indigo-50 dark:ring-indigo-900/20' : ''}`}>
-                <div className="md:col-span-4 relative group">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors material-symbols-outlined">search</span>
-                    <input
-                        type="text"
-                        placeholder="Buscar por nome..."
-                        value={busca}
-                        onChange={e => setBusca(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                    />
-                    {busca && (
-                        <button
-                            onClick={() => setBusca('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">close</span>
-                        </button>
-                    )}
-                </div>
+            {/* Barra de Filtros Redesenhada (Alto Contraste) */}
+            <div className={`flex flex-col gap-2 md:gap-3 mb-6 md:mb-8 bg-white dark:bg-slate-800 p-3 md:p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 transition-all ${filtersActive ? 'ring-2 ring-indigo-50 dark:ring-indigo-900/20' : ''}`}>
+                <div className="flex flex-col md:flex-row gap-2 md:gap-3">
+                    <div className="flex-1 relative group">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors material-symbols-outlined text-[18px] md:text-base">search</span>
+                        <input
+                            type="text"
+                            placeholder="Buscar assessor..."
+                            value={busca}
+                            onChange={e => setBusca(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 md:py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs md:text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                        />
+                        {busca && (
+                            <button
+                                onClick={() => setBusca('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-[16px] md:text-[18px]">close</span>
+                            </button>
+                        )}
+                    </div>
 
-                <div className="md:col-span-3">
-                    <FilterSelect
-                        value={filtroRegiao}
-                        onChange={setFiltroRegiao}
-                        options={regioes}
-                        placeholder="Todas Regiões"
-                    />
-                </div>
-
-                <div className="md:col-span-3">
-                    <FilterSelect
-                        value={filtroCargo}
-                        onChange={setFiltroCargo}
-                        options={cargos}
-                        placeholder="Todos Cargos"
-                    />
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 flex-[1.5]">
+                        <FilterSelect
+                            value={filtroRegiao}
+                            onChange={setFiltroRegiao}
+                            options={regioes}
+                            placeholder="Regiões"
+                        />
+                        <FilterSelect
+                            value={filtroCargo}
+                            onChange={setFiltroCargo}
+                            options={cargos}
+                            placeholder="Cargos"
+                        />
+                        {filtersActive && (
+                            <button
+                                onClick={clearFilters}
+                                className="md:hidden flex items-center justify-center p-2 bg-rose-50 text-rose-600 rounded-xl border border-rose-100"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">filter_alt_off</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {filtersActive && (
-                    <div className="md:col-span-2 flex justify-end">
+                    <div className="hidden md:flex justify-end mt-1 animate-in fade-in slide-in-from-top-1">
                         <button
                             onClick={clearFilters}
-                            className="w-full h-full px-4 py-2.5 bg-rose-50 text-rose-600 rounded-xl text-sm font-bold hover:bg-rose-100 transition-colors flex items-center justify-center gap-2 border border-rose-100 animate-in fade-in zoom-in duration-300"
+                            className="px-4 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-[11px] font-bold hover:bg-rose-100 transition-colors flex items-center gap-1 border border-rose-100"
                         >
-                            <span className="material-symbols-outlined text-[18px]">filter_alt_off</span>
-                            Limpar
+                            <span className="material-symbols-outlined text-[16px]">filter_alt_off</span>
+                            Limpar Tudo
                         </button>
                     </div>
                 )}
             </div>
 
             {isLoading ? <Loader /> : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
                     {assessoresFiltrados.map(assessor => (
-                        <div key={assessor.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 text-center p-6 flex flex-col items-center hover:shadow-md transition-shadow relative group">
+                        <div key={assessor.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 md:p-5 hover:shadow-md transition-all group relative overflow-hidden">
                             <button
                                 onClick={() => { setEditingAssessor(assessor); setIsModalOpen(true); }}
-                                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-turquoise hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                className="absolute top-2 right-2 md:top-4 md:right-4 text-slate-300 hover:text-turquoise transition-colors z-10"
                             >
-                                <span className="material-symbols-outlined">edit</span>
+                                <span className="material-symbols-outlined text-sm md:text-xl">edit</span>
                             </button>
 
-                            <div className="-mt-12 mb-4">
-                                <ImageUpload
-                                    currentImage={assessor.avatarUrl}
-                                    onImageSelected={(base64) => handleImageUpdate(assessor.id, base64)}
-                                />
-                            </div>
-
-                            <h3 className="text-lg font-bold text-navy-dark dark:text-white line-clamp-1">{assessor.nome}</h3>
-                            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mt-2 ${assessor.origem === 'Lincoln Portela' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300'}`}>
-                                {assessor.origem}
-                            </div>
-                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-2">{assessor.cargo}</p>
-                            <p className="text-xs text-slate-400 mt-1">{assessor.regiaoAtuacao}</p>
-
-                            <div className="w-full my-6 h-px bg-slate-100 dark:bg-slate-700"></div>
-
-                            <div className="grid grid-cols-2 gap-4 w-full">
-                                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                                    <p className="text-xl font-black text-navy-dark dark:text-white">{assessor.municipiosCobertos}</p>
-                                    <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest mt-1">Municípios</p>
+                            <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4 mb-3 md:mb-4 text-center md:text-left">
+                                <div className="w-10 h-10 md:w-16 md:h-16 rounded-full overflow-hidden border-2 border-white dark:border-slate-700 shadow-sm md:shadow-md shrink-0 bg-slate-100 dark:bg-slate-700">
+                                    <img
+                                        src={assessor.avatarUrl || 'https://via.placeholder.com/150'}
+                                        alt={assessor.nome}
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
-                                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                                    <p className="text-xl font-black text-navy-dark dark:text-white">{assessor.liderancasGerenciadas}</p>
-                                    <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest mt-1">Lideranças</p>
+                                <div className="min-w-0 w-full">
+                                    <h3 className="text-xs md:text-base font-bold text-navy-dark dark:text-white truncate">{assessor.nome}</h3>
+                                    <div className="flex flex-wrap justify-center md:justify-start gap-1 mt-0.5 md:mt-1">
+                                        <span className={`px-1 md:px-2 py-0.5 rounded text-[7px] md:text-[10px] uppercase font-black tracking-wider ${assessor.origem === 'Lincoln Portela' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                                            {assessor.origem.split(' ')[0]}
+                                        </span>
+                                    </div>
+                                    <p className="text-[9px] md:text-xs text-slate-400 mt-0.5 md:mt-1 truncate opacity-80">{assessor.cargo}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1 md:space-y-2 border-t border-slate-100 dark:border-slate-700 pt-3 md:pt-4">
+                                <div className="flex items-center gap-1.5 md:gap-2 text-[9px] md:text-xs text-slate-600 dark:text-slate-400">
+                                    <span className="material-symbols-outlined text-[13px] md:text-[16px] text-slate-400">location_on</span>
+                                    <span className="truncate">{assessor.regiaoAtuacao}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 md:gap-2 text-[9px] md:text-xs text-slate-600 dark:text-slate-400">
+                                    <span className="material-symbols-outlined text-[13px] md:text-[16px] text-slate-400">call</span>
+                                    <span className="truncate">{assessor.telefone}</span>
                                 </div>
                             </div>
                         </div>

@@ -301,71 +301,108 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
             )}
 
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-navy-dark dark:text-white tracking-tight">Municípios</h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Gestão de bases e análise de influência regional.</p>
+                    <h1 className="text-xl md:text-3xl font-extrabold text-navy-dark dark:text-white tracking-tight">Municípios</h1>
+                    <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">Gestão de bases e análise de influência regional.</p>
                 </div>
                 <button
                     onClick={() => setShowModal(true)}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-turquoise text-navy-dark font-bold rounded-xl hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20"
+                    className="flex items-center justify-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-turquoise text-navy-dark font-bold rounded-xl hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20 text-xs md:text-base w-full sm:w-auto"
                 >
-                    <span className="material-symbols-outlined">add_circle</span>
+                    <span className="material-symbols-outlined text-[18px] md:text-[24px]">add_circle</span>
                     Novo Município
                 </button>
             </div>
 
             {/* Summary Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Total</p>
-                    <p className="text-xl font-black text-navy-custom dark:text-white">{summaryStats.total}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 mb-4 md:mb-6">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 md:p-4 border border-slate-200 dark:border-slate-700">
+                    <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase">Total</p>
+                    <p className="text-base md:text-xl font-black text-navy-custom dark:text-white">{summaryStats.total}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Investimento</p>
-                    <p className="text-xl font-black text-emerald-600">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(summaryStats.totalInvestimento)}</p>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 md:p-4 border border-slate-200 dark:border-slate-700">
+                    <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase">Investimento</p>
+                    <p className="text-base md:text-xl font-black text-emerald-600">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(summaryStats.totalInvestimento)}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Demandas</p>
-                    <p className="text-xl font-black text-navy-custom dark:text-white">{summaryStats.totalDemandas}</p>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 md:p-4 border border-slate-200 dark:border-slate-700">
+                    <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase">Demandas</p>
+                    <p className="text-base md:text-xl font-black text-navy-custom dark:text-white">{summaryStats.totalDemandas}</p>
                 </div>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                 {/* Filters Section */}
-                <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20">
-                    <div className="flex flex-wrap gap-3 items-center">
-                        {/* Search */}
-                        <div className="relative flex-1 min-w-[200px] max-w-md">
-                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                                <span className="material-symbols-outlined text-lg">search</span>
-                            </span>
-                            <input
-                                type="text"
-                                placeholder="Buscar município..."
-                                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-turquoise/30 outline-none transition-all"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                <div className="p-3 md:p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20">
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap gap-2 items-center">
+                            {/* Search */}
+                            <div className="relative flex-1 min-w-[150px] md:max-w-md">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-2 md:pl-3 text-slate-400">
+                                    <span className="material-symbols-outlined text-[18px] md:text-lg">search</span>
+                                </span>
+                                <input
+                                    type="text"
+                                    placeholder="Buscar..."
+                                    className="w-full pl-8 md:pl-10 pr-4 py-1.5 md:py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs md:text-sm focus:ring-2 focus:ring-turquoise/30 outline-none transition-all"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Clear Filters (Mobile shortcut) */}
+                            {hasActiveFilters && (
+                                <button
+                                    onClick={clearFilters}
+                                    className="md:hidden flex items-center justify-center p-1.5 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg"
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">filter_alt_off</span>
+                                </button>
+                            )}
                         </div>
 
-                        {/* Region Filter */}
-                        <select
-                            value={filterRegion}
-                            onChange={(e) => setFilterRegion(e.target.value)}
-                            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-turquoise/30 outline-none"
-                        >
-                            <option value="">Todas Regiões</option>
-                            {uniqueRegions.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
+                        <div className="flex flex-wrap gap-2 items-center">
+                            {/* Region Filter */}
+                            <select
+                                value={filterRegion}
+                                onChange={(e) => setFilterRegion(e.target.value)}
+                                className="flex-1 md:flex-none px-2 md:px-3 py-1.5 md:py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] md:text-sm font-medium focus:ring-2 focus:ring-turquoise/30 outline-none"
+                            >
+                                <option value="">Todas Regiões</option>
+                                {uniqueRegions.map(r => <option key={r} value={r}>{r}</option>)}
+                            </select>
 
-                        {/* Status Filter */}
-                        <div className="flex gap-1">
+                            {/* Investment Filter */}
+                            <select
+                                value={filterInvestment}
+                                onChange={(e) => setFilterInvestment(e.target.value)}
+                                className="flex-1 md:flex-none px-2 md:px-3 py-1.5 md:py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] md:text-sm font-medium focus:ring-2 focus:ring-turquoise/30 outline-none"
+                            >
+                                <option value="">Investimento</option>
+                                <option value="low">{"< R$500k"}</option>
+                                <option value="mid">R$500k-1M</option>
+                                <option value="high">{"> R$1M"}</option>
+                            </select>
+
+                            {/* Clear Filters (Desktop) */}
+                            {hasActiveFilters && (
+                                <button
+                                    onClick={clearFilters}
+                                    className="hidden md:flex items-center gap-1 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-sm">close</span>
+                                    Limpar
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Status Filter Chips */}
+                        <div className="flex flex-wrap gap-1 md:gap-2">
                             {statusOptions.map(status => (
                                 <button
                                     key={status}
                                     onClick={() => toggleStatusFilter(status)}
-                                    className={`px-2 py-1 text-[10px] font-bold rounded-full uppercase transition-all ${filterStatus.includes(status)
+                                    className={`px-2 md:px-2.5 py-0.5 md:py-1 text-[9px] md:text-[10px] font-bold rounded-full uppercase transition-all ${filterStatus.includes(status)
                                         ? 'bg-turquoise text-white'
                                         : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
                                         }`}
@@ -374,49 +411,26 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                                 </button>
                             ))}
                         </div>
-
-                        {/* Investment Filter */}
-                        <select
-                            value={filterInvestment}
-                            onChange={(e) => setFilterInvestment(e.target.value)}
-                            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-turquoise/30 outline-none"
-                        >
-                            <option value="">Investimento</option>
-                            <option value="low">{"< R$500k"}</option>
-                            <option value="mid">R$500k - R$1M</option>
-                            <option value="high">{"> R$1M"}</option>
-                        </select>
-
-                        {/* Clear Filters */}
-                        {hasActiveFilters && (
-                            <button
-                                onClick={clearFilters}
-                                className="flex items-center gap-1 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            >
-                                <span className="material-symbols-outlined text-sm">close</span>
-                                Limpar
-                            </button>
-                        )}
                     </div>
                 </div>
 
                 <div className="overflow-x-auto scrollbar-hide">
-                    <table className="w-full text-left min-w-[700px] md:min-w-0">
-                        <thead className="bg-slate-50/50 dark:bg-slate-900/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
+                    <table className="w-full text-left min-w-[500px] md:min-w-0">
+                        <thead className="bg-slate-50/50 dark:bg-slate-900/50 text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
                             <tr>
-                                <th className="px-6 py-4 cursor-pointer hover:text-turquoise transition-colors" onClick={() => handleSort('nome')}>
+                                <th className="px-3 md:px-6 py-2 md:py-4 cursor-pointer hover:text-turquoise transition-colors" onClick={() => handleSort('nome')}>
                                     <div className="flex items-center gap-1">Município <SortIcon field="nome" /></div>
                                 </th>
-                                <th className="px-6 py-4 cursor-pointer hover:text-turquoise transition-colors" onClick={() => handleSort('regiao')}>
+                                <th className="px-3 md:px-6 py-2 md:py-4 cursor-pointer hover:text-turquoise transition-colors" onClick={() => handleSort('regiao')}>
                                     <div className="flex items-center gap-1">Região <SortIcon field="regiao" /></div>
                                 </th>
-                                <th className="px-6 py-4 cursor-pointer hover:text-turquoise transition-colors text-center" onClick={() => handleSort('totalRecursos')}>
-                                    <div className="flex items-center justify-center gap-1">Investimento <SortIcon field="totalRecursos" /></div>
+                                <th className="px-3 md:px-6 py-2 md:py-4 cursor-pointer hover:text-turquoise transition-colors text-right md:text-center" onClick={() => handleSort('totalRecursos')}>
+                                    <div className="flex items-center justify-end md:justify-center gap-1">Invest. <SortIcon field="totalRecursos" /></div>
                                 </th>
-                                <th className="px-4 py-4 cursor-pointer hover:text-turquoise transition-colors text-center" onClick={() => handleSort('totalDemandas')}>
+                                <th className="hidden sm:table-cell px-2 md:px-4 py-2 md:py-4 cursor-pointer hover:text-turquoise transition-colors text-center" onClick={() => handleSort('totalDemandas')}>
                                     <div className="flex items-center justify-center gap-1">Demandas <SortIcon field="totalDemandas" /></div>
                                 </th>
-                                <th className="px-6 py-4 cursor-pointer hover:text-turquoise transition-colors text-center" onClick={() => handleSort('statusAtividade')}>
+                                <th className="px-3 md:px-6 py-2 md:py-4 cursor-pointer hover:text-turquoise transition-colors text-center" onClick={() => handleSort('statusAtividade')}>
                                     <div className="flex items-center justify-center gap-1">Status <SortIcon field="statusAtividade" /></div>
                                 </th>
                             </tr>
@@ -447,30 +461,30 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                                                 onClick={() => navigateTo('MunicipioDetalhes', { id: municipio.id })}
                                                 className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer"
                                             >
-                                                <td className="px-6 py-4">
+                                                <td className="px-3 md:px-6 py-2.5 md:py-4">
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-navy-custom dark:text-white">
+                                                        <span className="font-bold text-navy-custom dark:text-white text-xs md:text-sm">
                                                             <HighlightText text={municipio.nome} highlight={debouncedSearch} />
                                                         </span>
                                                         {municipio.populacao && (
-                                                            <span className="text-[10px] text-slate-400">{formatPopulation(municipio.populacao)} hab</span>
+                                                            <span className="text-[9px] md:text-[10px] text-slate-400">{formatPopulation(municipio.populacao)} hab</span>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`px-2 py-1 text-[10px] font-bold rounded-full ${regionColor.bg} ${regionColor.text}`}>
+                                                <td className="px-3 md:px-6 py-2.5 md:py-4">
+                                                    <span className={`px-2 py-0.5 md:py-1 text-[9px] md:text-[10px] font-bold rounded-full ${regionColor.bg} ${regionColor.text}`}>
                                                         {municipio.regiao}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-center font-bold text-emerald-600 whitespace-nowrap">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(municipio.totalRecursos || 0)}
+                                                <td className="px-3 md:px-6 py-2.5 md:py-4 text-right md:text-center font-bold text-emerald-600 whitespace-nowrap text-xs md:text-sm">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(municipio.totalRecursos || 0)}
                                                 </td>
-                                                <td className="px-4 py-4 text-center">
+                                                <td className="hidden sm:table-cell px-2 md:px-4 py-2.5 md:py-4 text-center">
                                                     <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs font-bold text-slate-600 dark:text-slate-300">
                                                         {municipio.totalDemandas || 0}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-center">
+                                                <td className="px-3 md:px-6 py-2.5 md:py-4 text-center scale-90 md:scale-100">
                                                     <StatusBadge status={municipio.statusAtividade} />
                                                 </td>
                                             </tr>

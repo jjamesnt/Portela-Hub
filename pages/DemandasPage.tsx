@@ -174,95 +174,108 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
     if (isLoading) return <Loader />;
 
     return (
-        <div className="p-4 md:p-8 space-y-6 animate-in fade-in duration-500">
+        <div className="p-4 md:p-8 space-y-4 md:space-y-6 animate-in fade-in duration-500 pb-24 md:pb-8">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-navy-dark dark:text-white tracking-tight">Gestão de Demandas</h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Controle e acompanhamento de demandas por município.</p>
+                    <h1 className="text-xl md:text-3xl font-extrabold text-navy-dark dark:text-white tracking-tight">Gestão de Demandas</h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-[10px] md:text-sm">Controle e acompanhamento de demandas por município.</p>
                 </div>
                 <button
                     onClick={() => setShowNovaModal(true)}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-turquoise text-white rounded-xl font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20"
+                    className="flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20 w-full sm:w-auto"
                 >
-                    <span className="material-symbols-outlined">add_circle</span>
+                    <span className="material-symbols-outlined text-base md:text-lg">add_circle</span>
                     Nova Demanda
                 </button>
             </div>
 
-            {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-turquoise/5 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">TOTAL</p>
-                    <h2 className="text-2xl font-black text-navy-dark dark:text-white">{stats.total}</h2>
-                </div>
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/5 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">EM ANÁLISE</p>
-                    <h2 className="text-2xl font-black text-amber-600">{stats.emAnalise}</h2>
-                </div>
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">EM EXECUÇÃO</p>
-                    <h2 className="text-2xl font-black text-blue-600">{stats.emExecucao}</h2>
-                </div>
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">CONCLUÍDAS</p>
-                    <h2 className="text-2xl font-black text-emerald-600">{stats.concluidas}</h2>
-                </div>
+            {/* KPIs - Toques Premium */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                {[
+                    { label: 'TOTAL', value: stats.total, color: 'text-navy-dark dark:text-white', bg: 'bg-turquoise/5', icon: 'list_alt' },
+                    { label: 'ANÁLISE', value: stats.emAnalise, color: 'text-amber-600', bg: 'bg-amber-500/5', labelColor: 'text-amber-500', icon: 'pending' },
+                    { label: 'EXECUÇÃO', value: stats.emExecucao, color: 'text-blue-600', bg: 'bg-blue-500/5', labelColor: 'text-blue-500', icon: 'shuttle_dispatch' },
+                    { label: 'CONCLUÍDAS', value: stats.concluidas, color: 'text-emerald-600', bg: 'bg-emerald-500/5', labelColor: 'text-emerald-500', icon: 'task_alt' },
+                ].map(kpi => (
+                    <div key={kpi.label} className="bg-white dark:bg-slate-800 p-3 md:p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
+                        <div className={`absolute top-0 right-0 w-12 md:w-20 h-12 md:h-20 ${kpi.bg} rounded-full -mr-6 md:-mr-10 -mt-6 md:-mt-10 transition-transform group-hover:scale-110 flex items-center justify-center`}>
+                            <span className={`material-symbols-outlined text-xs md:text-xl ${kpi.labelColor || 'text-slate-300'} opacity-20 translate-x-1 translate-y-1`}>{kpi.icon}</span>
+                        </div>
+                        <p className={`text-[8px] md:text-[10px] font-black ${kpi.labelColor || 'text-slate-400'} uppercase tracking-widest mb-0.5 md:mb-1`}>{kpi.label}</p>
+                        <h2 className={`text-lg md:text-2xl font-black ${kpi.color}`}>{kpi.value}</h2>
+                    </div>
+                ))}
             </div>
 
             {/* Tabela */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden text-sm">
-                {/* Filtros */}
-                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col gap-4 bg-slate-50/50 dark:bg-slate-900/20">
-                    <div className="relative w-full">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                            <span className="material-symbols-outlined text-lg">search</span>
-                        </span>
-                        <input
-                            type="text"
-                            placeholder="Buscar por título, descrição ou município..."
-                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-turquoise/30 outline-none transition-all"
-                            value={filtroTexto}
-                            onChange={(e) => setFiltroTexto(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <select value={filtroOrigem} onChange={e => setFiltroOrigem(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all font-bold text-navy-dark dark:text-white">
-                            <option value="Todos">Todos Deputados</option>
-                            <option value="Alê Portela">Alê Portela</option>
-                            <option value="Lincoln Portela">Lincoln Portela</option>
-                        </select>
-                        <select value={filtroMunicipio} onChange={e => setFiltroMunicipio(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
-                            {municipiosList.map(m => <option key={m} value={m}>{m === 'Todos' ? 'Todos Municípios' : m}</option>)}
-                        </select>
-                        <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
-                            <option value="Todos">Todos Status</option>
-                            {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                        <select value={filtroPrioridade} onChange={e => setFiltroPrioridade(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
-                            <option value="Todas">Todas Prioridades</option>
-                            {prioridadeOptions.map(p => <option key={p} value={p}>{p}</option>)}
-                        </select>
+            <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden text-sm">
+                {/* Barra de Filtros Inteligente */}
+                <div className="p-3 md:p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col gap-2 md:gap-4 bg-slate-50/50 dark:bg-slate-900/20">
+                    <div className="flex flex-col md:flex-row gap-2 md:gap-4">
+                        <div className="relative flex-1 group">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 group-focus-within:text-turquoise transition-colors">
+                                <span className="material-symbols-outlined text-[18px] md:text-lg">search</span>
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="Buscar demanda..."
+                                className="w-full pl-9 md:pl-10 pr-4 py-2 md:py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] md:text-sm focus:ring-2 focus:ring-turquoise/30 outline-none transition-all shadow-sm"
+                                value={filtroTexto}
+                                onChange={(e) => setFiltroTexto(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 md:flex gap-2 min-w-0">
+                            <select
+                                value={filtroStatus}
+                                onChange={e => setFiltroStatus(e.target.value)}
+                                className={`px-2 py-1.5 md:px-3 md:py-2 rounded-xl text-[10px] md:text-xs outline-none transition-all font-bold border ${filtroStatus !== 'Todos' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                                <option value="Todos">Status</option>
+                                {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                            <select
+                                value={filtroPrioridade}
+                                onChange={e => setFiltroPrioridade(e.target.value)}
+                                className={`px-2 py-1.5 md:px-3 md:py-2 rounded-xl text-[10px] md:text-xs outline-none transition-all font-bold border ${filtroPrioridade !== 'Todas' ? 'bg-rose-600 border-rose-600 text-white' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                                <option value="Todas">Prioridade</option>
+                                {prioridadeOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                            <select
+                                value={filtroOrigem}
+                                onChange={e => setFiltroOrigem(e.target.value)}
+                                className={`px-2 py-1.5 md:px-3 md:py-2 rounded-xl text-[10px] md:text-xs outline-none transition-all font-bold border ${filtroOrigem !== 'Todos' ? 'bg-navy-dark text-white' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                                <option value="Todos">Deputado</option>
+                                <option value="Alê Portela">Alê</option>
+                                <option value="Lincoln Portela">Lincoln</option>
+                            </select>
+                            <select
+                                value={filtroMunicipio}
+                                onChange={e => setFiltroMunicipio(e.target.value)}
+                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] md:text-xs px-2 py-1.5 md:px-3 md:py-2 outline-none focus:ring-2 focus:ring-turquoise/30 truncate"
+                            >
+                                {municipiosList.map(m => <option key={m} value={m}>{m === 'Todos' ? 'Município' : m}</option>)}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left min-w-[1000px]">
-                        <thead className="bg-slate-50/50 dark:bg-slate-900/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
+                <div className="overflow-x-auto scrollbar-hide">
+                    <table className="w-full text-left min-w-[900px]">
+                        <thead className="bg-slate-50 dark:bg-slate-900/50 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] border-b border-slate-100 dark:border-slate-700">
                             <tr>
-                                <th className="px-6 py-4">DEMANDA</th>
-                                <th className="px-6 py-4">MUNICÍPIO</th>
-                                <th className="px-6 py-4">TIPO</th>
-                                <th className="px-6 py-4 text-center">PRIORIDADE</th>
-                                <th className="px-6 py-4 text-center">ORIGEM</th>
-                                <th className="px-6 py-4">PRAZO</th>
-                                <th className="px-6 py-4 text-center">STATUS</th>
-                                <th className="px-6 py-4 text-center w-24">AÇÕES</th>
+                                <th className="px-4 md:px-6 py-3 md:py-4">Demanda</th>
+                                <th className="px-4 md:px-6 py-3 md:py-4">Município</th>
+                                <th className="px-4 md:px-6 py-3 md:py-4">Tipo</th>
+                                <th className="px-4 md:px-6 py-3 md:py-4 text-center">Prioridade</th>
+                                <th className="px-4 md:px-6 py-3 md:py-4 text-center">Mandato</th>
+                                <th className="px-4 md:px-6 py-3 md:py-4">Prazo</th>
+                                <th className="px-4 md:px-6 py-3 md:py-4 text-center">Status</th>
+                                <th className="px-4 md:px-6 py-3 md:py-4 text-center w-24">Painel</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
@@ -270,77 +283,75 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
                                 editingId === d.id ? (
                                     // Linha de edição inline
                                     <tr key={d.id} className="bg-turquoise/5">
-                                        <td className="px-6 py-3">
+                                        <td className="px-4 md:px-6 py-2 md:py-3">
                                             <input
                                                 value={editForm.titulo || ''}
                                                 onChange={e => setEditForm({ ...editForm, titulo: e.target.value })}
-                                                className="w-full px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                                className="w-full px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs md:text-sm bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
                                             />
                                         </td>
-                                        <td className="px-6 py-3">
-                                            <p className="font-bold text-navy-dark dark:text-white text-xs">{d.municipio_nome}</p>
+                                        <td className="px-4 md:px-6 py-2 md:py-3">
+                                            <p className="font-bold text-navy-dark dark:text-white text-[11px] md:text-xs">{d.municipio_nome}</p>
                                         </td>
-                                        <td className="px-6 py-3">
+                                        <td className="px-4 md:px-6 py-2 md:py-3">
                                             <select
                                                 value={editForm.tipo || ''}
                                                 onChange={e => setEditForm({ ...editForm, tipo: e.target.value })}
-                                                className="w-full px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                                className="w-full px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-[10px] md:text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
                                             >
                                                 {tipoOptions.map(t => <option key={t} value={t}>{t}</option>)}
                                             </select>
                                         </td>
-                                        <td className="px-6 py-3 text-center">
+                                        <td className="px-4 md:px-6 py-2 md:py-3 text-center">
                                             <select
                                                 value={editForm.prioridade || 'Média'}
                                                 onChange={e => setEditForm({ ...editForm, prioridade: e.target.value })}
-                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-[10px] md:text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
                                             >
                                                 {prioridadeOptions.map(p => <option key={p} value={p}>{p}</option>)}
                                             </select>
                                         </td>
-                                        <td className="px-6 py-3 text-center">
+                                        <td className="px-4 md:px-6 py-2 md:py-3 text-center">
                                             <select
                                                 value={editForm.origem || ''}
                                                 onChange={e => setEditForm({ ...editForm, origem: e.target.value })}
-                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-[10px] md:text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
                                             >
-                                                <option value="Alê Portela">Alê Portela</option>
-                                                <option value="Lincoln Portela">Lincoln Portela</option>
+                                                <option value="Alê Portela">Alê</option>
+                                                <option value="Lincoln Portela">Lincoln</option>
                                             </select>
                                         </td>
-                                        <td className="px-6 py-3">
+                                        <td className="px-4 md:px-6 py-2 md:py-3">
                                             <input
                                                 type="date"
                                                 value={editForm.prazo || ''}
                                                 onChange={e => setEditForm({ ...editForm, prazo: e.target.value })}
-                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-[10px] bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
                                             />
                                         </td>
-                                        <td className="px-6 py-3 text-center">
+                                        <td className="px-4 md:px-6 py-2 md:py-3 text-center">
                                             <select
                                                 value={editForm.status || 'Em Análise'}
                                                 onChange={e => setEditForm({ ...editForm, status: e.target.value })}
-                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
+                                                className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-[10px] md:text-xs bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-turquoise/30"
                                             >
                                                 {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
                                             </select>
                                         </td>
-                                        <td className="px-6 py-3 text-center">
+                                        <td className="px-4 md:px-6 py-2 md:py-3 text-center">
                                             <div className="flex items-center justify-center gap-1">
                                                 <button
                                                     onClick={saveEdit}
                                                     disabled={saving}
-                                                    className="size-8 rounded-lg bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/40 flex items-center justify-center transition-all"
-                                                    title="Salvar"
+                                                    className="size-7 md:size-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center transition-all"
                                                 >
-                                                    <span className="material-symbols-outlined text-emerald-600 text-base">check</span>
+                                                    <span className="material-symbols-outlined text-emerald-600 text-sm md:text-base">check</span>
                                                 </button>
                                                 <button
                                                     onClick={cancelEdit}
-                                                    className="size-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/50 dark:hover:bg-slate-600/50 flex items-center justify-center transition-all"
-                                                    title="Cancelar"
+                                                    className="size-7 md:size-8 rounded-lg bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center transition-all"
                                                 >
-                                                    <span className="material-symbols-outlined text-slate-500 text-base">close</span>
+                                                    <span className="material-symbols-outlined text-slate-500 text-sm md:text-base">close</span>
                                                 </button>
                                             </div>
                                         </td>
@@ -348,52 +359,52 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
                                 ) : (
                                     // Linha normal
                                     <tr key={d.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors group">
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4">
                                             <div
                                                 className="cursor-pointer group/dem"
                                                 onClick={() => navigateTo('DemandaMunicipio', { municipioId: d.municipioId, municipioNome: d.municipio_nome, demandaId: d.id })}
                                             >
-                                                <p className="font-medium text-slate-700 dark:text-slate-200 group-hover/dem:text-turquoise transition-colors">{d.titulo}</p>
+                                                <p className="font-bold text-navy-dark dark:text-white group-hover/dem:text-turquoise transition-colors text-xs md:text-sm">{d.titulo}</p>
                                                 {d.descricao && d.descricao !== d.titulo && (
-                                                    <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[250px]">{d.descricao}</p>
+                                                    <p className="text-[9px] md:text-[11px] text-slate-400 mt-0.5 truncate max-w-[150px] md:max-w-[250px]">{d.descricao}</p>
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4">
                                             <div
                                                 className="cursor-pointer group/mun"
                                                 onClick={() => navigateTo('DemandaMunicipio', { municipioId: d.municipioId, municipioNome: d.municipio_nome })}
                                             >
-                                                <p className="font-bold text-navy-dark dark:text-white group-hover/mun:text-turquoise transition-colors">{d.municipio_nome}</p>
-                                                <p className="text-[10px] text-slate-400 uppercase font-medium">{d.regiao}</p>
+                                                <p className="font-bold text-navy-dark dark:text-white group-hover/mun:text-turquoise transition-colors text-xs md:text-sm">{d.municipio_nome}</p>
+                                                <p className="text-[8px] md:text-[10px] text-slate-400 uppercase font-black tracking-tight">{d.regiao}</p>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4">
+                                            <span className="px-1.5 py-0.5 rounded text-[8px] md:text-[9px] font-black uppercase tracking-tighter bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400">
                                                 {d.tipo || '-'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-center"><PrioridadeBadge prioridade={d.prioridade} /></td>
-                                        <td className="px-6 py-4 text-center"><MandatoBadge origem={d.origem} /></td>
-                                        <td className="px-6 py-4 text-slate-500 text-xs">
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4 text-center"><PrioridadeBadge prioridade={d.prioridade} /></td>
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4 text-center"><MandatoBadge origem={d.origem} /></td>
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4 text-slate-400 text-[9px] md:text-xs font-medium">
                                             {d.prazo ? new Date(d.prazo).toLocaleDateString('pt-BR') : '-'}
                                         </td>
-                                        <td className="px-6 py-4 text-center"><StatusBadge status={d.status} /></td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex items-center justify-center gap-1">
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4 text-center"><StatusBadge status={d.status} /></td>
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4 text-center">
+                                            <div className="flex items-center justify-center gap-1.5">
                                                 <button
                                                     onClick={() => startEdit(d)}
-                                                    className="size-8 rounded-lg bg-turquoise/10 hover:bg-turquoise/20 flex items-center justify-center transition-all group/btn"
-                                                    title="Editar demanda"
+                                                    className="size-7 md:size-8 rounded-lg bg-turquoise/10 hover:bg-turquoise/20 flex items-center justify-center transition-all group/btn"
+                                                    title="Editar"
                                                 >
-                                                    <span className="material-symbols-outlined text-turquoise text-base group-hover/btn:scale-110 transition-transform">edit</span>
+                                                    <span className="material-symbols-outlined text-turquoise text-[16px] md:text-base group-hover/btn:scale-110 transition-transform">edit</span>
                                                 </button>
                                                 <button
                                                     onClick={() => navigateTo('DemandaMunicipio', { municipioId: d.municipioId, municipioNome: d.municipio_nome })}
-                                                    className="size-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/50 dark:hover:bg-slate-600/50 flex items-center justify-center transition-all group/btn2"
-                                                    title={`Gestão de demandas: ${d.municipio_nome}`}
+                                                    className="size-7 md:size-8 rounded-lg bg-slate-50 dark:bg-slate-700/50 flex items-center justify-center transition-all group/btn2"
+                                                    title="Ver mais"
                                                 >
-                                                    <span className="material-symbols-outlined text-slate-500 text-sm group-hover/btn2:scale-110 transition-transform">open_in_new</span>
+                                                    <span className="material-symbols-outlined text-slate-400 text-[16px] group-hover/btn2:text-navy-dark dark:group-hover/btn2:text-white transition-colors">open_in_new</span>
                                                 </button>
                                             </div>
                                         </td>

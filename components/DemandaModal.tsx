@@ -37,6 +37,7 @@ const DemandaModal: React.FC<DemandaModalProps> = ({ municipioId, isOpen, onClos
                 municipio_id: municipioId,
                 titulo: formData.titulo,
                 descricao: formData.descricao,
+                tipo: 'Geral', // Valor padrão ou extraído do formulário se necessário
                 status: formData.status,
                 prioridade: formData.prioridade
             });
@@ -56,16 +57,16 @@ const DemandaModal: React.FC<DemandaModalProps> = ({ municipioId, isOpen, onClos
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
-                    <h3 className="font-black text-xl text-navy-custom dark:text-white">Nova Demanda</h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                        <span className="material-symbols-outlined">close</span>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-hidden transform transition-all animate-in slide-in-from-bottom sm:zoom-in duration-300 flex flex-col">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900 shrink-0">
+                    <h3 className="font-black text-xl text-navy-custom dark:text-white uppercase tracking-tight">Nova Demanda</h3>
+                    <button onClick={onClose} className="size-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors">
+                        <span className="material-symbols-outlined text-[20px]">close</span>
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto">
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Título / Descrição Curta *</label>
                         <input
@@ -127,25 +128,25 @@ const DemandaModal: React.FC<DemandaModalProps> = ({ municipioId, isOpen, onClos
                         </div>
                     )}
 
-                    <div className="pt-4 flex gap-3">
+                    <div className="pt-2 flex gap-3 sticky bottom-0 bg-white dark:bg-slate-800 shrink-0">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-black hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                            className="flex-1 px-4 py-4 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
                         >
-                            CANCELAR
+                            Cancelar
                         </button>
                         <button
                             type="submit"
                             disabled={isSaving}
-                            className="flex-1 px-4 py-3 bg-primary text-white rounded-xl text-sm font-black hover:brightness-110 shadow-lg shadow-primary/20 transition-all disabled:opacity-70 flex justify-center items-center gap-2"
+                            className="flex-1 px-4 py-4 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:brightness-110 shadow-xl shadow-primary/30 transition-all disabled:opacity-70 flex justify-center items-center gap-2"
                         >
                             {isSaving ? (
-                                <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+                                <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
                             ) : (
-                                <span className="material-symbols-outlined text-[20px]">save</span>
+                                <span className="material-symbols-outlined text-[18px]">save_as</span>
                             )}
-                            SALVAR
+                            Salvar
                         </button>
                     </div>
                 </form>

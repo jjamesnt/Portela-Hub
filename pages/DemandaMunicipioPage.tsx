@@ -232,41 +232,44 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
     if (isLoading) return <Loader />;
 
     return (
-        <div className="p-4 md:p-8 space-y-6 animate-in fade-in duration-500">
+        <div className="p-4 md:p-8 space-y-4 md:space-y-6 animate-in fade-in duration-500 pb-24 md:pb-8">
             {/* Header com voltar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
+                <div className="flex items-center gap-3 md:gap-4">
                     <button
                         onClick={() => navigateTo('Demandas')}
-                        className="size-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                        className="size-9 md:size-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
                     >
-                        <span className="material-symbols-outlined text-slate-500">arrow_back</span>
+                        <span className="material-symbols-outlined text-slate-500 text-[18px] md:text-base">arrow_back</span>
                     </button>
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-extrabold text-navy-dark dark:text-white tracking-tight">{municipioNome}</h1>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">Gestão de Demandas do Município</p>
+                    <div className="min-w-0">
+                        <h1 className="text-xl md:text-3xl font-extrabold text-navy-dark dark:text-white tracking-tight truncate">{municipioNome}</h1>
+                        <p className="text-slate-500 dark:text-slate-400 text-[10px] md:text-sm">Gestão de Demandas</p>
                     </div>
                 </div>
                 <button
                     onClick={() => setShowNova(true)}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-turquoise text-white rounded-xl font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20"
+                    className="flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20 w-full sm:w-auto"
                 >
-                    <span className="material-symbols-outlined">add_circle</span>
+                    <span className="material-symbols-outlined text-base md:text-lg">add_circle</span>
                     Nova Demanda
                 </button>
             </div>
 
-            {/* KPIs resumo */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* KPIs resumo - Toques Premium */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 {[
-                    { label: 'Total', value: stats.total, color: 'text-navy-dark dark:text-white', bg: 'bg-turquoise/5' },
-                    { label: 'Em Análise', value: stats.emAnalise, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/10' },
-                    { label: 'Em Execução', value: stats.emExecucao, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/10' },
-                    { label: 'Concluídas', value: stats.concluidas, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
+                    { label: 'Total', value: stats.total, color: 'text-navy-dark dark:text-white', bg: 'bg-turquoise/5', icon: 'list_alt' },
+                    { label: 'Análise', value: stats.emAnalise, color: 'text-amber-600', bg: 'bg-amber-500/5', icon: 'pending' },
+                    { label: 'Execução', value: stats.emExecucao, color: 'text-blue-600', bg: 'bg-blue-500/5', icon: 'shuttle_dispatch' },
+                    { label: 'Conc.', value: stats.concluidas, color: 'text-emerald-600', bg: 'bg-emerald-500/5', icon: 'task_alt' },
                 ].map(kpi => (
-                    <div key={kpi.label} className={`${kpi.bg} p-4 rounded-xl border border-slate-200/50 dark:border-slate-700/50`}>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{kpi.label}</p>
-                        <h3 className={`text-2xl font-black ${kpi.color}`}>{kpi.value}</h3>
+                    <div key={kpi.label} className="bg-white dark:bg-slate-800 p-3 md:p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
+                        <div className={`absolute top-0 right-0 w-12 md:w-16 h-12 md:h-16 ${kpi.bg} rounded-full -mr-6 md:-mr-8 -mt-6 md:-mt-8 flex items-center justify-center opacity-20`}>
+                            <span className="material-symbols-outlined text-xs md:text-sm translate-x-1 translate-y-1">{kpi.icon}</span>
+                        </div>
+                        <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 md:mb-1">{kpi.label}</p>
+                        <h3 className={`text-lg md:text-2xl font-black ${kpi.color}`}>{kpi.value}</h3>
                     </div>
                 ))}
             </div>
@@ -290,21 +293,21 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                                     <button
                                         key={d.id}
                                         onClick={() => selectDemanda(d)}
-                                        className={`w-full text-left px-5 py-4 transition-all hover:bg-slate-50 dark:hover:bg-slate-700/30 ${selectedDemanda?.id === d.id ? 'bg-turquoise/5 border-l-4 border-l-turquoise' : 'border-l-4 border-l-transparent'}`}
+                                        className={`w-full text-left px-4 md:px-5 py-3 md:py-4 transition-all hover:bg-slate-50 dark:hover:bg-slate-700/30 ${selectedDemanda?.id === d.id ? 'bg-turquoise/5 border-l-4 border-l-turquoise shadow-inner' : 'border-l-4 border-l-transparent'}`}
                                     >
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="flex-1 min-w-0">
-                                                <p className={`text-sm font-bold truncate ${selectedDemanda?.id === d.id ? 'text-turquoise' : 'text-navy-dark dark:text-white'}`}>{d.titulo}</p>
-                                                <p className="text-[11px] text-slate-400 mt-0.5 truncate">{d.tipo || 'Sem tipo'}</p>
+                                                <p className={`text-xs md:text-sm font-bold truncate ${selectedDemanda?.id === d.id ? 'text-turquoise' : 'text-navy-dark dark:text-white'}`}>{d.titulo}</p>
+                                                <p className="text-[10px] md:text-[11px] text-slate-400 mt-0.5 truncate uppercase font-black">{d.tipo || 'Sem tipo'}</p>
                                             </div>
-                                            <span className={`shrink-0 px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${statusColors[d.status] || ''}`}>
+                                            <span className={`shrink-0 px-1.5 py-0.5 rounded-lg text-[8px] font-black uppercase border ${statusColors[d.status] || ''}`}>
                                                 {d.status === 'Em Análise' ? 'ANÁLISE' : d.status === 'Em Execução' ? 'EXEC.' : 'CONC.'}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2 mt-2">
-                                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold border ${prioridadeColors[d.prioridade] || ''}`}>{d.prioridade}</span>
-                                            <span className="text-[10px] text-slate-400">•</span>
-                                            <span className="text-[10px] text-slate-400">{d.origem?.split(' ')[0] || '-'}</span>
+                                            <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold border ${prioridadeColors[d.prioridade] || ''}`}>{d.prioridade}</span>
+                                            <span className="text-[10px] text-slate-300 dark:text-slate-600">•</span>
+                                            <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase">{d.origem?.split(' ')[0] || '-'}</span>
                                         </div>
                                     </button>
                                 ))
@@ -318,17 +321,18 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                     {selectedDemanda ? (
                         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                             {/* Header do detalhe */}
-                            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-turquoise/5 to-transparent flex items-center justify-between">
+                            <div className="px-4 md:px-6 py-4 md:py-5 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-turquoise/5 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-3">
                                 <div>
                                     <div className="flex items-center gap-3">
                                         {(() => {
                                             const { code, breakdown } = generateDemandaCode({ ...editForm, created_at: selectedDemanda.created_at }, demandas.findIndex(d => d.id === selectedDemanda.id), municipioNome);
                                             return (
-                                                <div className="relative group/id cursor-help">
-                                                    <span className="px-3 py-1 bg-navy-dark text-white rounded-lg text-xs font-mono font-black tracking-wider">
+                                                <div className="relative group/id cursor-help shrink-0">
+                                                    <span className="px-2 py-0.5 md:px-3 md:py-1 bg-navy-dark text-white rounded-lg text-xs font-mono font-black tracking-wider">
                                                         {code}
                                                     </span>
-                                                    <div className="absolute left-0 top-full mt-2 w-80 bg-navy-dark text-white text-[11px] rounded-xl p-4 shadow-2xl opacity-0 invisible group-hover/id:opacity-100 group-hover/id:visible transition-all duration-200 z-50 pointer-events-none">
+                                                    {/* Tooltip restricted to md+ to avoid mobile issues */}
+                                                    <div className="hidden md:block absolute left-0 top-full mt-2 w-80 bg-navy-dark text-white text-[11px] rounded-xl p-4 shadow-2xl opacity-0 invisible group-hover/id:opacity-100 group-hover/id:visible transition-all duration-200 z-50 pointer-events-none">
                                                         <p className="font-bold text-turquoise mb-2.5 text-xs">Composição do ID: <span className="font-mono text-white">{code}</span></p>
                                                         <div className="space-y-1.5">
                                                             {breakdown.map((b, i) => (
@@ -344,140 +348,129 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                                                 </div>
                                             );
                                         })()}
-                                        <h3 className="text-lg font-extrabold text-navy-dark dark:text-white">Detalhes da Demanda</h3>
+                                        <h3 className="text-sm md:text-lg font-extrabold text-navy-dark dark:text-white truncate">Detalhes da Demanda</h3>
                                     </div>
-                                    <p className="text-xs text-slate-400 mt-1">Criada em {selectedDemanda.created_at ? new Date(selectedDemanda.created_at).toLocaleDateString('pt-BR') : '-'}</p>
+                                    <p className="text-[9px] md:text-xs text-slate-400 mt-1">Criada em {selectedDemanda.created_at ? new Date(selectedDemanda.created_at).toLocaleDateString('pt-BR') : '-'}</p>
                                 </div>
                                 <button
                                     onClick={handleSave}
                                     disabled={saving}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-turquoise text-white rounded-xl font-bold text-sm hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20 disabled:opacity-50"
+                                    className="flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-turquoise text-white rounded-xl font-bold text-xs md:text-sm hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20 disabled:opacity-50 w-full md:w-auto"
                                 >
                                     <span className="material-symbols-outlined text-base">{saving ? 'hourglass_empty' : 'save'}</span>
-                                    {saving ? 'Salvando...' : 'Salvar Alterações'}
+                                    {saving ? 'Salvando...' : 'Salvar'}
                                 </button>
                             </div>
 
-                            {/* Timeline de progresso */}
-                            <div className="px-6 py-4 bg-slate-50/50 dark:bg-slate-900/20 border-b border-slate-100 dark:border-slate-700">
+                            {/* Timeline de progresso - Otimizada para Mobile */}
+                            <div className="px-4 md:px-6 py-4 bg-slate-50/50 dark:bg-slate-900/20 border-b border-slate-100 dark:border-slate-700">
                                 {/* Status progress */}
-                                <div className="flex items-center gap-0 mb-4">
+                                <div className="flex items-center gap-0 mb-6 px-2">
                                     {statusOptions.map((s, i) => {
                                         const currentIndex = statusOptions.indexOf(editForm.status || 'Em Análise');
                                         const isCompleted = i <= currentIndex;
                                         const isCurrent = i === currentIndex;
                                         return (
                                             <React.Fragment key={s}>
-                                                <div className="flex flex-col items-center gap-1 relative z-10">
-                                                    <div className={`size-7 rounded-full flex items-center justify-center border-2 transition-all ${isCurrent ? 'bg-turquoise border-turquoise text-white scale-110 shadow-lg shadow-turquoise/30' : isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-400'}`}>
-                                                        <span className="material-symbols-outlined text-sm">
+                                                <div className="flex flex-col items-center gap-1.5 relative z-10 shrink-0">
+                                                    <div className={`size-7 md:size-8 rounded-full flex items-center justify-center border-2 transition-all ${isCurrent ? 'bg-turquoise border-turquoise text-white scale-110 shadow-lg shadow-turquoise/30' : isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-400'}`}>
+                                                        <span className="material-symbols-outlined text-[14px] md:text-base font-bold">
                                                             {isCompleted && !isCurrent ? 'check' : i === 0 ? 'search' : i === 1 ? 'engineering' : 'task_alt'}
                                                         </span>
                                                     </div>
-                                                    <span className={`text-[9px] font-bold uppercase tracking-wider ${isCurrent ? 'text-turquoise' : isCompleted ? 'text-emerald-500' : 'text-slate-400'}`}>{s}</span>
+                                                    <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest ${isCurrent ? 'text-turquoise' : isCompleted ? 'text-emerald-500' : 'text-slate-400'}`}>{s.split(' ')[1] || s}</span>
                                                 </div>
                                                 {i < statusOptions.length - 1 && (
-                                                    <div className={`flex-1 h-0.5 -mt-4 ${i < currentIndex ? 'bg-emerald-400' : 'bg-slate-200 dark:bg-slate-700'}`}></div>
+                                                    <div className={`flex-1 h-0.5 -mt-6 transition-colors duration-500 ${i < currentIndex ? 'bg-emerald-400' : 'bg-slate-200 dark:bg-slate-700'}`}></div>
                                                 )}
                                             </React.Fragment>
                                         );
                                     })}
                                 </div>
 
-                                {/* Flow: origin → people → time */}
-                                <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                                    {/* Origem */}
-                                    <div className="flex flex-col items-center gap-0.5">
-                                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                                            <span className="material-symbols-outlined text-xs text-slate-400">flag</span>
-                                            <span className="text-slate-500">Origem:</span>
-                                            <span className="font-bold text-navy-dark dark:text-white">{editForm.origem || '-'}</span>
+                                {/* Flow: origin → people → time - Scrollável em Mobile */}
+                                <div className="overflow-x-auto scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
+                                    <div className="flex items-center gap-2 min-w-max py-1">
+                                        {/* Origem */}
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                <span className="material-symbols-outlined text-xs text-slate-400">flag</span>
+                                                <span className="text-slate-500 text-[10px] md:text-xs">Origem:</span>
+                                                <span className="font-bold text-navy-dark dark:text-white text-[10px] md:text-xs">{editForm.origem?.split(' ')[0] || '-'}</span>
+                                            </div>
                                         </div>
-                                        <span className="text-[8px] text-slate-400">{selectedDemanda.created_at ? new Date(selectedDemanda.created_at).toLocaleDateString('pt-BR') : ''}</span>
-                                    </div>
 
-                                    {/* People flow */}
-                                    {editForm.solicitante && (
-                                        <>
-                                            <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward</span>
-                                            <div className="flex flex-col items-center gap-0.5">
-                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                                                    <span className="material-symbols-outlined text-xs text-amber-500">person</span>
-                                                    <span className="font-medium text-slate-600 dark:text-slate-300">{editForm.solicitante}</span>
+                                        {editForm.solicitante && (
+                                            <>
+                                                <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward</span>
+                                                <div className="flex flex-col items-center gap-0.5">
+                                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                        <span className="material-symbols-outlined text-xs text-amber-500">person</span>
+                                                        <span className="font-bold text-slate-600 dark:text-slate-300 text-[10px] md:text-xs truncate max-w-[80px]">{editForm.solicitante}</span>
+                                                    </div>
                                                 </div>
-                                                <span className="text-[8px] text-slate-400">{selectedDemanda.created_at ? new Date(selectedDemanda.created_at).toLocaleDateString('pt-BR') : ''}</span>
-                                            </div>
-                                        </>
-                                    )}
-                                    {editForm.recebido_por && (
-                                        <>
-                                            <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward</span>
-                                            <div className="flex flex-col items-center gap-0.5">
-                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                                                    <span className="material-symbols-outlined text-xs text-blue-500">how_to_reg</span>
-                                                    <span className="font-medium text-slate-600 dark:text-slate-300">{editForm.recebido_por}</span>
+                                            </>
+                                        )}
+                                        {editForm.recebido_por && (
+                                            <>
+                                                <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward</span>
+                                                <div className="flex flex-col items-center gap-0.5">
+                                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                        <span className="material-symbols-outlined text-xs text-blue-500">how_to_reg</span>
+                                                        <span className="font-bold text-slate-600 dark:text-slate-300 text-[10px] md:text-xs truncate max-w-[80px]">{editForm.recebido_por.split(' ')[0]}</span>
+                                                    </div>
                                                 </div>
-                                                <span className="text-[8px] text-slate-400">{selectedDemanda.created_at ? new Date(selectedDemanda.created_at).toLocaleDateString('pt-BR') : ''}</span>
-                                            </div>
-                                        </>
-                                    )}
-                                    {editForm.atribuido_a && (
-                                        <>
-                                            <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward</span>
-                                            <div className="flex flex-col items-center gap-0.5">
-                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700/30">
-                                                    <span className="material-symbols-outlined text-xs text-indigo-500">assignment_ind</span>
-                                                    <span className="font-bold text-indigo-600 dark:text-indigo-400">{editForm.atribuido_a}</span>
+                                            </>
+                                        )}
+                                        {(editForm.atribuido_a || editForm.redirecionado_para) && (
+                                            <>
+                                                <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward</span>
+                                                <div className="flex flex-col items-center gap-0.5">
+                                                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border shadow-sm ${editForm.redirecionado_para ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200' : 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200'}`}>
+                                                        <span className={`material-symbols-outlined text-xs ${editForm.redirecionado_para ? 'text-orange-500' : 'text-indigo-500'}`}>
+                                                            {editForm.redirecionado_para ? 'swap_horiz' : 'assignment_ind'}
+                                                        </span>
+                                                        <span className={`font-black text-[10px] md:text-xs ${editForm.redirecionado_para ? 'text-orange-600' : 'text-indigo-600'}`}>
+                                                            {(editForm.redirecionado_para || editForm.atribuido_a || '-').split(' ')[0]}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <span className="text-[8px] text-indigo-400">
-                                                    {(() => { const h = (selectedDemanda.historico_redirecionamentos || []).find((r: any) => r.para === editForm.atribuido_a); return h ? new Date(h.data).toLocaleDateString('pt-BR') : selectedDemanda.created_at ? new Date(selectedDemanda.created_at).toLocaleDateString('pt-BR') : ''; })()}
-                                                </span>
-                                            </div>
-                                        </>
-                                    )}
-                                    {editForm.redirecionado_para && (
-                                        <>
-                                            <span className="material-symbols-outlined text-orange-400 text-sm">redo</span>
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700/30">
-                                                <span className="material-symbols-outlined text-xs text-orange-500">swap_horiz</span>
-                                                <span className="font-bold text-orange-600 dark:text-orange-400">{editForm.redirecionado_para}</span>
-                                            </div>
-                                        </>
-                                    )}
+                                            </>
+                                        )}
 
-                                    {/* Tempo */}
-                                    <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                                        <span className="material-symbols-outlined text-xs text-slate-400">schedule</span>
-                                        <span className="text-slate-500">Tempo:</span>
-                                        <span className="font-bold text-navy-dark dark:text-white">
-                                            {(() => {
-                                                if (!selectedDemanda.created_at) return '-';
-                                                const diff = Date.now() - new Date(selectedDemanda.created_at).getTime();
-                                                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                                                if (days === 0) return 'Hoje';
-                                                if (days === 1) return '1 dia';
-                                                if (days < 30) return `${days} dias`;
-                                                const months = Math.floor(days / 30);
-                                                return months === 1 ? '1 mês' : `${months} meses`;
-                                            })()}
-                                        </span>
+                                        {/* Tempo */}
+                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-navy-dark text-white rounded-lg shadow-sm ml-2">
+                                            <span className="material-symbols-outlined text-xs text-turquoise">schedule</span>
+                                            <span className="font-black text-[10px] md:text-xs">
+                                                {(() => {
+                                                    if (!selectedDemanda.created_at) return '-';
+                                                    const diff = Date.now() - new Date(selectedDemanda.created_at).getTime();
+                                                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                                    if (days === 0) return 'Hoje';
+                                                    if (days === 1) return '1D';
+                                                    if (days < 30) return `${days}D`;
+                                                    const months = Math.floor(days / 30);
+                                                    return `${months}M`;
+                                                })()}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Histórico de Redirecionamentos */}
+                                {/* Histórico de Redirecionamentos - Mais compacto em Mobile */}
                                 {(selectedDemanda.historico_redirecionamentos || []).length > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                                        <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-2 flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-xs">history</span>
-                                            Histórico de Redirecionamentos
+                                    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[14px]">history</span>
+                                            Log de Movimentação
                                         </p>
-                                        <div className="space-y-1.5">
-                                            {(selectedDemanda.historico_redirecionamentos || []).map((h: any, i: number) => (
-                                                <div key={i} className="flex items-center gap-2 text-[10px] bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700">
-                                                    <span className="text-slate-400">{new Date(h.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                                                    <span className="font-medium text-slate-500">{h.de}</span>
-                                                    <span className="material-symbols-outlined text-orange-400 text-xs">arrow_forward</span>
-                                                    <span className="font-bold text-orange-600 dark:text-orange-400">{h.para}</span>
+                                        <div className="flex flex-col gap-1.5">
+                                            {(selectedDemanda.historico_redirecionamentos || []).slice(-2).map((h: any, i: number) => (
+                                                <div key={i} className="flex items-center gap-1.5 text-[10px] bg-white dark:bg-slate-800/50 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                                                    <span className="text-slate-400 font-mono">{new Date(h.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                                                    <span className="font-bold text-slate-500 truncate max-w-[60px]">{h.de.split(' ')[0]}</span>
+                                                    <span className="material-symbols-outlined text-orange-400 text-[12px]">arrow_forward</span>
+                                                    <span className="font-black text-orange-600 dark:text-orange-400 truncate max-w-[60px]">{h.para.split(' ')[0]}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -654,10 +647,7 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                                     {/* Placeholder de arquivos existentes */}
                                     <div className="mt-3 space-y-2">
                                         <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 text-sm">
-                                            <span className="material-symbols-outlined text-red-500 text-lg">picture_as_pdf</span>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-slate-600 dark:text-slate-300 truncate text-xs">Sem anexos nesta demanda</p>
-                                            </div>
+                                            <p className="font-medium text-slate-600 dark:text-slate-300 truncate text-xs">Sem anexos nesta demanda</p>
                                         </div>
                                     </div>
                                 </div>
@@ -668,7 +658,7 @@ const DemandaMunicipioPage: React.FC<DemandaMunicipioProps> = ({ municipioId, mu
                                     <button
                                         onClick={handleSave}
                                         disabled={saving}
-                                        className="flex items-center gap-2 px-6 py-2.5 bg-turquoise text-white rounded-xl font-bold text-sm hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20 disabled:opacity-50"
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-turquoise text-white rounded-xl text-sm font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20 disabled:opacity-50"
                                     >
                                         <span className="material-symbols-outlined text-base">save</span>
                                         {saving ? 'Salvando...' : 'Salvar Tudo'}

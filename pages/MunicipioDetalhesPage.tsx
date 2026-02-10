@@ -81,40 +81,45 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
                 <span className="text-navy-custom dark:text-slate-300 font-bold">{municipio.nome}</span>
             </nav>
 
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 md:mb-10">
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                        <h2 className="text-navy-custom dark:text-white text-3xl md:text-5xl font-black tracking-tight truncate">{municipio.nome}</h2>
-                        <div className="relative group">
-                            <select
-                                onChange={(e) => navigateTo('MunicipioDetalhes', { id: e.target.value })}
-                                value={municipioId}
-                                className="appearance-none bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border-none rounded-full px-4 pr-10 py-1.5 text-xs font-bold text-slate-500 dark:text-slate-300 cursor-pointer focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                            >
-                                <option value="" disabled>Trocar Município</option>
-                                {allMunicipios.map(m => (
-                                    <option key={m.id} value={m.id}>{m.nome}</option>
-                                ))}
-                            </select>
-                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">swap_horiz</span>
+                    <div className="flex flex-col gap-3 mb-4">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-navy-custom dark:text-white text-3xl md:text-5xl font-black tracking-tight truncate leading-tight">{municipio.nome}</h2>
+                            <div className="relative group shrink-0">
+                                <select
+                                    onChange={(e) => navigateTo('MunicipioDetalhes', { id: e.target.value })}
+                                    value={municipioId}
+                                    className="appearance-none bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-full px-3 pr-8 py-1.5 text-[10px] md:text-xs font-black uppercase text-slate-500 dark:text-slate-400 cursor-pointer focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                >
+                                    <option value="" disabled>Trocar</option>
+                                    {allMunicipios.map(m => (
+                                        <option key={m.id} value={m.id}>{m.nome}</option>
+                                    ))}
+                                </select>
+                                <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm md:text-base pointer-events-none">swap_horiz</span>
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex flex-wrap gap-3 items-center">
-                        <div className="flex h-7 items-center justify-center gap-x-2 rounded bg-primary/10 px-3 border border-primary/20">
-                            <span className="text-primary text-[10px] font-bold uppercase tracking-wider">{municipio.regiao}</span>
+                        <div className="flex flex-wrap gap-2 items-center">
+                            <div className="flex h-6 md:h-7 items-center justify-center gap-x-2 rounded-lg bg-primary/10 px-3 border border-primary/25">
+                                <span className="text-primary text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em]">{municipio.regiao}</span>
+                            </div>
+                            <div className="flex h-6 md:h-7 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-3 border border-slate-200 dark:border-slate-700">
+                                <span className="text-slate-500 dark:text-slate-400 text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em]">IBGE: {municipio.codigoIBGE}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    <button className="flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-navy-custom dark:text-slate-200 text-sm font-bold px-5 py-2.5 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-all w-full sm:w-auto">
-                        <span className="material-symbols-outlined text-[20px] text-primary">file_download</span>
-                        Relatório
+                <div className="flex items-center gap-2.5 w-full md:w-auto">
+                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-navy-custom dark:text-white text-[11px] md:text-sm font-black uppercase px-4 py-3 md:px-6 md:py-3.5 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all group">
+                        <span className="material-symbols-outlined text-[20px] text-primary group-hover:scale-110 transition-transform">file_download</span>
+                        <span>Relatório</span>
                     </button>
                     <button
                         onClick={() => setIsDemandaModalOpen(true)}
-                        className="flex items-center justify-center gap-2 bg-primary text-white text-sm font-bold px-6 py-2.5 rounded-lg shadow-lg shadow-primary/20 hover:brightness-110 transition-all w-full sm:w-auto">
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2.5 bg-primary text-white text-[11px] md:text-sm font-black uppercase px-5 py-3 md:px-8 md:py-3.5 rounded-xl shadow-xl shadow-primary/30 hover:brightness-110 active:scale-95 transition-all">
                         <span className="material-symbols-outlined text-[20px]">add_circle</span>
-                        Nova Demanda
+                        <span>Nova Demanda</span>
                     </button>
                 </div>
             </div>

@@ -25,34 +25,34 @@ const Header: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 md:flex-none overflow-x-auto no-scrollbar mask-gradient-x md:mask-none">
-                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+            <div className="flex-1 md:flex-none overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-900/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-fit shadow-inner">
                     <button
                         onClick={() => setSelectedMandato('Todos')}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedMandato === 'Todos'
-                            ? 'bg-white dark:bg-slate-800 text-turquoise shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        className={`px-3 md:px-4 py-2 rounded-xl text-[9px] md:text-xs font-black uppercase tracking-wider transition-all ${selectedMandato === 'Todos'
+                            ? 'bg-navy-dark text-white shadow-lg shadow-navy-dark/20'
+                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
                             }`}
                     >
                         Todos
                     </button>
                     <button
                         onClick={() => setSelectedMandato('Lincoln Portela')}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedMandato === 'Lincoln Portela'
-                            ? 'bg-white dark:bg-slate-800 text-turquoise shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        className={`px-3 md:px-4 py-2 rounded-xl text-[9px] md:text-xs font-black uppercase tracking-wider transition-all ${selectedMandato === 'Lincoln Portela'
+                            ? 'bg-[#8db641] text-white shadow-lg shadow-[#8db641]/20'
+                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
                             }`}
                     >
                         Lincoln
                     </button>
                     <button
                         onClick={() => setSelectedMandato('Alê Portela')}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedMandato === 'Alê Portela'
-                            ? 'bg-white dark:bg-slate-800 text-turquoise shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        className={`px-3 md:px-4 py-2 rounded-xl text-[9px] md:text-xs font-black uppercase tracking-wider transition-all ${selectedMandato === 'Alê Portela'
+                            ? 'bg-turquoise text-white shadow-lg shadow-turquoise/20'
+                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
                             }`}
                     >
-                        Alê Portela
+                        Alê
                     </button>
                 </div>
             </div>
