@@ -137,6 +137,7 @@ export interface SolicitacaoAgenda {
     tipo_local?: 'Igreja' | 'Casa/Apto' | 'Evento de rua';
     tempo_participacao?: string;
     horario_chegada?: string;
+    data_aprovacao?: string; // YYYY-MM-DD
     status: 'Pendente' | 'Aprovado' | 'Recusado';
     origem: string;
     municipio_id?: string;

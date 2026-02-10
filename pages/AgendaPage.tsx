@@ -103,31 +103,84 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                 </div>
             </div>
 
-            {/* Lista de Solicitações Pendentes */}
-            {solicitacoes.length > 0 && (
-                <div className="mb-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20 flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-amber-500">pending_actions</span>
-                            <h3 className="font-black text-sm text-navy-dark dark:text-white uppercase tracking-wider">Solicitações de Agenda</h3>
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-8">
+                {isLoading ? <Loader /> : error ? <div className="text-center text-red-500">{error}</div> : (
+                    <>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-navy-dark dark:text-white capitalize">{monthName} {year}</h3>
+                            <div className="flex gap-2">
+                                <button onClick={() => changeMonth(-1)} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"><span className="material-symbols-outlined">chevron_left</span></button>
+                                <button onClick={() => changeMonth(1)} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"><span className="material-symbols-outlined">chevron_right</span></button>
+                            </div>
                         </div>
-                        <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-bold rounded-full">
-                            {solicitacoes.filter(s => s.status === 'Pendente').length} Pendentes
-                        </span>
+
+                        <div className="grid grid-cols-7 gap-px bg-slate-100 dark:bg-slate-700 border border-slate-100 dark:border-slate-700">
+                            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                                <div key={day} className="text-center py-2 bg-white dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{day}</div>
+                            ))}
+                            {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="bg-slate-50/50 dark:bg-slate-800/50 min-h-[120px]"></div>)}
+                            {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
+                                const day = dayIndex + 1;
+                                const dayEvents = eventsByDay[day] || [];
+
+                                // Merge official events and approved solicitations
+                                const approvedSol = solicitacoes.filter(s => {
+                                    if (s.status !== 'Aprovado') return false;
+                                    const d = new Date(s.data + 'T00:00:00-03:00');
+                                    return d.getDate() === day && d.getMonth() === currentDate.getMonth() && d.getFullYear() === year;
+                                });
+
+                                return (
+                                    <div key={day} className="p-2 bg-white dark:bg-slate-800 min-h-[120px] flex flex-col">
+                                        <span className={`font-bold text-xs ${isToday(day) ? 'bg-turquoise text-white rounded-full size-6 flex items-center justify-center' : 'text-slate-600 dark:text-slate-300'}`}>{day}</span>
+                                        <div className="mt-1 space-y-1">
+                                            {dayEvents.map(event => (
+                                                <div key={event.id} className={`p-1 rounded text-white text-[10px] font-bold flex items-center gap-1 ${tipoStyle(event.tipo)}`}>
+                                                    <div className="size-1.5 rounded-full bg-white/50"></div>
+                                                    <span className="truncate">{event.titulo}</span>
+                                                </div>
+                                            ))}
+                                            {approvedSol.map(s => (
+                                                <div key={s.id} className="p-1 rounded bg-turquoise/90 text-white text-[10px] font-bold flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[10px]">verified</span>
+                                                    <span className="truncate">{s.titulo}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* Histórico de Solicitações - MOVIMENTADO PARA O FINAL */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-navy-dark dark:text-white">history</span>
+                        <h3 className="font-black text-sm text-navy-dark dark:text-white uppercase tracking-wider">Histórico de Solicitações</h3>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50/30 dark:bg-slate-900/10">
-                                    <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Solicitante</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Compromisso</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Data/Hora</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Origem</th>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50/30 dark:bg-slate-900/10">
+                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Solicitante</th>
+                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Compromisso</th>
+                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Data/Hora</th>
+                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status / Aprovação</th>
+                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Origem</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                            {solicitacoes.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-slate-400 text-sm italic">Nenhuma solicitação encontrada.</td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                {solicitacoes.slice(0, 5).map(s => (
+                            ) : (
+                                solicitacoes.map(s => (
                                     <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -146,13 +199,19 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                                             <p className="text-[10px] text-slate-400">{s.hora_inicio} - {s.hora_fim}</p>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex justify-center">
+                                            <div className="flex flex-col items-center gap-1">
                                                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${s.status === 'Aprovado' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
                                                     s.status === 'Recusado' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
                                                         'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
                                                     }`}>
                                                     {s.status}
                                                 </span>
+                                                {s.status === 'Aprovado' && s.data_aprovacao && (
+                                                    <span className="text-[9px] text-emerald-500 font-bold flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-[12px]">done_all</span>
+                                                        Aprovado em: {new Date(s.data_aprovacao).toLocaleDateString('pt-BR')}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -165,48 +224,11 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
-
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                {isLoading ? <Loader /> : error ? <div className="text-center text-red-500">{error}</div> : (
-                    <>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-navy-dark dark:text-white capitalize">{monthName} {year}</h3>
-                            <div className="flex gap-2">
-                                <button onClick={() => changeMonth(-1)} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"><span className="material-symbols-outlined">chevron_left</span></button>
-                                <button onClick={() => changeMonth(1)} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"><span className="material-symbols-outlined">chevron_right</span></button>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-7 gap-px bg-slate-100 dark:bg-slate-700 border border-slate-100 dark:border-slate-700">
-                            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                                <div key={day} className="text-center py-2 bg-white dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{day}</div>
-                            ))}
-                            {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="bg-slate-50/50 dark:bg-slate-800/50 min-h-[120px]"></div>)}
-                            {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
-                                const day = dayIndex + 1;
-                                return (
-                                    <div key={day} className="p-2 bg-white dark:bg-slate-800 min-h-[120px] flex flex-col">
-                                        <span className={`font-bold text-xs ${isToday(day) ? 'bg-turquoise text-white rounded-full size-6 flex items-center justify-center' : 'text-slate-600 dark:text-slate-300'}`}>{day}</span>
-                                        <div className="mt-1 space-y-1">
-                                            {eventsByDay[day]?.map(event => (
-                                                <div key={event.id} className={`p-1 rounded text-white text-[10px] font-bold flex items-center gap-1 ${tipoStyle(event.tipo)}`}>
-                                                    <div className="size-1.5 rounded-full bg-white/50"></div>
-                                                    <span className="truncate">{event.titulo}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </>
-                )}
             </div>
 
             <AgendaModal
