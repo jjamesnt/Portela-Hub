@@ -294,7 +294,7 @@ const RecursosDestaqueTable: React.FC<{ recursos: RecursoResumo[], navigateTo: D
                 quantidade: 0,
                 origens: new Set<string>(),
                 tipos: new Set<string>(),
-                id: recurso.id
+                id: recurso.municipioId
             };
         }
         acc[municipioName].totalValor += recurso.valor;
