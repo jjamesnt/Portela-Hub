@@ -148,8 +148,8 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                                         <td className="px-6 py-4">
                                             <div className="flex justify-center">
                                                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${s.status === 'Aprovado' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                                        s.status === 'Recusado' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                                                            'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                                                    s.status === 'Recusado' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                                                        'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
                                                     }`}>
                                                     {s.status}
                                                 </span>
@@ -217,6 +217,7 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                 isOpen={isRequestModalOpen}
                 onClose={() => setIsRequestModalOpen(false)}
                 onSuccess={fetchData}
+                navigateTo={navigateTo}
             />
         </div>
     );

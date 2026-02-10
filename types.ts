@@ -131,6 +131,8 @@ export interface SolicitacaoAgenda {
     hora_inicio: string; // HH:mm
     hora_fim: string; // HH:mm
     local: string;
+    estimativa_publico?: number;
+    assessor_responsavel?: string;
     status: 'Pendente' | 'Aprovado' | 'Recusado';
     origem: 'Alê Portela' | 'Lincoln Portela';
     municipio_id?: string;
