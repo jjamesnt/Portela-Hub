@@ -65,6 +65,18 @@
             flex-direction: column;
         }
 
+        button, a {
+            touch-action: manipulation;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
         .px-safe-left {
             padding-left: env(safe-area-inset-left);
         }
