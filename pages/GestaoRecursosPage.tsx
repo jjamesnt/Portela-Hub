@@ -112,24 +112,79 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                     <h1 className="text-2xl md:text-3xl font-extrabold text-navy-dark dark:text-white tracking-tight">Gestão de Recursos</h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm md:text-base">Análise estratégica e controle de investimentos territoriais.</p>
                 </div>
-                <button className="flex items-center justify-center gap-2 px-6 py-3 bg-turquoise text-white rounded-xl font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20">
-                    <span className="material-symbols-outlined">add_circle</span>
-                    Novo Recurso
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => {
+                            const activeFilters: { [key: string]: string } = {};
+                            if (filtroMunicipio !== 'Todos') activeFilters['Município'] = filtroMunicipio;
+                            if (filtroRegiao !== 'Todas') activeFilters['Região'] = filtroRegiao;
+                            if (filtroAssessor !== 'Todos') activeFilters['Assessor'] = filtroAssessor;
+                            if (filtroTipo !== 'Todos') activeFilters['Tipo'] = filtroTipo;
+                            if (filtroStatus !== 'Todos') activeFilters['Status'] = filtroStatus;
+                            if (filtroDeputado !== 'Todos') activeFilters['Deputado'] = filtroDeputado;
+                            if (filtroTexto) activeFilters['Busca'] = filtroTexto;
+
+                            const reportPayload = {
+                                data: recursosFiltrados,
+                                filters: activeFilters,
+                                issuer: 'Alê Portela'
+                            };
+
+                            sessionStorage.setItem('relatorio_recursos', JSON.stringify(reportPayload));
+                            window.open(window.location.href + '?report=recursos', '_blank');
+                        }}
+                        className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
+                    >
+                        <span className="material-symbols-outlined text-indigo-500">description</span>
+                        Emitir Relatório
+                    </button>
+                    <button className="flex items-center justify-center gap-2 px-6 py-3 bg-turquoise text-white rounded-xl font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20">
+                        <span className="material-symbols-outlined">add_circle</span>
+                        Novo Recurso
+                    </button>
+                </div>
             </div>
 
             {/* Visão Estratégica - Mini Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-turquoise/5 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110"></div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">VALOR TOTAL FILTRADO</p>
-                    <h2 className="text-2xl font-black text-navy-dark dark:text-white">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValor)}
-                    </h2>
+                <div className="md:col-span-1 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group flex flex-col justify-between min-h-[140px]">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110"></div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                            {(filtroTexto || filtroMunicipio !== 'Todos' || filtroRegiao !== 'Todas' || filtroAssessor !== 'Todos' || filtroTipo !== 'Todos' || filtroStatus !== 'Todos' || filtroDeputado !== 'Todos')
+                                ? 'VALOR TOTAL FILTRADO'
+                                : 'RECURSOS ALOCADOS'}
+                        </p>
+                        <h2 className="text-3xl font-black text-navy-dark dark:text-white leading-tight">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValor)}
+                        </h2>
+                    </div>
+
+                    {(filtroTexto || filtroMunicipio !== 'Todos' || filtroRegiao !== 'Todas' || filtroAssessor !== 'Todos' || filtroTipo !== 'Todos' || filtroStatus !== 'Todos' || filtroDeputado !== 'Todos') && (
+                        <button
+                            onClick={() => {
+                                setFiltroTexto('');
+                                setFiltroMunicipio('Todos');
+                                setFiltroRegiao('Todas');
+                                setFiltroAssessor('Todos');
+                                setFiltroTipo('Todos');
+                                setFiltroStatus('Todos');
+                                setFiltroDeputado('Todos');
+                            }}
+                            className="mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-xl transition-all font-bold text-[10px] shadow-lg shadow-rose-500/20 active:scale-95"
+                        >
+                            <span className="material-symbols-outlined text-sm">filter_alt_off</span>
+                            LIMPAR FILTROS ATIVOS
+                        </button>
+                    )}
                 </div>
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110"></div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">MUNICÍPIO COM MAIOR VALOR</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                        {(filtroTexto || filtroMunicipio !== 'Todos' || filtroRegiao !== 'Todas' || filtroAssessor !== 'Todos' || filtroTipo !== 'Todos' || filtroStatus !== 'Todos' || filtroDeputado !== 'Todos')
+                            ? 'MUNICÍPIO COM MAIOR VALOR FILTRADO'
+                            : 'MUNICÍPIO COM MAIOR VALOR'}
+                    </p>
                     <h2 className="text-2xl font-black text-navy-dark dark:text-white truncate">{topMunicipio}</h2>
                 </div>
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
@@ -142,43 +197,152 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden text-sm">
                 {/* Filtragem Otimizada */}
                 <div className="p-4 md:p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col gap-4 bg-slate-50/50 dark:bg-slate-900/20">
-                    <div className="relative w-full">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                            <span className="material-symbols-outlined text-lg">search</span>
-                        </span>
-                        <input
-                            type="text"
-                            placeholder="Buscar por descrição, origem ou município..."
-                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-turquoise/30 outline-none transition-all"
-                            value={filtroTexto}
-                            onChange={(e) => setFiltroTexto(e.target.value)}
-                        />
+                    <div className="flex flex-col md:flex-row gap-4 items-center">
+                        <div className="relative flex-1 w-full group">
+                            <span className={`absolute inset-y-0 left-0 flex items-center pl-3 transition-colors ${filtroTexto ? 'text-indigo-500 font-bold' : 'text-slate-400'}`}>
+                                <span className="material-symbols-outlined text-lg">search</span>
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="Buscar por descrição, origem ou município..."
+                                className={`w-full pl-10 pr-10 py-3 border-2 rounded-xl text-sm outline-none transition-all ${filtroTexto ? 'bg-indigo-50/50 border-indigo-500 text-indigo-900 ring-4 ring-indigo-500/10' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:border-turquoise'}`}
+                                value={filtroTexto}
+                                onChange={(e) => setFiltroTexto(e.target.value)}
+                            />
+                            {filtroTexto && (
+                                <button
+                                    onClick={() => setFiltroTexto('')}
+                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-rose-500 transition-colors"
+                                    title="Limpar busca"
+                                >
+                                    <span className="material-symbols-outlined text-base">close</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
+
                     <div className="flex flex-wrap gap-2">
-                        <select
-                            value={filtroDeputado}
-                            onChange={(e) => setFiltroDeputado(e.target.value)}
-                            className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all font-bold text-navy-dark dark:text-white"
-                        >
-                            <option value="Todos">Todos Deputados</option>
-                            <option value="Alê Portela">Alê Portela</option>
-                            <option value="Lincoln Portela">Lincoln Portela</option>
-                        </select>
-                        <select value={filtroMunicipio} onChange={e => setFiltroMunicipio(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
-                            {municipiosList.map(m => <option key={m} value={m}>{m === 'Todos' ? 'Todos Municípios' : m}</option>)}
-                        </select>
-                        <select value={filtroRegiao} onChange={e => setFiltroRegiao(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
-                            {regioesList.map(r => <option key={r} value={r}>{r === 'Todas' ? 'Todas Regiões' : r}</option>)}
-                        </select>
-                        <select value={filtroAssessor} onChange={e => setFiltroAssessor(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
-                            {assessoresList.map(a => <option key={a} value={a}>{a === 'Todos' ? 'Todos Assessores' : a}</option>)}
-                        </select>
-                        <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
-                            {tipos.map(t => <option key={t} value={t}>{t === 'Todos' ? 'Destinações' : t}</option>)}
-                        </select>
-                        <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} className="flex-1 min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] px-3 py-2 outline-none focus:ring-2 focus:ring-turquoise/30 transition-all">
-                            {statuses.map(s => <option key={s} value={s}>{s === 'Todos' ? 'Status' : s}</option>)}
-                        </select>
+                        <div className="flex-1 min-w-[120px] relative group">
+                            <select
+                                value={filtroDeputado}
+                                onChange={(e) => setFiltroDeputado(e.target.value)}
+                                className={`w-full border-2 rounded-lg text-[13px] pl-3 pr-8 py-2 outline-none transition-all font-bold appearance-none ${filtroDeputado !== 'Todos' ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                                <option value="Todos" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Todos Deputados</option>
+                                <option value="Alê Portela" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Alê Portela</option>
+                                <option value="Lincoln Portela" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Lincoln Portela</option>
+                            </select>
+                            <span className={`absolute right-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-base pointer-events-none transition-colors ${filtroDeputado !== 'Todos' ? 'text-white' : 'text-slate-400'}`}>expand_more</span>
+                            {filtroDeputado !== 'Todos' && (
+                                <button
+                                    onClick={() => setFiltroDeputado('Todos')}
+                                    className="absolute -top-1.5 -right-1.5 size-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="Remover filtro"
+                                >
+                                    <span className="material-symbols-outlined text-[10px] font-black">close</span>
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex-1 min-w-[120px] relative group">
+                            <select
+                                value={filtroMunicipio}
+                                onChange={e => setFiltroMunicipio(e.target.value)}
+                                className={`w-full border-2 rounded-lg text-[13px] pl-3 pr-8 py-2 outline-none transition-all appearance-none ${filtroMunicipio !== 'Todos' ? 'bg-indigo-600 border-indigo-600 text-white font-bold shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                                {municipiosList.map(m => <option key={m} value={m} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{m === 'Todos' ? 'Todos Municípios' : m}</option>)}
+                            </select>
+                            <span className={`absolute right-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-base pointer-events-none transition-colors ${filtroMunicipio !== 'Todos' ? 'text-white' : 'text-slate-400'}`}>expand_more</span>
+                            {filtroMunicipio !== 'Todos' && (
+                                <button
+                                    onClick={() => setFiltroMunicipio('Todos')}
+                                    className="absolute -top-1.5 -right-1.5 size-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="Remover filtro"
+                                >
+                                    <span className="material-symbols-outlined text-[10px] font-black">close</span>
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex-1 min-w-[120px] relative group">
+                            <select
+                                value={filtroRegiao}
+                                onChange={e => setFiltroRegiao(e.target.value)}
+                                className={`w-full border-2 rounded-lg text-[13px] pl-3 pr-8 py-2 outline-none transition-all appearance-none ${filtroRegiao !== 'Todas' ? 'bg-indigo-600 border-indigo-600 text-white font-bold shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                                {regioesList.map(r => <option key={r} value={r} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{r === 'Todas' ? 'Todas Regiões' : r}</option>)}
+                            </select>
+                            <span className={`absolute right-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-base pointer-events-none transition-colors ${filtroRegiao !== 'Todas' ? 'text-white' : 'text-slate-400'}`}>expand_more</span>
+                            {filtroRegiao !== 'Todas' && (
+                                <button
+                                    onClick={() => setFiltroRegiao('Todas')}
+                                    className="absolute -top-1.5 -right-1.5 size-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="Remover filtro"
+                                >
+                                    <span className="material-symbols-outlined text-[10px] font-black">close</span>
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex-1 min-w-[120px] relative group">
+                            <select
+                                value={filtroAssessor}
+                                onChange={e => setFiltroAssessor(e.target.value)}
+                                className={`w-full border-2 rounded-lg text-[13px] pl-3 pr-8 py-2 outline-none transition-all appearance-none ${filtroAssessor !== 'Todos' ? 'bg-indigo-600 border-indigo-600 text-white font-bold shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                                {assessoresList.map(a => <option key={a} value={a} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{a === 'Todos' ? 'Todos Assessores' : a}</option>)}
+                            </select>
+                            <span className={`absolute right-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-base pointer-events-none transition-colors ${filtroAssessor !== 'Todos' ? 'text-white' : 'text-slate-400'}`}>expand_more</span>
+                            {filtroAssessor !== 'Todos' && (
+                                <button
+                                    onClick={() => setFiltroAssessor('Todos')}
+                                    className="absolute -top-1.5 -right-1.5 size-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="Remover filtro"
+                                >
+                                    <span className="material-symbols-outlined text-[10px] font-black">close</span>
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex-1 min-w-[120px] relative group">
+                            <select
+                                value={filtroTipo}
+                                onChange={e => setFiltroTipo(e.target.value)}
+                                className={`w-full border-2 rounded-lg text-[13px] pl-3 pr-8 py-2 outline-none transition-all appearance-none ${filtroTipo !== 'Todos' ? 'bg-indigo-600 border-indigo-600 text-white font-bold shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                                {tipos.map(t => <option key={t} value={t} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{t === 'Todos' ? 'Destinações' : t}</option>)}
+                            </select>
+                            <span className={`absolute right-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-base pointer-events-none transition-colors ${filtroTipo !== 'Todos' ? 'text-white' : 'text-slate-400'}`}>expand_more</span>
+                            {filtroTipo !== 'Todos' && (
+                                <button
+                                    onClick={() => setFiltroTipo('Todos')}
+                                    className="absolute -top-1.5 -right-1.5 size-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="Remover filtro"
+                                >
+                                    <span className="material-symbols-outlined text-[10px] font-black">close</span>
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex-1 min-w-[120px] relative group">
+                            <select
+                                value={filtroStatus}
+                                onChange={e => setFiltroStatus(e.target.value)}
+                                className={`w-full border-2 rounded-lg text-[13px] pl-3 pr-8 py-2 outline-none transition-all appearance-none ${filtroStatus !== 'Todos' ? 'bg-indigo-600 border-indigo-600 text-white font-bold shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                                {statuses.map(s => <option key={s} value={s} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{s === 'Todos' ? 'Status' : s}</option>)}
+                            </select>
+                            <span className={`absolute right-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-base pointer-events-none transition-colors ${filtroStatus !== 'Todos' ? 'text-white' : 'text-slate-400'}`}>expand_more</span>
+                            {filtroStatus !== 'Todos' && (
+                                <button
+                                    onClick={() => setFiltroStatus('Todos')}
+                                    className="absolute -top-1.5 -right-1.5 size-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="Remover filtro"
+                                >
+                                    <span className="material-symbols-outlined text-[10px] font-black">close</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 

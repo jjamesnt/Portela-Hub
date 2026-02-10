@@ -69,8 +69,18 @@ export interface Lideranca {
     partido: string;
     cargo: LiderancaLocal['cargo'];
     contato: string;
+    email?: string;
     status: 'Ativo' | 'Inativo';
     origem: 'Alê Portela' | 'Lincoln Portela';
+    avatarUrl?: string;
+    endereco?: {
+        logradouro: string;
+        numero: string;
+        bairro: string;
+        cidade: string;
+        uf: string;
+        cep: string;
+    };
 }
 
 export interface Assessor {
@@ -82,6 +92,16 @@ export interface Assessor {
     municipiosCobertos: number;
     liderancasGerenciadas: number;
     origem: 'Alê Portela' | 'Lincoln Portela';
+    telefone?: string;
+    email?: string;
+    endereco?: {
+        logradouro: string;
+        numero: string;
+        bairro: string;
+        cidade: string;
+        uf: string;
+        cep: string;
+    };
 }
 
 export interface EventoAgenda {

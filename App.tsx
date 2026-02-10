@@ -13,15 +13,23 @@ import ConfiguracoesPage from './pages/ConfiguracoesPage';
 import GestaoRecursosPage from './pages/GestaoRecursosPage';
 import DemandasPage from './pages/DemandasPage';
 import DemandaMunicipioPage from './pages/DemandaMunicipioPage';
+import RecursosRelatorioPage from './pages/RecursosRelatorioPage';
 
 interface PageState {
   page: string;
   params?: { [key: string]: any };
 }
 
-
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<PageState>({ page: 'Dashboard' });
+  const [currentPage, setCurrentPage] = useState<PageState>(() => {
+    // Check if we are opening a report via URL param
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('report') === 'recursos') {
+      return { page: 'RecursosRelatorio' };
+    }
+    return { page: 'Dashboard' };
+  });
+
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   const navigateTo = (page: string, params?: { [key: string]: any }) => {
@@ -44,6 +52,8 @@ const App: React.FC = () => {
         return <AgendaPage navigateTo={navigateTo} />;
       case 'Recursos':
         return <GestaoRecursosPage navigateTo={navigateTo} />;
+      case 'RecursosRelatorio':
+        return <RecursosRelatorioPage />;
       case 'Demandas':
         return <DemandasPage navigateTo={navigateTo} />;
       case 'DemandaMunicipio':
@@ -54,6 +64,17 @@ const App: React.FC = () => {
         return <div className="p-8">Página não encontrada</div>;
     }
   };
+
+  // If it's the report page, render only the content (no sidebar/header)
+  if (currentPage.page === 'RecursosRelatorio') {
+    return (
+      <AppProvider>
+        <main className="min-h-screen bg-white">
+          {renderContent()}
+        </main>
+      </AppProvider>
+    );
+  }
 
   return (
     <AppProvider>
