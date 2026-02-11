@@ -22,11 +22,21 @@ interface PageState {
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<PageState>(() => {
-    // Check if we are opening a report via URL param
+    const path = window.location.pathname.toLowerCase();
     const params = new URLSearchParams(window.location.search);
+
     if (params.get('report') === 'recursos') {
       return { page: 'RecursosRelatorio' };
     }
+
+    if (path.includes('/municipios')) return { page: 'Municípios' };
+    if (path.includes('/liderancas')) return { page: 'Lideranças' };
+    if (path.includes('/assessores')) return { page: 'Assessores' };
+    if (path.includes('/agenda')) return { page: 'Agenda' };
+    if (path.includes('/recursos')) return { page: 'Recursos' };
+    if (path.includes('/demandas')) return { page: 'Demandas' };
+    if (path.includes('/configuracoes')) return { page: 'Configurações' };
+
     return { page: 'Dashboard' };
   });
 
@@ -34,6 +44,21 @@ const App: React.FC = () => {
 
   const navigateTo = (page: string, params?: { [key: string]: any }) => {
     setCurrentPage({ page, params });
+
+    const pathMap: { [key: string]: string } = {
+      'Dashboard': '/',
+      'Municípios': '/municipios',
+      'Lideranças': '/liderancas',
+      'Assessores': '/assessores',
+      'Agenda': '/agenda',
+      'Recursos': '/recursos',
+      'Demandas': '/demandas',
+      'Configurações': '/configuracoes'
+    };
+
+    if (pathMap[page]) {
+      window.history.pushState({}, '', pathMap[page]);
+    }
   };
 
   const renderContent = () => {

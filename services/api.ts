@@ -18,12 +18,13 @@ const mapMunicipio = (m: any) => ({
 // --- Municípios ---
 export const getMunicipios = async (): Promise<MunicipioDetalhado[]> => {
     // Busca municípios com seus relacionamentos para contagem
+    // Nota: Pegamos apenas o valor dos recursos para somar e o count de demandas
     const { data, error } = await supabase
         .from('municipios')
         .select(`
             *,
             recursos (valor),
-            demandas (id)
+            demandas (count)
         `);
 
     if (error) {
@@ -34,7 +35,7 @@ export const getMunicipios = async (): Promise<MunicipioDetalhado[]> => {
     return data.map(m => ({
         ...mapMunicipio(m),
         totalRecursos: m.recursos?.reduce((acc: number, r: any) => acc + (parseFloat(r.valor) || 0), 0) || 0,
-        totalDemandas: m.demandas?.length || 0
+        totalDemandas: m.demandas?.[0]?.count || 0
     })) as any[];
 };
 

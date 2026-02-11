@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
-import { getMunicipios } from '../services/api';
+import { getMunicipios, getLiderancas } from '../services/api';
 import { Lideranca, Municipio } from '../types';
 import Loader from '../components/Loader';
 import ImageUpload from '../components/ImageUpload';
@@ -9,114 +9,7 @@ interface LiderancasPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
 }
 
-// Mock Data Rico para Lideranças com Novos Campos
-const MOCK_LIDERANCAS: Lideranca[] = [
-    {
-        id: '1',
-        nome: 'Ricardo Nunes',
-        municipio: 'Belo Horizonte',
-        regiao: 'Região Metropolitana',
-        partido: 'PL',
-        cargo: 'Vereador',
-        contato: '(31) 99999-8888',
-        email: 'ricardo.nunes@camarabhal.mg.gov.br',
-        status: 'Ativo',
-        origem: 'Alê Portela',
-        avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-        endereco: {
-            logradouro: 'Av. dos Andradas',
-            numero: '3100',
-            bairro: 'Santa Efigênia',
-            cidade: 'Belo Horizonte',
-            uf: 'MG',
-            cep: '30260-070'
-        }
-    },
-    {
-        id: '2',
-        nome: 'Fernanda Lima',
-        municipio: 'Contagem',
-        regiao: 'Região Metropolitana',
-        partido: 'Novo',
-        cargo: 'Liderança Comunitária',
-        contato: '(31) 98888-7777',
-        email: 'fernanda.lima@comunidade.org',
-        status: 'Ativo',
-        origem: 'Lincoln Portela',
-        avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-        endereco: {
-            logradouro: 'Rua das Indústrias',
-            numero: '500',
-            bairro: 'Cidade Industrial',
-            cidade: 'Contagem',
-            uf: 'MG',
-            cep: '32000-000'
-        }
-    },
-    {
-        id: '3',
-        nome: 'Roberto Alves',
-        municipio: 'Betim',
-        regiao: 'Região Metropolitana',
-        partido: 'MDB',
-        cargo: 'Prefeito',
-        contato: '(31) 97777-6666',
-        email: 'prefeito@betim.mg.gov.br',
-        status: 'Inativo',
-        origem: 'Alê Portela',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-        endereco: {
-            logradouro: 'Praça Tiradentes',
-            numero: '10',
-            bairro: 'Centro',
-            cidade: 'Betim',
-            uf: 'MG',
-            cep: '32600-000'
-        }
-    },
-    {
-        id: '4',
-        nome: 'Juliana Costa',
-        municipio: 'Juiz de Fora',
-        regiao: 'Zona da Mata',
-        partido: 'PT',
-        cargo: 'Vereador',
-        contato: '(32) 99988-7766',
-        email: 'juliana.costa@camarajf.mg.gov.br',
-        status: 'Ativo',
-        origem: 'Lincoln Portela',
-        avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-        endereco: {
-            logradouro: 'Rua Halfeld',
-            numero: '955',
-            bairro: 'Centro',
-            cidade: 'Juiz de Fora',
-            uf: 'MG',
-            cep: '36010-003'
-        }
-    },
-    {
-        id: '5',
-        nome: 'Marcos Rocha',
-        municipio: 'Uberlândia',
-        regiao: 'Triângulo Mineiro',
-        partido: 'PP',
-        cargo: 'Liderança Comunitária',
-        contato: '(34) 98877-6655',
-        email: 'marcos.rocha@uberlandia.com',
-        status: 'Ativo',
-        origem: 'Alê Portela',
-        avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-        endereco: {
-            logradouro: 'Av. Rondon Pacheco',
-            numero: '2000',
-            bairro: 'Tibery',
-            cidade: 'Uberlândia',
-            uf: 'MG',
-            cep: '38405-142'
-        }
-    }
-];
+// MOCK_LIDERANCAS removido em favor de dados reais do Supabase via services/api.ts
 
 const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
     const [liderancas, setLiderancas] = useState<Lideranca[]>([]);
@@ -138,13 +31,14 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
         const fetchData = async () => {
             try {
                 setIsLoading(true);
-                const municipiosData = await getMunicipios().catch(() => []);
-                setMunicipios(municipiosData);
+                const [municipiosData, liderancasData] = await Promise.all([
+                    getMunicipios().catch(() => []),
+                    getLiderancas().catch(() => [])
+                ]);
 
-                setTimeout(() => {
-                    setLiderancas(MOCK_LIDERANCAS);
-                    setIsLoading(false);
-                }, 600);
+                setMunicipios(municipiosData);
+                setLiderancas(liderancasData);
+                setIsLoading(false);
             } catch (err) {
                 console.error("Erro ao carregar dados", err);
                 setIsLoading(false);
