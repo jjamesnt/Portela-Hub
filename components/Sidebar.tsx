@@ -130,8 +130,33 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                     </div>
                 </div>
 
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800 text-xs text-center text-slate-400">
-                    v2.0.1 (Deploy Fix)
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                            <div className="size-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-white text-sm">support_agent</span>
+                            </div>
+                            <div className="flex flex-col overflow-hidden">
+                                <span className="text-xs font-bold text-white truncate">Suporte Técnico</span>
+                                <span className="text-[10px] text-slate-400 truncate">James Rizo - (31) 98421-1900</span>
+                            </div>
+                        </div>
+
+                        <a
+                            href="https://wa.me/5531984211900?text=Preciso%20de%20suporte%20no%20Portela%20hub."
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 p-2 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] transition-colors group"
+                        >
+                            <span className="text-lg">
+                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.592 2.654-.698c1.005.572 1.903.87 3.05.87 3.183 0 5.768-2.586 5.768-5.766.001-3.182-2.585-5.769-5.767-5.769c.001 0-.001 0-.001 0zm0 13.891c-1.372 0-2.618-.328-3.794-.954l-4.223 1.109 1.129-4.103c-.705-1.226-1.077-2.636-1.077-4.177 0-4.478 3.644-8.122 8.122-8.122 4.479 0 8.123 3.644 8.123 8.122s-3.645 8.125-8.122 8.127l-.158-.002z" />
+                                    <path d="M15.424 12.864c-.182-.091-1.078-.532-1.244-.593-.166-.06-.288-.091-.409.091-.122.182-.471.593-.578.714-.106.121-.212.136-.394.045-.182-.09-0.77-.284-1.467-0.905-.544-.485-.911-1.084-1.017-1.266-.106-.182-.011-.28.08-.37.081-.081.182-.213.273-.319.091-.106.121-.182.182-.303.06-.121.03-.227-.015-.318-.046-.091-.409-.985-.561-1.349-.148-.354-.298-.306-.409-.312l-.348-.009c-.121 0-.318.046-.485.227-.167.182-.636.621-.636 1.516s.651 1.758.742 1.88c.091.121 1.281 1.956 3.104 2.743 1.823.787 1.823.525 2.157.495.333-.03 1.078-.44 1.229-.864.152-.424.152-.788.106-.864-.045-.076-.167-.121-.348-.212z" />
+                                </svg>
+                            </span>
+                            <span className="text-xs font-bold">WhatsApp</span>
+                        </a>
+                    </div>
                 </div>
             </aside>
         </>
