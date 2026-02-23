@@ -118,7 +118,8 @@ export interface EventoAgenda {
     data: string; // YYYY-MM-DD
     hora: string; // HH:mm
     tipo: 'Reunião' | 'Visita Técnica' | 'Evento Público' | 'Sessão Plenária';
-    origem: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela';
+    origem: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela' | 'Google Calendar';
+
     local: string;
     descricao?: string;
 }

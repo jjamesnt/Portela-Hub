@@ -3,7 +3,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import KpiCard from '../components/KpiCard';
 import Loader from '../components/Loader';
-import { getMunicipios, getLiderancas, getAssessores, getAgendaEventos, getRecursosTotais, getDemandasTotais, getAllRecursos } from '../services/api';
+import { getMunicipios, getLiderancas, getAssessores, getAgendaEventos, getRecursosTotais, getDemandasTotais, getAllRecursos, getGoogleEvents } from '../services/api';
 import { Municipio, Lideranca, Assessor, EventoAgenda, Recurso } from '../types';
 import VotacaoEstadualKPIs from '../components/VotacaoEstadualKPIs';
 import { mockLiderancas as mockLider } from '../data/mockLiderancas';
@@ -483,7 +483,8 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                     demandasTotaisData,
                     aleDemandasCount,
                     lincolnDemandasCount,
-                    recursosData
+                    recursosData,
+                    googleEventsData
                 ] = await Promise.all([
                     getMunicipios(),
                     getLiderancas(),
@@ -493,7 +494,8 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                     getDemandasTotais(),
                     getDemandasTotais('Alê Portela'),
                     getDemandasTotais('Lincoln Portela'),
-                    getAllRecursos()
+                    getAllRecursos(),
+                    getGoogleEvents()
                 ]);
 
                 const combinedLiderancas = liderancasData.map(l => {
@@ -513,7 +515,8 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                 });
 
                 const today = new Date().toISOString().split('T')[0];
-                const upcomingEvents = agendaData
+                const combinedAgenda = [...agendaData, ...googleEventsData];
+                const upcomingEvents = combinedAgenda
                     .filter(event => event.data >= today)
                     .sort((a, b) => {
                         const dateA = new Date(`${a.data}T${a.hora}`);
@@ -590,7 +593,7 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                     municipios: data.municipios, // Municípios são compartilhados
                     liderancas: selectedMandato === 'Todos' ? data.liderancas : data.liderancas.filter(l => (l.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && l.origem === ('Alê' as any))),
                     assessores: data.assessores, // Assessores são compartilhados
-                    agenda: selectedMandato === 'Todos' ? data.agenda : data.agenda.filter(e => (e.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && e.origem === ('Alê' as any))),
+                    agenda: selectedMandato === 'Todos' ? data.agenda : data.agenda.filter(e => e.origem === 'Google Calendar' || (e.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && e.origem === ('Alê' as any))),
                     recursos: selectedMandato === 'Todos' ? data.recursos : data.recursos.filter(r => (r.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && r.origem === ('Alê' as any))),
                     recursosTotais: selectedMandato === 'Todos' ? data.recursosTotais : data.recursos.filter(r => (r.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && r.origem === ('Alê' as any))).reduce((acc, r) => acc + r.valor, 0),
                     demandasTotais: selectedMandato === 'Todos' ? data.demandasTotais : (selectedMandato === 'Alê Portela' ? data.aleDemandasCount : (selectedMandato === 'Lincoln Portela' ? data.lincolnDemandasCount : 0)),

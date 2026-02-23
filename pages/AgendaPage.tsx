@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { getAgendaEventos, getSolicitacoesAgenda } from '../services/api';
+import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents } from '../services/api';
 import { EventoAgenda, SolicitacaoAgenda } from '../types';
 import Loader from '../components/Loader';
 import AgendaModal from '../components/AgendaModal';
@@ -22,11 +22,12 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [eventosData, solicitacoesData] = await Promise.all([
+            const [eventosData, solicitacoesData, googleEventsData] = await Promise.all([
                 getAgendaEventos(),
-                getSolicitacoesAgenda()
+                getSolicitacoesAgenda(),
+                getGoogleEvents()
             ]);
-            setEventos(eventosData);
+            setEventos([...eventosData, ...googleEventsData]);
             setSolicitacoes(solicitacoesData);
             setError(null);
         } catch (err) {
@@ -69,12 +70,14 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
         currentDate.getMonth() === today.getMonth() &&
         year === today.getFullYear();
 
-    const tipoStyle = (tipo: EventoAgenda['tipo']) => {
+    const tipoStyle = (tipo: EventoAgenda['tipo'] | 'Google') => {
+        if (tipo === 'Google') return 'bg-rose-500';
         switch (tipo) {
             case 'Reunião': return 'bg-blue-500';
             case 'Visita Técnica': return 'bg-amber-500';
             case 'Evento Público': return 'bg-emerald-500';
             case 'Sessão Plenária': return 'bg-purple-500';
+            default: return 'bg-slate-500';
         }
     }
 
@@ -137,8 +140,9 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                                         </div>
                                         <div className="flex-1 space-y-0.5 pointer-events-none">
                                             {dayEvents.map(event => (
-                                                <div key={event.id} className={`px-1 py-0.5 rounded-[3px] text-white text-[6px] md:text-[10px] font-bold truncate leading-tight ${tipoStyle(event.tipo)}`}>
-                                                    {event.titulo}
+                                                <div key={event.id} className={`px-1 py-0.5 rounded-[3px] text-white text-[6px] md:text-[10px] font-bold truncate leading-tight flex items-center gap-1 ${event.origem === 'Google Calendar' ? tipoStyle('Google') : tipoStyle(event.tipo)}`}>
+                                                    {event.origem === 'Google Calendar' && <span className="material-symbols-outlined text-[8px] md:text-[12px]">calendar_month</span>}
+                                                    <span className="truncate">{event.titulo}</span>
                                                 </div>
                                             ))}
                                             {approvedSol.map(s => (

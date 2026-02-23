@@ -402,3 +402,20 @@ export const updateDemanda = async (id: string, updates: {
     }
     return data;
 };
+
+// --- Integração Google Agenda (Edge Function) ---
+export const getGoogleEvents = async (): Promise<EventoAgenda[]> => {
+    try {
+        const { data, error } = await supabase.functions.invoke('get-calendar');
+
+        if (error) {
+            console.error('Erro ao invocar Edge Function get-calendar:', error);
+            throw error;
+        }
+
+        return data as EventoAgenda[];
+    } catch (err) {
+        console.error('Erro na chamada da agenda Google:', err);
+        return [];
+    }
+};
