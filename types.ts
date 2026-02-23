@@ -32,6 +32,8 @@ export interface Municipio {
     statusAtividade: 'Consolidado' | 'Expansão' | 'Manutenção' | 'Atenção';
     totalRecursos?: number;
     totalDemandas?: number;
+    latitude?: number;
+    longitude?: number;
 }
 
 
@@ -42,7 +44,7 @@ export interface Demanda {
     subdescricao: string;
     status: 'Em Análise' | 'Em Execução' | 'Concluída';
     prioridade: 'Alta' | 'Média' | 'Baixa';
-    origem: 'Alê Portela' | 'Lincoln Portela';
+    origem: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela';
 }
 
 export interface LiderancaLocal {
@@ -50,7 +52,7 @@ export interface LiderancaLocal {
     partido: string;
     cargo: 'Prefeito' | 'Vereador' | 'Vice-Prefeito' | 'Liderança Comunitária';
     avatarInitials: string;
-    origem?: 'Alê Portela' | 'Lincoln Portela';
+    origem?: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela';
 }
 
 
@@ -73,7 +75,7 @@ export interface Lideranca {
     contato: string;
     email?: string;
     status: 'Ativo' | 'Inativo';
-    origem: 'Alê Portela' | 'Lincoln Portela';
+    origem: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela';
     avatarUrl?: string;
     endereco?: {
         logradouro: string;
@@ -83,6 +85,8 @@ export interface Lideranca {
         uf: string;
         cep: string;
     };
+    latitude?: number;
+    longitude?: number;
 }
 
 export interface Assessor {
@@ -93,7 +97,7 @@ export interface Assessor {
     regiaoAtuacao: string;
     municipiosCobertos: number;
     liderancasGerenciadas: number;
-    origem: 'Alê Portela' | 'Lincoln Portela';
+    origem: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela';
     telefone?: string;
     email?: string;
     endereco?: {
@@ -104,6 +108,8 @@ export interface Assessor {
         uf: string;
         cep: string;
     };
+    latitude?: number;
+    longitude?: number;
 }
 
 export interface EventoAgenda {
@@ -112,7 +118,7 @@ export interface EventoAgenda {
     data: string; // YYYY-MM-DD
     hora: string; // HH:mm
     tipo: 'Reunião' | 'Visita Técnica' | 'Evento Público' | 'Sessão Plenária';
-    origem: 'Alê Portela' | 'Lincoln Portela';
+    origem: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela';
     local: string;
     descricao?: string;
 }
@@ -123,7 +129,7 @@ export interface Recurso {
     tipo: string; // Permitir múltiplos tipos separados por vírgula
     descricao: string;
     valor: number;
-    origem: 'Alê Portela' | 'Lincoln Portela';
+    origem: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela';
     status: 'Aprovado' | 'Em Execução' | 'Concluído';
     dataAprovacao: string;
     responsavel: string;

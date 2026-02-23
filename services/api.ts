@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient';
 import { MunicipioDetalhado, Lideranca, Assessor, EventoAgenda, Demanda, LiderancaLocal, Recurso, SolicitacaoAgenda } from '../types';
+import { mockLiderancas } from '../data/mockLiderancas';
+import { mockAssessores } from '../data/mockAssessores';
 
 // Helper to map snake_case to CamelCase for Municipality
 const mapMunicipio = (m: any) => ({
@@ -99,39 +101,46 @@ export const getMunicipioById = async (id: string): Promise<MunicipioDetalhado |
 
 // --- Lideranças ---
 export const getLiderancas = async (): Promise<Lideranca[]> => {
-    const { data, error } = await supabase
+    // Retornando dados mockados conforme solicitado pelo usuário para visualizar a cobertura
+    const { data: dbData, error } = await supabase
         .from('liderancas')
         .select('*');
 
     if (error) {
-        console.error('Erro ao buscar lideranças:', error);
-        return [];
+        console.error('Erro ao buscar lideranças do banco:', error);
     }
-    return data.map(l => ({
+
+    // Mesclar dados do banco com mock para garantir cobertura total
+    const dbLiderancas = (dbData || []).map(l => ({
         ...l,
         municipio: l.municipio_nome
     })) as Lideranca[];
+
+    return [...mockLiderancas, ...dbLiderancas];
 };
 
 // --- Assessores ---
 export const getAssessores = async (): Promise<Assessor[]> => {
-    const { data, error } = await supabase
+    const { data: dbData, error } = await supabase
         .from('assessores')
         .select('*');
 
     if (error) {
-        console.error('Erro ao buscar assessores:', error);
-        return [];
+        console.error('Erro ao buscar assessores do banco:', error);
     }
-    return data.map(a => ({
-        id: a.id,
-        nome: a.nome,
-        avatarUrl: '', // Assessores não têm avatar no banco atual
+
+    const dbAssessores = (dbData || []).map(a => ({
+        ...a,
         cargo: 'Assessor Regional' as const,
         regiaoAtuacao: a.regiao_atuacao,
         municipiosCobertos: a.municipios_cobertos || 0,
-        liderancasGerenciadas: a.liderancas_gerenciadas || 0
+        liderancasGerenciadas: a.liderancas_gerenciadas || 0,
+        latitude: a.latitude,
+        longitude: a.longitude,
+        origem: a.origem
     })) as Assessor[];
+
+    return [...mockAssessores, ...dbAssessores];
 };
 
 // --- Agenda ---

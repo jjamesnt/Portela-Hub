@@ -66,12 +66,22 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                         </div>
                     ) : selectedMandato === 'Lincoln Portela' ? (
                         <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-lg bg-turquoise flex items-center justify-center shadow-lg shadow-turquoise/20">
+                            <div className="size-10 rounded-lg bg-[#8db641] flex items-center justify-center shadow-lg shadow-[#8db641]/20">
                                 <span className="material-symbols-outlined text-white font-bold">account_balance</span>
                             </div>
                             <div>
                                 <h1 className="text-sm font-extrabold tracking-tight leading-none text-white">Dep. Federal</h1>
-                                <h2 className="text-lg font-black text-turquoise tracking-tighter">Lincoln Portela</h2>
+                                <h2 className="text-lg font-black text-[#8db641] tracking-tighter">Lincoln Portela</h2>
+                            </div>
+                        </div>
+                    ) : selectedMandato === 'Marilda Portela' ? (
+                        <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-lg bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                                <span className="material-symbols-outlined text-white font-bold">person</span>
+                            </div>
+                            <div>
+                                <h1 className="text-sm font-extrabold tracking-tight leading-none text-white">Vereadora</h1>
+                                <h2 className="text-lg font-black text-orange-500 tracking-tighter">Marilda Portela</h2>
                             </div>
                         </div>
                     ) : (

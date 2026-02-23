@@ -54,6 +54,15 @@ const Header: React.FC = () => {
                     >
                         Alê
                     </button>
+                    <button
+                        onClick={() => setSelectedMandato('Marilda Portela')}
+                        className={`px-3 md:px-4 py-2 rounded-xl text-[9px] md:text-xs font-black uppercase tracking-wider transition-all ${selectedMandato === 'Marilda Portela'
+                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                            }`}
+                    >
+                        Marilda
+                    </button>
                 </div>
             </div>
 

@@ -91,20 +91,26 @@ const mapGoogleEventToApp = (gEvent: GoogleEvent, calendarId: string): EventoAge
 
     // Determine source label
     let sourceLabel = '';
-    if (calendarId.includes('ale') || calendarId === 'primary') sourceLabel = '(Alê Portela)'; // Assuming primary is user/Alê for now
-    if (calendarId.includes('lincoln')) sourceLabel = '(Lincoln Portela)';
+    let origem: EventoAgenda['origem'] = 'Alê Portela';
+
+    if (calendarId.includes('ale') || calendarId === 'primary') {
+        sourceLabel = '(Alê Portela)';
+        origem = 'Alê Portela';
+    } else if (calendarId.includes('lincoln')) {
+        sourceLabel = '(Lincoln Portela)';
+        origem = 'Lincoln Portela';
+    }
 
     return {
         id: gEvent.id,
         titulo: gEvent.summary + (sourceLabel ? ` ${sourceLabel}` : ''),
-        data: start.split('T')[0],
+        data: (start as string).split('T')[0],
         hora: dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         tipo: tipo,
         local: gEvent.location || 'Não informado',
         descricao: gEvent.description,
-        isGoogleEvent: true, // Flag to identify origin
-        googleHtmlLink: gEvent.htmlLink
-    } as EventoAgenda; // Cast to extending type
+        origem: origem
+    } as EventoAgenda;
 };
 
 export const listUpcomingGoogleEvents = async (maxResults: number = 20): Promise<EventoAgenda[]> => {

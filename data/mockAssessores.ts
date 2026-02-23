@@ -9,7 +9,10 @@ export const mockAssessores: Assessor[] = [
         cargo: 'Chefe de Gabinete',
         regiaoAtuacao: 'Todas as Regiões',
         municipiosCobertos: 185,
-        liderancasGerenciadas: 1240
+        liderancasGerenciadas: 1240,
+        origem: 'Alê Portela',
+        latitude: -19.9200,
+        longitude: -43.9400
     },
     {
         id: 'A02',
@@ -18,7 +21,10 @@ export const mockAssessores: Assessor[] = [
         cargo: 'Coordenador Político',
         regiaoAtuacao: 'Metropolitana & Central',
         municipiosCobertos: 65,
-        liderancasGerenciadas: 450
+        liderancasGerenciadas: 450,
+        origem: 'Alê Portela',
+        latitude: -18.9300,
+        longitude: -48.2800
     },
     {
         id: 'A03',
@@ -27,7 +33,10 @@ export const mockAssessores: Assessor[] = [
         cargo: 'Assessor Regional',
         regiaoAtuacao: 'Triângulo Mineiro & Norte',
         municipiosCobertos: 58,
-        liderancasGerenciadas: 380
+        liderancasGerenciadas: 380,
+        origem: 'Alê Portela',
+        latitude: -21.7700,
+        longitude: -43.3600
     },
     {
         id: 'A04',
@@ -36,6 +45,9 @@ export const mockAssessores: Assessor[] = [
         cargo: 'Assessor Regional',
         regiaoAtuacao: 'Zona da Mata & Sul',
         municipiosCobertos: 62,
-        liderancasGerenciadas: 410
+        liderancasGerenciadas: 410,
+        origem: 'Alê Portela',
+        latitude: -16.7400,
+        longitude: -43.8800
     }
 ]

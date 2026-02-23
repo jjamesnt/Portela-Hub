@@ -4,7 +4,17 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
-    <title>Portela Hub - Dashboard</title>
+    <title>Portela Hub</title>
+    <style>
+        .map-pt-br-minimalist .leaflet-tile-pane {
+            filter: grayscale(100%) brightness(1.05) contrast(0.9) opacity(0.9) !important;
+        }
+
+        .lider-icon-marker div,
+        .assessor-icon-marker div {
+            filter: none !important;
+        }
+    </style>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&amp;display=swap"
         rel="stylesheet" />

@@ -6,6 +6,12 @@ import Loader from '../components/Loader';
 import { getMunicipios, getLiderancas, getAssessores, getAgendaEventos, getRecursosTotais, getDemandasTotais, getAllRecursos } from '../services/api';
 import { Municipio, Lideranca, Assessor, EventoAgenda, Recurso } from '../types';
 import VotacaoEstadualKPIs from '../components/VotacaoEstadualKPIs';
+import { mockLiderancas as mockLider } from '../data/mockLiderancas';
+import { mockAssessores as mockAsse } from '../data/mockAssessores';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, LayersControl, LayerGroup, useMap, GeoJSON, Polygon } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { MG_GEOJSON, MG_MASK_COORDINATES } from '../constants/mgGeojson';
 
 interface RecursoResumo extends Recurso {
     municipio_nome: string;
@@ -27,225 +33,213 @@ interface DashboardData {
     recursos: RecursoResumo[];
 }
 
-// Mapeamento de coordenadas (top/left) para os municípios conhecidos no SVG de MG (500x400)
-const CITY_COORDINATES: Record<string, { top: string, left: string }> = {
-    'Belo Horizonte': { top: '65.7%', left: '63.6%' },
-    'Uberlândia': { top: '54.2%', left: '24.6%' },
-    'Montes Claros': { top: '29.0%', left: '64.2%' },
-    'Juiz de Fora': { top: '83.5%', left: '65.5%' }, // Ajuste definitivo (Mata de Minas)
-    'Governador Valadares': { top: '53.5%', left: '81.4%' },
-    'Pouso Alegre': { top: '92.5%', left: '45.4%' },
-    'Betim': { top: '66.2%', left: '61.8%' },
-    'Contagem': { top: '65.5%', left: '62.5%' },
-};
+const CoberturaMap: React.FC<{
+    municipios: Municipio[],
+    liderancas: Lideranca[],
+    assessores: Assessor[],
+    recursos: Recurso[],
+    selectedMandato: string
+}> = ({ municipios, liderancas, assessores, recursos, selectedMandato }) => {
+    // MG Coordinates center
+    const center: [number, number] = [-18.5122, -44.5550];
 
-const CoberturaMap: React.FC<{ municipios: Municipio[], navigateTo: (page: string, params?: { [key: string]: any }) => void, selectedMandato: string }> = ({ municipios, navigateTo, selectedMandato }) => {
-    // Cores dinâmicas do mapa baseadas no mandato selecionado
-    const accentColor = selectedMandato === 'Lincoln Portela' ? '#8db641' : 'var(--color-primary)';
-    const accentClass = selectedMandato === 'Lincoln Portela' ? 'border-[#8db641] bg-[#8db641]' : 'border-turquoise bg-turquoise';
-    const accentBorderClass = selectedMandato === 'Lincoln Portela' ? 'border-[#8db641]' : 'border-turquoise';
-    const accentBgClass = selectedMandato === 'Lincoln Portela' ? 'bg-[#8db641]' : 'bg-turquoise';
-    const accentTextClass = selectedMandato === 'Lincoln Portela' ? 'text-[#8db641]' : 'text-turquoise';
-    const [zoom, setZoom] = useState(1);
-    const [offset, setOffset] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
-
-    const handleZoomIn = (amount = 0.2) => setZoom(prev => Math.min(prev + amount, 4));
-    const handleZoomOut = (amount = 0.2) => setZoom(prev => Math.max(prev - amount, 1));
-    const handleReset = () => {
-        setZoom(1);
-        setOffset({ x: 0, y: 0 });
+    const stats = {
+        totalRecursos: recursos.reduce((acc, r) => acc + r.valor, 0),
+        municipiosAtendidos: new Set(recursos.map(r => r.municipioId)).size,
+        projetosAtivos: recursos.filter(r => r.status !== 'Concluído').length
     };
 
-    const handleWheel = (e: React.WheelEvent) => {
-        // Zoom direto via scroll conforme solicitado pelo usuário
-        if (e.deltaY < 0) handleZoomIn(0.1);
-        else handleZoomOut(0.1);
-    };
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (zoom > 1) {
-            setIsDragging(true);
-            setLastPos({ x: e.clientX, y: e.clientY });
+    console.log('Map Data counts:', {
+        municipios: municipios.length,
+        liderancas: liderancas.length,
+        assessores: assessores.length,
+        withCoords: {
+            liderancas: liderancas.filter(l => l.latitude != null && l.longitude != null).length,
+            assessores: assessores.filter(a => a.latitude != null && a.longitude != null).length
         }
-    };
+    });
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (isDragging) {
-            const dx = e.clientX - lastPos.x;
-            const dy = e.clientY - lastPos.y;
-            setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-            setLastPos({ x: e.clientX, y: e.clientY });
-        }
-    };
-
-    const handleMouseUp = () => setIsDragging(false);
-
-    // Função de auxílio para o usuário encontrar as coordenadas exatas
-    const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
-        console.log(`Coordenadas sugeridas: { top: '${y.toFixed(1)}%', left: '${x.toFixed(1)}%' }`);
+    const ResizeMap = () => {
+        const map = useMap();
+        useEffect(() => {
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 500);
+        }, [map]);
+        return null;
     };
 
     return (
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm h-[350px] md:h-[500px] flex flex-col select-none">
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 z-10">
-                <h4 className="font-bold text-navy-dark dark:text-white">Cobertura Portela Hub (Minas Gerais)</h4>
-                <div className="flex gap-2 text-[10px] text-slate-400 font-medium">
-                    Scroll para Zoom • Arraste para Pan
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm h-[600px] flex flex-col relative group/map">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 z-[1000]">
+                <div>
+                    <h4 className="font-bold text-navy-dark dark:text-white">Inteligência Territorial Portela Hub</h4>
+                    <p className="text-xs text-slate-500">Mapa dinâmico de influência e alocação</p>
+                </div>
+                <div className="bg-slate-100 dark:bg-slate-700 rounded-lg p-1 flex gap-1">
+                    <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span> Lideranças
+                    </span>
+                    <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-orange-500"></span> Assessores
+                    </span>
                 </div>
             </div>
-            <div
-                className={`flex-1 relative bg-slate-50 dark:bg-slate-900/50 overflow-hidden flex items-center justify-center p-8 ${zoom > 1 ? 'cursor-grab active:cursor-grabbing' : ''} touch-none`}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onTouchStart={(e) => {
-                    if (zoom > 1) {
-                        setIsDragging(true);
-                        setLastPos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
-                    }
-                }}
-                onTouchMove={(e) => {
-                    if (isDragging) {
-                        const dx = e.touches[0].clientX - lastPos.x;
-                        const dy = e.touches[0].clientY - lastPos.y;
-                        setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-                        setLastPos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
-                    }
-                }}
-                onTouchEnd={() => setIsDragging(false)}
-                onWheel={handleWheel}
-                onClick={handleMapClick}
-            >
-                {/* SVG Map Container with Zoom/Pan */}
-                <div
-                    className="relative w-full h-full max-h-[400px] transition-transform duration-200 ease-out flex items-center justify-center"
-                    style={{
-                        transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${offset.y / zoom}px)`,
-                    }}
+
+            <div className="flex-1 z-0 relative">
+                <MapContainer
+                    center={center}
+                    zoom={6}
+                    style={{ height: '100%', width: '100%', backgroundColor: '#f8fafc' }}
+                    scrollWheelZoom={true}
+                    className="map-pt-br-minimalist"
                 >
-                    <svg
-                        viewBox="0 0 500 400"
-                        className="w-full h-full drop-shadow-2xl"
-                        preserveAspectRatio="xMidYMid meet"
-                    >
-                        <path
-                            d="M305.9,2 L309.2,3.8 L311.6,3.2 L313.8,4.1 L316.9,3.9 L319.1,4.4 L320.7,5.1 L322.7,5.1 L324.7,6.3 L320.6,17.8 L320.5,20 L322,21.7 L328,23.5 L330.2,24.7 L335,26.2 L337.9,27.4 L339.6,25.1 L345.3,22.4 L351.2,21 L355.8,21.8 L359.2,22.7 L363.7,25 L366.1,26 L372.1,30.9 L374.8,32.3 L379,33.6 L382.2,36 L390.5,40.4 L395.2,41.3 L399.5,42.8 L406.3,44.5 L412,42.2 L435.7,70.9 L443.4,71.8 L448.8,69.6 L453.6,67.2 L458.1,67.6 L461.8,69.3 L465.7,69.3 L468.8,72.2 L473.2,72 L477.4,74.1 L480.3,74.6 L484.9,73.7 L485.8,75.2 L488,76.7 L489.3,78.4 L492.5,78.6 L492.6,80.7 L494.2,82.1 L495.1,82.3 L495.3,82.8 L495.9,82.5 L496.4,83 L497.9,82.4 L499,83.2 L498.6,84 L500,85.4 L501,86.9 L501.9,88.2 L500.2,89.2 L500.8,91.7 L499.5,92.7 L499.1,95 L498.1,96.2 L496.9,97.8 L495.9,97.1 L494.7,98.7 L493.9,101 L492.9,102.6 L491.7,104.1 L491.1,102.2 L490.1,104.2 L488.2,106.8 L487.6,107.5 L488.2,108.4 L487.7,109.5 L486.4,109.2 L484.4,108.8 L484,108.9 L482.7,110.5 L481.5,114.7 L481.5,115.8 L480.4,118.6 L480.9,119.6 L482.9,119.5 L483.9,120.5 L484.2,122.3 L483.2,123.1 L481.9,123.8 L480.2,124 L478.8,123 L477.4,123.7 L476,123.6 L474.8,123.1 L472.8,125.5 L470.6,129.1 L469.8,132.4 L470.2,134.5 L470.6,137.4 L470,139.8 L470.2,141.2 L469.7,142.3 L468.7,143.6 L468.8,144.6 L468.6,146 L468.1,147.9 L470,148.1 L472,149.8 L473.1,150.9 L473.7,152 L473.8,153.1 L475.7,155.1 L477,155.8 L477.2,156.8 L478.4,156.8 L479.5,158.3 L480.8,158.1 L481.6,159.3 L482.1,160.7 L482.9,161.9 L484.1,162 L485.4,162.5 L485.9,164.4 L486.3,166.8 L487.6,168 L483.6,171.1 L485.3,172.8 L484,173.4 L482.5,172.5 L481.6,172.1 L480.5,171.4 L479.1,171.1 L478,171.3 L476,171.1 L474,170.8 L472.2,169.8 L469.2,170.9 L468.6,171.7 L467.6,172.9 L466.4,174.4 L465.2,175.2 L464.5,175.3 L462.8,174.7 L461.3,174.9 L460.5,173.6 L459.5,172.7 L458.2,172.7 L456.6,174.2 L455.8,173.3 L454.9,174.1 L459.2,181.7 L457.2,181.5 L456.6,181 L455.5,180.4 L454.8,179.8 L453.5,181 L452.7,181.2 L452,181.5 L450.9,182.5 L449.2,181.9 L448.9,182.2 L447.7,183 L446.2,184.3 L446.3,185.2 L446,185.7 L444.2,188 L443.5,190.1 L443.8,192.1 L443.7,193.3 L443,193.8 L442.6,195.1 L449.3,199 L448.6,203.4 L448.5,204.5 L449.5,204.8 L451,205.6 L452.8,206.1 L453.8,210.9 L453.3,212.9 L452.4,213.1 L451,213.3 L440,211.3 L440.9,214.6 L444.8,215.8 L447.2,218.1 L449.7,219.6 L449.6,224.1 L452.1,226.3 L453.4,229 L453.7,232.2 L453.9,234.6 L452.4,239 L451.8,243.3 L448.7,245.9 L445.9,248.9 L442.5,253.3 L442.6,258.6 L440,263 L436.6,266.5 L434.9,271.4 L432.4,275.8 L415.9,277.2 L413.3,281.3 L412.9,285.5 L414.2,291.4 L413.3,295.4 L412.9,297.5 L411.5,299.8 L409.9,303.3 L407.2,307.2 L404.4,309.2 L399.9,310.8 L400.4,313.2 L400,316.1 L396.8,319.4 L396.3,322.7 L394.8,327.6 L394.6,330 L392.8,332.6 L392.6,333.2 L393.2,334.5 L392.2,336.8 L388.8,341.1 L390.5,343 L393.2,344 L388.5,347 L378.1,351.9 L373.9,353.5 L370.1,355.3 L361.9,359.3 L358,362.4 L353.5,362 L352.5,359.7 L348.6,359 L344.8,358.8 L338.2,362 L334,361 L331,361.7 L327.8,362.5 L325.4,361.7 L321.2,363.2 L315.9,365.5 L311.5,366.8 L309.6,368.3 L307.2,369.3 L304,370.6 L301.2,370.3 L297.7,370.8 L294.6,371.5 L289.6,373.5 L285.8,375.7 L282.2,375.4 L278.9,377.2 L273,379.4 L266.3,380.9 L260.5,384.5 L254.8,387.3 L250.6,386.7 L246.3,388.3 L245.3,387.4 L239.9,387.6 L237.5,385.7 L237.3,388.8 L233.5,391.3 L238.2,393.4 L237.7,3961 L234.6,398.1 L231.7,397.7 L229.4,396.8 L226.3,398.4 L219,401 L213.6,399.5 L208.4,399 L209,394.9 L207.6,392.8 L204.1,390.8 L205.4,389.3 L207,388 L206.5,384.3 L203.4,382.5 L200.5,379.5 L197.2,378.7 L194.5,375.1 L193.7,373.4 L193.7,373.4 L193.2,371 L195.1,366.6 L196.7,363.5 L193.1,362 L195.3,359.7 L197.1,358.3 L195.6,353 L196.2,348.3 L197.2,343.7 L202,340.5 L202,336.1 L200.5,332.9 L197,331.5 L194.5,329.9 L191.1,329.4 L187.6,330.2 L184.7,331.6 L182,332 L179.7,331.6 L179.3,327.4 L176.7,323.6 L174.7,320.5 L173.9,315.8 L173,311.1 L170,306 L172.4,299.4 L175.8,296.3 L173.6,291.2 L167.3,287 L167.1,285 L167.3,281.9 L168.7,275.5 L160.4,268.9 L157.8,265.3 L152,268.6 L142.1,266.3 L139.6,272.3 L134,272.1 L126,268.7 L124.1,273.1 L115.4,272.2 L105.3,274.3 L96.6,276.1 L95.3,286.6 L89,273.6 L80.3,280.6 L78,266.9 L74.6,265.9 L62.8,262.8 L49.3,263.8 L32.2,260.6 L22.6,257.3 L15.5,262.3 L4.7,266.2 L-0.7,268.6 L-1.5,257 L1.3,247.4 L2.3,242.3 L7.4,235.9 L14.8,228.2 L21.5,224.2 L25.2,215.6 L33.7,205.9 L43.8,202.3 L50.8,202.9 L56,202.7 L60.7,201 L65.5,198.1 L72.3,204.4 L79.1,198 L83.1,193.2 L88.2,192 L91.5,189.8 L99.1,191.3 L106,190.5 L113,190.9 L117,191.8 L124.9,190.6 L131.8,194.3 L136.2,195.5 L138.5,196.4 L141.2,195.5 L144.3,193.4 L147,192.1 L151.1,189.9 L152.3,186.4 L154.2,185.1 L157.4,183.5 L160.8,182.3 L162.4,180.4 L166.2,177.9 L166.8,175.3 L164.9,171.8 L163.7,167.1 L164.5,164.8 L166.6,160.5 L168,156.4 L161.5,152.7 L157,149.9 L156,147.5 L157,145.9 L159.3,145.1 L161.1,143.1 L161.8,140.6 L163.5,138.8 L164.5,137.1 L166.9,135.1 L168.2,133.7 L169.7,132.6 L171.6,131.8 L172.7,130.9 L173.5,129.8 L173.8,127.4 L172.3,125.6 L171.2,123.3 L170.8,120.5 L170,116.8 L168.5,114 L167.3,112.4 L165.8,111.2 L163.9,110 L161.8,108.8 L160.8,107.6 L160,104.1 L163.2,98.7 L165.1,94.6 L165.3,91.2 L164.7,89.5 L165.2,86.7 L166.3,84.4 L169.5,83.4 L171.4,81.9 L172.6,80.6 L174.5,80.2 L188.2,74.7 L186.7,65.3 L186.1,53.4 L183.1,47.1 L183.6,39.6 L196.3,40.8 L202.3,39.4 L200.8,32 L200.8,26.1 L203.9,23.2 L208.6,27 L210.9,29.8 L213.6,33.5 L218.1,32.8 L222.7,31.9 L226.4,36.6 L222.5,44.8 L221.3,48.1 L223.9,46.4 L226.9,43.5 L233.3,42.2 L238.1,41.4 L240.5,38.5 L243.5,36 L247.8,34.3 L253.1,32.1 L256.1,29.7 L257.9,28.1 L261.6,25.2 L266.5,25.2 L271,20.9 L272.9,19.6 L276.5,17.4 L277.6,15.6 L278.7,14 L281,12.8 L283.2,11.2 L285.4,10 L287,8.4 L289.9,6.8 L292.4,5.8 L294.9,5.1 L298.5,3.4 L301.1,1.8 L304.1,2.4 Z"
-                            fill="currentColor"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinejoin="round"
-                            className="text-turquoise/10 dark:text-turquoise/5 hover:text-turquoise/20 dark:hover:text-turquoise/10 transition-colors cursor-pointer border-turquoise/40 dark:border-turquoise/30"
-                        />
-                    </svg>
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
 
-                    {/* Interactive Hub Pins */}
-                    {municipios.map((municipio) => {
-                        const coords = CITY_COORDINATES[municipio.nome];
-                        if (!coords) return null;
+                    {/* Map Mask: Dims everything outside Minas Gerais */}
+                    <Polygon
+                        positions={MG_MASK_COORDINATES}
+                        pathOptions={{
+                            fillColor: '#f1f5f9',
+                            fillOpacity: 0.8,
+                            weight: 0,
+                            stroke: false
+                        }}
+                    />
 
-                        const isActive = municipio.statusAtividade === 'Consolidado' || municipio.statusAtividade === 'Manutenção';
+                    <GeoJSON
+                        data={MG_GEOJSON as any}
+                        style={{
+                            color: "#0d9488",
+                            weight: 3,
+                            fillColor: "transparent",
+                            dashArray: '10, 10'
+                        }}
+                    />
+                    <ResizeMap />
 
-                        return (
-                            <div
-                                key={municipio.id}
-                                className="absolute group"
-                                style={{
-                                    top: coords.top,
-                                    left: coords.left,
-                                    transform: `scale(${1 / Math.sqrt(zoom)})` // Escala suavizada para não sumir nem crescer demais
-                                }}
-                            >
-                                <div
-                                    onClick={() => navigateTo('MunicipioDetalhes', { id: municipio.id })}
-                                    className={`
-                                        relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all hover:scale-125 cursor-pointer z-10
-                                        ${isActive ? 'size-5' : 'size-4'}
-                                        rounded-full border-2 
-                                        ${isActive ? `${accentBorderClass} bg-white dark:bg-slate-800` : 'border-slate-400 bg-slate-200 dark:bg-slate-700'}
-                                        shadow-lg
-                                    `}
-                                >
-                                    <div className={`rounded-full ${isActive ? `size-2 ${accentBgClass}` : 'size-1.5 bg-slate-500'}`}></div>
-                                </div>
-
-                                {/* Tooltip */}
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-20">
-                                    <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-3 flex flex-col gap-2 items-center min-w-[140px]">
-                                        <span className="font-bold text-navy-dark dark:text-white border-b border-slate-100 dark:border-slate-700 w-full text-center pb-1">{municipio.nome}</span>
-                                        <div className="flex flex-col gap-1 w-full text-left">
-                                            <div className="flex justify-between items-center gap-4">
-                                                <span className="text-[10px] text-slate-400 uppercase font-bold">Status:</span>
-                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${isActive
-                                                    ? `${accentBgClass}/10 ${accentTextClass}`
-                                                    : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-                                                    }`}>
-                                                    {municipio.statusAtividade}
-                                                </span>
+                    <LayersControl position="topright">
+                        <LayersControl.Overlay checked name="Lideranças">
+                            <LayerGroup>
+                                {liderancas.filter(l => l.latitude != null && l.longitude != null).map(lider => (
+                                    <Marker
+                                        key={`lider-${lider.id}`}
+                                        position={[lider.latitude!, lider.longitude!]}
+                                        zIndexOffset={100}
+                                        icon={L.divIcon({
+                                            className: 'lider-icon-marker',
+                                            html: `<div style="background-color: #3b82f6; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(59, 130, 246, 0.8), 0 0 5px rgba(0,0,0,0.3); z-index: 1000;"></div>`,
+                                            iconSize: [12, 12],
+                                            iconAnchor: [6, 6]
+                                        })}
+                                    >
+                                        <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
+                                            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-2 py-1 rounded shadow-lg border border-slate-200 dark:border-slate-700">
+                                                <p className="font-bold text-[10px] text-navy-dark dark:text-white m-0">{lider.nome}</p>
+                                                <p className="text-[9px] text-slate-500 m-0">{lider.cargo} • {lider.municipio}</p>
                                             </div>
-                                            <div className="flex justify-between items-center gap-4 border-t border-slate-50 dark:border-slate-700/50 pt-1">
-                                                <span className="text-[10px] text-slate-400 uppercase font-bold">Demandas:</span>
-                                                <span className="text-[10px] font-black text-navy-dark dark:text-white">{municipio.totalDemandas || 0}</span>
+                                        </Tooltip>
+                                        <Popup>
+                                            <div className="p-2">
+                                                <h5 className="font-bold border-b pb-1 mb-1">{lider.nome}</h5>
+                                                <p className="text-xs m-0"><strong>Cargo:</strong> {lider.cargo}</p>
+                                                <p className="text-xs m-0"><strong>Cidade:</strong> {lider.municipio}</p>
+                                                <p className="text-xs m-0"><strong>Mandato:</strong> {lider.origem}</p>
                                             </div>
-                                            <div className="flex justify-between items-center gap-4">
-                                                <span className="text-[10px] text-slate-400 uppercase font-bold">Recursos:</span>
-                                                <span className="text-[10px] font-black text-turquoise">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(municipio.totalRecursos || 0)}
-                                                </span>
+                                        </Popup>
+                                    </Marker>
+                                ))}
+                            </LayerGroup>
+                        </LayersControl.Overlay>
+
+                        <LayersControl.Overlay checked name="Assessores">
+                            <LayerGroup>
+                                {assessores.filter(a => a.latitude != null && a.longitude != null).map(assessor => (
+                                    <Marker
+                                        key={`assessor-${assessor.id}`}
+                                        position={[assessor.latitude!, assessor.longitude!]}
+                                        zIndexOffset={200}
+                                        icon={L.divIcon({
+                                            className: 'assessor-icon-marker',
+                                            html: `<div style="background-color: #f97316; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8), 0 0 5px rgba(0,0,0,0.3); z-index: 1000;"></div>`,
+                                            iconSize: [12, 12],
+                                            iconAnchor: [6, 6]
+                                        })}
+                                    >
+                                        <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
+                                            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-2 py-1 rounded shadow-lg border border-orange-200 dark:border-orange-900/30">
+                                                <p className="font-bold text-[10px] text-orange-600 dark:text-orange-400 m-0">{assessor.nome}</p>
+                                                <p className="text-[9px] text-slate-500 m-0">Assessor • {assessor.regiaoAtuacao}</p>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div className="size-2 bg-white dark:bg-slate-800 border-b border-r border-slate-200 dark:border-slate-700 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2"></div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                                        </Tooltip>
+                                        <Popup>
+                                            <div className="p-2">
+                                                <h5 className="font-bold text-orange-600 border-b pb-1 mb-1">{assessor.nome}</h5>
+                                                <p className="text-xs m-0"><strong>Região:</strong> {assessor.regiaoAtuacao}</p>
+                                                <p className="text-xs m-0"><strong>Municípios:</strong> {assessor.municipiosCobertos}</p>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+                                ))}
+                            </LayerGroup>
+                        </LayersControl.Overlay>
 
-                {/* Zoom Controls */}
-                <div className="absolute right-4 bottom-4 flex flex-col gap-2 z-30">
-                    <button
-                        onClick={() => handleZoomIn()}
-                        className="size-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                        title="Aumentar Zoom"
-                    >
-                        <span className="material-symbols-outlined">add</span>
-                    </button>
-                    <button
-                        onClick={() => handleZoomOut()}
-                        className="size-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                        title="Diminuir Zoom"
-                    >
-                        <span className="material-symbols-outlined">remove</span>
-                    </button>
-                    <button
-                        onClick={handleReset}
-                        className="size-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                        title="Resetar Visualização"
-                    >
-                        <span className="material-symbols-outlined">restart_alt</span>
-                    </button>
-                </div>
+                        <LayersControl.Overlay checked name="Recursos (Municípios)">
+                            <LayerGroup>
+                                {municipios.filter(m => m.latitude && m.longitude).map(mun => (
+                                    <Marker
+                                        key={mun.id}
+                                        position={[mun.latitude!, mun.longitude!]}
+                                        icon={L.divIcon({
+                                            className: 'municipio-icon',
+                                            html: `<div style="background-color: rgba(20, 184, 166, 0.3); width: ${Math.min(24, (mun.totalRecursos || 0) / 10000 + 10)}px; height: ${Math.min(24, (mun.totalRecursos || 0) / 10000 + 10)}px; border-radius: 50%; border: 1.5px solid #14b8a6; box-shadow: inset 0 0 5px rgba(20, 184, 166, 0.2);"></div>`,
+                                            iconSize: [24, 24],
+                                            iconAnchor: [12, 12]
+                                        })}
+                                    >
+                                        <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
+                                            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-2 py-1 rounded shadow-lg border border-teal-200 dark:border-teal-900/30">
+                                                <p className="font-bold text-[10px] text-teal-600 dark:text-teal-400 m-0">{mun.nome}</p>
+                                                <p className="text-[9px] text-slate-500 m-0">R$ {(mun.totalRecursos || 0).toLocaleString('pt-BR', { notation: 'compact' })} em recursos</p>
+                                            </div>
+                                        </Tooltip>
+                                        <Popup>
+                                            <div className="p-2">
+                                                <h5 className="font-bold text-teal-600 border-b pb-1 mb-1">{mun.nome}</h5>
+                                                <p className="text-xs m-0"><strong>Recursos:</strong> R$ {(mun.totalRecursos || 0).toLocaleString('pt-BR')}</p>
+                                                <p className="text-xs m-0"><strong>Demandas:</strong> {mun.totalDemandas || 0}</p>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+                                ))}
+                            </LayerGroup>
+                        </LayersControl.Overlay>
+                    </LayersControl>
+                </MapContainer>
 
-                {/* Legend Overlay */}
-                <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4 bg-white/95 dark:bg-slate-800/95 p-2 md:p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-[9px] md:text-xs shadow-xl backdrop-blur-sm z-10 pointer-events-none max-w-[120px] md:max-w-none">
-                    <p className="font-bold text-navy-dark dark:text-white mb-1 md:mb-2">Presença Regional</p>
-                    <div className="space-y-1 md:space-y-2">
-                        <div className="flex items-center gap-2"><span className={`size-2 md:size-3 border-2 ${accentBorderClass} rounded-full bg-white dark:bg-slate-800 flex items-center justify-center`}><span className={`size-0.5 md:size-1 ${accentBgClass} rounded-full`}></span></span> Atividade Alta</div>
-                        <div className="flex items-center gap-2"><span className="size-2 md:size-3 border border-slate-300 dark:border-slate-600 rounded-full bg-slate-100 dark:bg-slate-900"></span> Base Planejada</div>
+                {/* Recursos Cobertura Cards - Floating Overlay */}
+                <div className="absolute bottom-6 left-6 z-[1000] flex flex-col gap-2 pointer-events-none">
+                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/50 shadow-2xl pointer-events-auto transition-transform hover:scale-105">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total em Recursos</p>
+                        <p className="text-xl font-black text-turquoise tabular-nums">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.totalRecursos)}
+                        </p>
+                    </div>
+                    <div className="flex gap-2">
+                        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/50 shadow-xl pointer-events-auto flex-1">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Cidades</p>
+                            <p className="text-lg font-black text-navy-dark dark:text-white">{stats.municipiosAtendidos}</p>
+                        </div>
+                        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-3 rounded-xl border border-white/20 dark:border-slate-700/50 shadow-xl pointer-events-auto flex-1">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Projetos</p>
+                            <p className="text-lg font-black text-navy-dark dark:text-white">{stats.projetosAtivos}</p>
+                        </div>
                     </div>
                 </div>
             </div>
-            {zoom > 1 && (
-                <div className={`px-4 py-1 ${accentBgClass}/10 ${accentTextClass} text-[8px] md:text-[10px] font-bold text-center uppercase tracking-widest border-t ${accentBorderClass}/20`}>
-                    Navegação: Arraste o mapa
-                </div>
-            )}
         </div>
     );
 };
@@ -502,6 +496,22 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                     getAllRecursos()
                 ]);
 
+                const combinedLiderancas = liderancasData.map(l => {
+                    if (l.latitude == null) {
+                        const mock = mockLider.find(ml => ml.id === l.id || ml.nome === l.nome);
+                        if (mock) return { ...l, latitude: mock.latitude, longitude: mock.longitude };
+                    }
+                    return l;
+                });
+
+                const combinedAssessores = assessoresData.map(a => {
+                    if (a.latitude == null) {
+                        const mock = mockAsse.find(ma => ma.id === a.id || ma.nome === a.nome);
+                        if (mock) return { ...a, latitude: mock.latitude, longitude: mock.longitude };
+                    }
+                    return a;
+                });
+
                 const today = new Date().toISOString().split('T')[0];
                 const upcomingEvents = agendaData
                     .filter(event => event.data >= today)
@@ -514,8 +524,8 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
 
                 setData({
                     municipios: municipiosData,
-                    liderancas: liderancasData,
-                    assessores: assessoresData,
+                    liderancas: combinedLiderancas,
+                    assessores: combinedAssessores,
                     agenda: upcomingEvents,
                     recursosTotais: recursosTotaisData,
                     demandasTotais: demandasTotaisData,
@@ -578,12 +588,12 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                 const filteredData = data ? {
                     ...data,
                     municipios: data.municipios, // Municípios são compartilhados
-                    liderancas: selectedMandato === 'Todos' ? data.liderancas : data.liderancas.filter(l => l.origem === selectedMandato),
+                    liderancas: selectedMandato === 'Todos' ? data.liderancas : data.liderancas.filter(l => (l.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && l.origem === ('Alê' as any))),
                     assessores: data.assessores, // Assessores são compartilhados
-                    agenda: selectedMandato === 'Todos' ? data.agenda : data.agenda.filter(e => e.origem === selectedMandato),
-                    recursos: selectedMandato === 'Todos' ? data.recursos : data.recursos.filter(r => r.origem === selectedMandato),
-                    recursosTotais: selectedMandato === 'Todos' ? data.recursosTotais : data.recursos.filter(r => r.origem === selectedMandato).reduce((acc, r) => acc + r.valor, 0),
-                    demandasTotais: selectedMandato === 'Todos' ? data.demandasTotais : (selectedMandato === 'Alê Portela' ? data.aleDemandasCount : data.lincolnDemandasCount),
+                    agenda: selectedMandato === 'Todos' ? data.agenda : data.agenda.filter(e => (e.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && e.origem === ('Alê' as any))),
+                    recursos: selectedMandato === 'Todos' ? data.recursos : data.recursos.filter(r => (r.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && r.origem === ('Alê' as any))),
+                    recursosTotais: selectedMandato === 'Todos' ? data.recursosTotais : data.recursos.filter(r => (r.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && r.origem === ('Alê' as any))).reduce((acc, r) => acc + r.valor, 0),
+                    demandasTotais: selectedMandato === 'Todos' ? data.demandasTotais : (selectedMandato === 'Alê Portela' ? data.aleDemandasCount : (selectedMandato === 'Lincoln Portela' ? data.lincolnDemandasCount : 0)),
                 } : null;
 
                 if (!filteredData) return null;
@@ -625,7 +635,13 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                         <VotacaoEstadualKPIs selectedMandato={selectedMandato} />
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <CoberturaMap municipios={filteredData.municipios} navigateTo={navigateTo} selectedMandato={selectedMandato} />
+                            <CoberturaMap
+                                municipios={filteredData.municipios}
+                                liderancas={filteredData.liderancas}
+                                assessores={filteredData.assessores}
+                                recursos={filteredData.recursos}
+                                selectedMandato={selectedMandato}
+                            />
                             <AgendaSummary events={filteredData.agenda} />
                         </div>
 
