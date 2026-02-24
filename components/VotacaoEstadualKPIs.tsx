@@ -162,7 +162,16 @@ const VotacaoEstadualKPIs: React.FC<VotacaoEstadualKPIsProps> = ({ selectedManda
         </div>
     );
 
-    const cards = [lincolnCard, aleCard, marildaCard];
+    const cards = [];
+    if (selectedMandato === 'Lincoln Portela') {
+        cards.push(lincolnCard, aleCard, marildaCard);
+    } else if (selectedMandato === 'Alê Portela') {
+        cards.push(aleCard, lincolnCard, marildaCard);
+    } else if (selectedMandato === 'Marilda Portela') {
+        cards.push(marildaCard, lincolnCard, aleCard);
+    } else {
+        cards.push(lincolnCard, aleCard, marildaCard);
+    }
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -27,6 +27,7 @@ interface GoogleEvent {
     summary: string;
     description?: string;
     location?: string;
+    visibility?: 'default' | 'public' | 'private' | 'confidential';
     start: { dateTime: string; timeZone: string; date?: string };
     end: { dateTime: string; timeZone: string; date?: string };
     htmlLink: string;
@@ -85,9 +86,35 @@ const mapGoogleEventToApp = (gEvent: GoogleEvent, calendarId: string): EventoAge
     else if (textRes.includes('evento') || textRes.includes('inauguração')) tipo = 'Evento Público';
     else if (textRes.includes('plenária') || textRes.includes('sessão') || textRes.includes('votação')) tipo = 'Sessão Plenária';
 
-    // Helper to extract date/time
-    const start = gEvent.start.dateTime || gEvent.start.date || '';
-    const dateObj = new Date(start);
+    // Heurística de privacidade
+    const isPrivate = gEvent.visibility === 'private' ||
+        gEvent.visibility === 'confidential' ||
+        textRes.includes('privado') ||
+        textRes.includes('particular');
+
+    // Normalização de data/hora sensível ao fuso horário local
+    let dataIso = '';
+    let hora = '';
+
+    if (gEvent.start?.dateTime) {
+        const dateObj = new Date(gEvent.start.dateTime);
+        if (!isNaN(dateObj.getTime())) {
+            // Conversão para horário local do navegador (Brasília -03:00)
+            dataIso = dateObj.getFullYear() + '-' +
+                String(dateObj.getMonth() + 1).padStart(2, '0') + '-' +
+                String(dateObj.getDate()).padStart(2, '0');
+
+            hora = String(dateObj.getHours()).padStart(2, '0') + ':' +
+                String(dateObj.getMinutes()).padStart(2, '0');
+        } else {
+            dataIso = gEvent.start.dateTime.split('T')[0];
+            hora = 'Dia Inteiro';
+        }
+    } else if (gEvent.start?.date) {
+        // Formato: "2026-02-24" (Evento de dia inteiro)
+        dataIso = gEvent.start.date;
+        hora = 'Dia Inteiro';
+    }
 
     // Determine source label
     let sourceLabel = '';
@@ -104,16 +131,17 @@ const mapGoogleEventToApp = (gEvent: GoogleEvent, calendarId: string): EventoAge
     return {
         id: gEvent.id,
         titulo: gEvent.summary + (sourceLabel ? ` ${sourceLabel}` : ''),
-        data: (start as string).split('T')[0],
-        hora: dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        data: dataIso,
+        hora: hora,
         tipo: tipo,
-        local: gEvent.location || 'Não informado',
-        descricao: gEvent.description,
-        origem: origem
+        local: isPrivate ? 'Local Reservado' : (gEvent.location || 'Não informado'),
+        descricao: isPrivate ? undefined : gEvent.description,
+        origem: origem,
+        privacidade: isPrivate ? 'Particular' : 'Público'
     } as EventoAgenda;
 };
 
-export const listUpcomingGoogleEvents = async (maxResults: number = 20): Promise<EventoAgenda[]> => {
+export const listUpcomingGoogleEvents = async (maxResults: number = 100): Promise<EventoAgenda[]> => {
     if (!isSignedIn()) {
         console.warn("User not signed in to Google.");
         return [];

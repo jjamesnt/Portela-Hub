@@ -246,40 +246,96 @@ const CoberturaMap: React.FC<{
 
 
 
-const AgendaSummary: React.FC<{ events: EventoAgenda[] }> = ({ events }) => (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col">
-        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+const AgendaSummary: React.FC<{ events: EventoAgenda[], isRefreshing: boolean, onRefresh: () => void, navigateTo: (page: string) => void }> = ({ events, isRefreshing, onRefresh, navigateTo }) => (
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col h-full">
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex justify-between items-center">
             <h4 className="font-bold text-navy-dark dark:text-white text-sm md:text-base">Resumo da Agenda</h4>
+            <button
+                onClick={onRefresh}
+                className={`p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition-colors ${isRefreshing ? 'opacity-50' : ''}`}
+                title="Atualizar Agenda"
+                disabled={isRefreshing}
+            >
+                <span className={`material-symbols-outlined text-lg ${isRefreshing ? 'animate-spin' : ''}`}>refresh</span>
+            </button>
         </div>
         <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-            {events.slice(0, 4).map((event, index) => (
-                <div key={event.id} className="flex gap-3 md:gap-4 items-start">
-                    <div className="shrink-0 flex flex-col items-center">
-                        <span className="text-[10px] md:text-xs font-bold text-turquoise uppercase">{event.hora}</span>
-                        {index < 3 && <div className="w-px h-6 md:h-8 bg-slate-100 dark:bg-slate-700 mt-2 rounded-full"></div>}
-                    </div>
-                    <div>
-                        <p className="text-xs md:text-sm font-bold text-navy-dark dark:text-white">{event.titulo}</p>
-                        <div className="flex items-center gap-1 mt-0.5 md:mt-1">
-                            <span className="material-symbols-outlined text-turquoise text-[12px] md:text-[14px]">location_on</span>
-                            <p className="text-[10px] md:text-xs text-slate-500 truncate max-w-[150px] md:max-w-none">{event.local}</p>
-                        </div>
-                        {event.origem === 'Lincoln Portela' && (
-                            <span className="inline-block mt-1 px-1 py-0.5 bg-navy-dark/10 text-navy-dark dark:bg-blue-900/40 dark:text-blue-300 text-[8px] md:text-[9px] font-bold rounded border border-navy-dark/20 dark:border-blue-700/50">
-                                Lincoln
-                            </span>
-                        )}
-                        {(event.origem === 'Alê Portela' || !event.origem) && (
-                            <span className="inline-block mt-1 px-1 py-0.5 bg-turquoise/10 text-turquoise dark:bg-turquoise/20 text-[8px] md:text-[9px] font-bold rounded border border-turquoise/20">
-                                Alê
-                            </span>
-                        )}
-                    </div>
+            {events.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-slate-400">
+                    <span className="material-symbols-outlined text-3xl mb-2">event_busy</span>
+                    <p className="text-xs font-bold uppercase tracking-wider">Sem eventos no período</p>
                 </div>
-            ))}
+            ) : (
+                (() => {
+                    const groups: { [key: string]: EventoAgenda[] } = {};
+                    events.forEach(e => {
+                        if (!groups[e.data]) groups[e.data] = [];
+                        groups[e.data].push(e);
+                    });
+
+                    return Object.entries(groups).sort(([d1], [d2]) => d1.localeCompare(d2)).map(([date, dayEvents]) => (
+                        <div key={date} className="space-y-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="h-px flex-1 bg-slate-100 dark:bg-slate-700"></span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                                </span>
+                                <span className="h-px flex-1 bg-slate-100 dark:bg-slate-700"></span>
+                            </div>
+                            {dayEvents.map((event, index) => {
+                                const hasPrivateKeyword = (event.titulo + ' ' + (event.descricao || '')).toLowerCase().includes('privado') ||
+                                    (event.titulo + ' ' + (event.descricao || '')).toLowerCase().includes('particular');
+                                const isPrivate = event.privacidade === 'Particular' || hasPrivateKeyword;
+
+                                return (
+                                    <div key={event.id} className="flex gap-3 md:gap-4 items-start pl-1">
+                                        <div className="shrink-0 flex flex-col items-center w-12">
+                                            <span className={`text-[10px] md:text-xs font-bold uppercase ${event.hora === 'Dia Inteiro' ? 'text-turquoise' : 'text-slate-500'}`}>
+                                                {event.hora === 'Dia Inteiro' ? 'DIA' : event.hora}
+                                            </span>
+                                            {index < dayEvents.length - 1 && <div className="w-px h-6 md:h-8 bg-slate-100 dark:bg-slate-700 mt-2 rounded-full"></div>}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <p className={`text-xs md:text-sm font-bold truncate ${isPrivate ? 'text-slate-400 italic' : 'text-navy-dark dark:text-white'}`}>
+                                                    {isPrivate ? "🔒 Reservado" : event.titulo}
+                                                </p>
+                                            </div>
+                                            {!isPrivate && (
+                                                <div className="flex items-center gap-1 mt-0.5 md:mt-1">
+                                                    <span className="material-symbols-outlined text-turquoise text-[12px] md:text-[14px]">location_on</span>
+                                                    <p className="text-[10px] md:text-xs text-slate-500 truncate">{event.local || 'Não informado'}</p>
+                                                </div>
+                                            )}
+                                            <div className="flex gap-1.5 mt-1.5">
+                                                {event.origem === 'Lincoln Portela' && (
+                                                    <span className="px-1.5 py-0.5 bg-[#8db641]/10 text-[#8db641] text-[8px] md:text-[9px] font-black rounded border border-[#8db641]/20 uppercase">
+                                                        Lincoln
+                                                    </span>
+                                                )}
+                                                {(event.origem === 'Alê Portela' || !event.origem || event.origem === 'Google Calendar') && (
+                                                    <span className={`px-1.5 py-0.5 text-[8px] md:text-[9px] font-black rounded border uppercase ${event.origem === 'Google Calendar'
+                                                            ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                            : 'bg-turquoise/10 text-turquoise border-turquoise/20'
+                                                        }`}>
+                                                        {event.origem === 'Google Calendar' ? 'Google' : 'Alê'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ));
+                })()
+            )}
         </div>
         <div className="p-3 md:p-4 mt-auto border-t border-slate-200 dark:border-slate-700">
-            <button className="w-full text-[10px] md:text-xs font-bold text-turquoise hover:underline flex items-center justify-center gap-1">
+            <button
+                onClick={() => navigateTo('Agenda')}
+                className="w-full text-[10px] md:text-xs font-bold text-turquoise hover:underline flex items-center justify-center gap-1"
+            >
                 Ver Agenda Completa
                 <span className="material-symbols-outlined text-sm md:text-xs">arrow_forward</span>
             </button>
@@ -466,90 +522,123 @@ const RecentActivity = () => (
 
 const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
     const [data, setData] = useState<DashboardData | null>(null);
+    const [isAgendaRefreshing, setIsAgendaRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { selectedMandato, setSelectedMandato } = useContext(AppContext)!;
 
+    const fetchDashboardData = async (agendaOnly = false) => {
+        try {
+            if (agendaOnly) setIsAgendaRefreshing(true);
+            else setIsLoading(true);
+
+            const [
+                municipiosData,
+                liderancasData,
+                assessoresData,
+                agendaData,
+                recursosTotaisData,
+                demandasTotaisData,
+                aleDemandasCount,
+                lincolnDemandasCount,
+                recursosData,
+                googleEventsData
+            ] = await Promise.all([
+                agendaOnly ? Promise.resolve(data?.municipios || []) : getMunicipios(),
+                agendaOnly ? Promise.resolve(data?.liderancas || []) : getLiderancas(),
+                agendaOnly ? Promise.resolve(data?.assessores || []) : getAssessores(),
+                getAgendaEventos(),
+                agendaOnly ? Promise.resolve(data?.recursosTotais || 0) : getRecursosTotais(),
+                agendaOnly ? Promise.resolve(data?.demandasTotais || 0) : getDemandasTotais(),
+                agendaOnly ? Promise.resolve(data?.aleDemandasCount || 0) : getDemandasTotais('Alê Portela'),
+                agendaOnly ? Promise.resolve(data?.lincolnDemandasCount || 0) : getDemandasTotais('Lincoln Portela'),
+                agendaOnly ? Promise.resolve(data?.recursos || []) : getAllRecursos(),
+                getGoogleEvents()
+            ]);
+
+            const combinedLiderancas = agendaOnly ? (data?.liderancas || []) : liderancasData.map(l => {
+                if (l.latitude == null) {
+                    const mock = mockLider.find(ml => ml.id === l.id || ml.nome === l.nome);
+                    if (mock) return { ...l, latitude: mock.latitude, longitude: mock.longitude };
+                }
+                return l;
+            });
+
+            const combinedAssessores = agendaOnly ? (data?.assessores || []) : assessoresData.map(a => {
+                if (a.latitude == null) {
+                    const mock = mockAsse.find(ma => ma.id === a.id || ma.nome === a.nome);
+                    if (mock) return { ...a, latitude: mock.latitude, longitude: mock.longitude };
+                }
+                return a;
+            });
+
+            const today = new Date();
+            const twoDaysAgo = new Date(today);
+            twoDaysAgo.setDate(today.getDate() - 2);
+            const fifteenDaysAhead = new Date(today);
+            fifteenDaysAhead.setDate(today.getDate() + 15);
+
+            // Correção: Usar data local para evitar bug de fim de dia (UTC)
+            const formatLocalISO = (d: Date) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            const startDate = formatLocalISO(twoDaysAgo);
+            const endDate = formatLocalISO(fifteenDaysAhead);
+
+            const combinedAgenda = [...agendaData, ...googleEventsData];
+            const filteredAgenda = combinedAgenda
+                .filter(event => event.data >= startDate && event.data <= endDate)
+                .sort((a, b) => {
+                    if (a.data !== b.data) return a.data.localeCompare(b.data);
+
+                    // Tratamento para 'Dia Inteiro' (vem primeiro no dia)
+                    if (a.hora === 'Dia Inteiro' && b.hora !== 'Dia Inteiro') return -1;
+                    if (a.hora !== 'Dia Inteiro' && b.hora === 'Dia Inteiro') return 1;
+
+                    return a.hora.localeCompare(b.hora);
+                })
+                .slice(0, 12); // Aumentado para 12 para melhor visibilidade e contexto
+
+            setData({
+                municipios: agendaOnly ? (data?.municipios || []) : municipiosData,
+                liderancas: combinedLiderancas,
+                assessores: combinedAssessores,
+                agenda: filteredAgenda,
+                recursosTotais: agendaOnly ? (data?.recursosTotais || 0) : recursosTotaisData,
+                demandasTotais: agendaOnly ? (data?.demandasTotais || 0) : demandasTotaisData,
+                aleDemandasCount: agendaOnly ? (data?.aleDemandasCount || 0) : aleDemandasCount,
+                lincolnDemandasCount: agendaOnly ? (data?.lincolnDemandasCount || 0) : lincolnDemandasCount,
+                recursos: agendaOnly ? (data?.recursos || []) : recursosData.map(r => ({
+                    ...r,
+                    municipio_nome: (municipiosData || data?.municipios).find(m => m.id === r.municipioId)?.nome || 'Desconhecido'
+                }))
+            });
+            setError(null);
+        } catch (err: any) {
+            console.error("Dashboard fetch error:", err);
+            setError(err.message || 'Erro ao carregar dados do dashboard');
+        } finally {
+            if (agendaOnly) setIsAgendaRefreshing(false);
+            else setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                setIsLoading(true);
-                const [
-                    municipiosData,
-                    liderancasData,
-                    assessoresData,
-                    agendaData,
-                    recursosTotaisData,
-                    demandasTotaisData,
-                    aleDemandasCount,
-                    lincolnDemandasCount,
-                    recursosData,
-                    googleEventsData
-                ] = await Promise.all([
-                    getMunicipios(),
-                    getLiderancas(),
-                    getAssessores(),
-                    getAgendaEventos(),
-                    getRecursosTotais(),
-                    getDemandasTotais(),
-                    getDemandasTotais('Alê Portela'),
-                    getDemandasTotais('Lincoln Portela'),
-                    getAllRecursos(),
-                    getGoogleEvents()
-                ]);
-
-                const combinedLiderancas = liderancasData.map(l => {
-                    if (l.latitude == null) {
-                        const mock = mockLider.find(ml => ml.id === l.id || ml.nome === l.nome);
-                        if (mock) return { ...l, latitude: mock.latitude, longitude: mock.longitude };
-                    }
-                    return l;
-                });
-
-                const combinedAssessores = assessoresData.map(a => {
-                    if (a.latitude == null) {
-                        const mock = mockAsse.find(ma => ma.id === a.id || ma.nome === a.nome);
-                        if (mock) return { ...a, latitude: mock.latitude, longitude: mock.longitude };
-                    }
-                    return a;
-                });
-
-                const today = new Date().toISOString().split('T')[0];
-                const combinedAgenda = [...agendaData, ...googleEventsData];
-                const upcomingEvents = combinedAgenda
-                    .filter(event => event.data >= today)
-                    .sort((a, b) => {
-                        const dateA = new Date(`${a.data}T${a.hora}`);
-                        const dateB = new Date(`${b.data}T${b.hora}`);
-                        return dateA.getTime() - dateB.getTime();
-                    })
-                    .slice(0, 4);
-
-                setData({
-                    municipios: municipiosData,
-                    liderancas: combinedLiderancas,
-                    assessores: combinedAssessores,
-                    agenda: upcomingEvents,
-                    recursosTotais: recursosTotaisData,
-                    demandasTotais: demandasTotaisData,
-                    aleDemandasCount: aleDemandasCount,
-                    lincolnDemandasCount: lincolnDemandasCount,
-                    recursos: recursosData.map(r => ({
-                        ...r,
-                        municipio_nome: municipiosData.find(m => m.id === r.municipioId)?.nome || 'Desconhecido'
-                    }))
-                });
-                setError(null);
-            } catch (err: any) {
-                console.error("Dashboard fetch error:", err);
-                setError(err.message || 'Erro ao carregar dados do dashboard');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchDashboardData();
+
+        // Auto-refresh every 5 minutes
+        const intervalId = setInterval(() => fetchDashboardData(true), 5 * 60 * 1000);
+
+        return () => clearInterval(intervalId);
     }, []);
+
+    const handleManualRefresh = () => {
+        fetchDashboardData(true);
+    };
 
 
 
@@ -593,7 +682,14 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                     municipios: data.municipios, // Municípios são compartilhados
                     liderancas: selectedMandato === 'Todos' ? data.liderancas : data.liderancas.filter(l => (l.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && l.origem === ('Alê' as any))),
                     assessores: data.assessores, // Assessores são compartilhados
-                    agenda: selectedMandato === 'Todos' ? data.agenda : data.agenda.filter(e => e.origem === 'Google Calendar' || (e.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && e.origem === ('Alê' as any))),
+                    agenda: selectedMandato === 'Todos' ? data.agenda : data.agenda.filter(e => {
+                        const isMandatoMatch = !selectedMandato ||
+                            selectedMandato === 'Ambos' ||
+                            (e.origem as string) === selectedMandato ||
+                            (selectedMandato === 'Alê Portela' && (e.origem as string) === 'Alê') ||
+                            (selectedMandato === 'Lincoln Portela' && (e.origem as string) === 'Lincoln');
+                        return e.origem === 'Google Calendar' || isMandatoMatch;
+                    }),
                     recursos: selectedMandato === 'Todos' ? data.recursos : data.recursos.filter(r => (r.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && r.origem === ('Alê' as any))),
                     recursosTotais: selectedMandato === 'Todos' ? data.recursosTotais : data.recursos.filter(r => (r.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && r.origem === ('Alê' as any))).reduce((acc, r) => acc + r.valor, 0),
                     demandasTotais: selectedMandato === 'Todos' ? data.demandasTotais : (selectedMandato === 'Alê Portela' ? data.aleDemandasCount : (selectedMandato === 'Lincoln Portela' ? data.lincolnDemandasCount : 0)),
@@ -645,7 +741,12 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                                 recursos={filteredData.recursos}
                                 selectedMandato={selectedMandato}
                             />
-                            <AgendaSummary events={filteredData.agenda} />
+                            <AgendaSummary
+                                events={filteredData.agenda}
+                                isRefreshing={isAgendaRefreshing}
+                                onRefresh={handleManualRefresh}
+                                navigateTo={navigateTo}
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -126,7 +126,12 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
 
 
             {/* Row 1: Main KPIs - Recursos + Votos dos Deputados */}
-            <VotacaoKPIs municipioId={municipio.id} codigoIBGE={municipio.codigoIBGE} totalRecursos={municipio.totalRecursos || 0} />
+            <VotacaoKPIs
+                municipioId={municipio.id}
+                codigoIBGE={municipio.codigoIBGE}
+                totalRecursos={municipio.totalRecursos || 0}
+                selectedMandato={selectedMandato}
+            />
 
             {/* Row 2: Operational KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">

@@ -114,11 +114,129 @@
             background-size: contain;
         }
 
-        /* Prevent horizontal scroll on mobile */
+        /* Prevents horizontal scroll on mobile */
         html, body {
             position: relative;
             max-width: 100%;
             overflow-x: hidden;
+        }
+
+        /* FullCalendar Hub Theme */
+        .fc-theme-hub .fc {
+            --fc-border-color: #e2e8f0;
+            --fc-button-bg-color: #ffffff;
+            --fc-button-border-color: #e2e8f0;
+            --fc-button-hover-bg-color: #f8fafc;
+            --fc-button-hover-border-color: #cbd5e1;
+            --fc-button-active-bg-color: #008B8B;
+            --fc-button-active-border-color: #008B8B;
+            --fc-today-bg-color: rgba(0, 139, 139, 0.05);
+            font-family: inherit;
+        }
+
+        .dark .fc-theme-hub .fc {
+            --fc-border-color: #334155;
+            --fc-button-bg-color: #1e293b;
+            --fc-button-border-color: #334155;
+            --fc-button-hover-bg-color: #334155;
+            --fc-today-bg-color: rgba(0, 139, 139, 0.1);
+        }
+
+        .fc-theme-hub .fc-toolbar-title {
+            font-size: 1.1rem !important;
+            font-weight: 800 !important;
+            color: #002147;
+            text-transform: capitalize;
+        }
+
+        .dark .fc-theme-hub .fc-toolbar-title {
+            color: #f8fafc;
+        }
+
+        .fc-theme-hub .fc-button {
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.025em !important;
+            font-size: 0.65rem !important;
+            padding: 0.4rem 0.8rem !important;
+            border-radius: 0.75rem !important;
+            background: white !important;
+            color: #64748b !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+
+        .dark .fc-theme-hub .fc-button {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #94a3b8 !important;
+        }
+
+        .fc-theme-hub .fc-button-primary:not(:disabled).fc-button-active {
+            background-color: #008B8B !important;
+            border-color: #008B8B !important;
+            color: white !important;
+        }
+
+        .fc-theme-hub .fc-col-header-cell-cushion {
+            font-weight: 800 !important;
+            font-size: 0.65rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.1em !important;
+            color: #94a3b8;
+            padding: 12px 0 !important;
+        }
+
+        .fc-theme-hub .fc-daygrid-day-number {
+            font-weight: 800 !important;
+            font-size: 0.7rem !important;
+            color: #64748b;
+            padding: 8px !important;
+        }
+
+        .fc-theme-hub .fc-event {
+            border-radius: 6px !important;
+            border: none !important;
+            padding: 1px 4px !important;
+            font-weight: 700 !important;
+            font-size: 0.65rem !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .fc-theme-hub .fc-day-today {
+            background-color: var(--fc-today-bg-color) !important;
+        }
+
+        .fc-theme-hub .fc-day-today .fc-daygrid-day-number {
+            background-color: #008B8B;
+            color: white !important;
+            border-radius: 8px;
+            margin: 4px;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 !important;
+        }
+
+        .fc-theme-hub .fc-list-day-cushion {
+            background-color: #f8fafc !important;
+        }
+        .dark .fc-theme-hub .fc-list-day-cushion {
+            background-color: #0f172a !important;
+        }
+
+        /* Responsive Mobile Tweak */
+        @media (max-width: 768px) {
+            .fc-toolbar {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .fc-toolbar-chunk {
+                display: flex;
+                justify-content: center;
+                width: 100%;
+            }
         }
     </style>
 

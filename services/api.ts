@@ -143,6 +143,42 @@ export const getAssessores = async (): Promise<Assessor[]> => {
     return [...mockAssessores, ...dbAssessores];
 };
 
+// --- Helper para Privacidade ---
+const applyPrivacy = (event: any): EventoAgenda => {
+    const rawTitle = event.titulo || event.summary || event.title || 'Sem título';
+    const rawDesc = event.descricao || event.description || '';
+    const rawLocal = event.local || event.location || 'Não informado';
+
+    // Heurística de privacidade reforçada (case-insensitive)
+    const textRes = (rawTitle + ' ' + rawDesc).toLowerCase();
+    const isPrivate = event.privacidade === 'Particular' ||
+        event.visibility === 'private' ||
+        event.visibility === 'confidential' ||
+        textRes.includes('privado') ||
+        textRes.includes('particular');
+
+    // Remove campos brutos que podem causar bypass na UI
+    const { summary, description, location, visibility, title, ...cleanEvent } = event;
+
+    if (isPrivate) {
+        return {
+            ...cleanEvent,
+            titulo: '🔒 Reservado',
+            local: 'Local Reservado',
+            descricao: undefined,
+            privacidade: 'Particular'
+        } as EventoAgenda;
+    }
+
+    return {
+        ...cleanEvent,
+        titulo: rawTitle,
+        local: rawLocal,
+        descricao: rawDesc,
+        privacidade: 'Público'
+    } as EventoAgenda;
+};
+
 // --- Agenda ---
 export const getAgendaEventos = async (): Promise<EventoAgenda[]> => {
     const { data, error } = await supabase
@@ -153,7 +189,15 @@ export const getAgendaEventos = async (): Promise<EventoAgenda[]> => {
         console.error('Erro ao buscar eventos da agenda:', error);
         return [];
     }
-    return data as EventoAgenda[];
+
+    // Normalização e aplicação de privacidade
+    return (data || []).map(e => {
+        const mapped = {
+            ...e,
+            data: e.data ? e.data.split('T')[0] : ''
+        };
+        return applyPrivacy(mapped);
+    });
 };
 
 export const createEvento = async (evento: Omit<EventoAgenda, 'id'>) => {
@@ -167,7 +211,10 @@ export const createEvento = async (evento: Omit<EventoAgenda, 'id'>) => {
         console.error('Erro ao criar evento:', error);
         throw error;
     }
-    return data as EventoAgenda;
+    return {
+        ...data,
+        data: data.data ? data.data.split('T')[0] : ''
+    } as EventoAgenda;
 };
 
 export const getSolicitacoesAgenda = async (): Promise<SolicitacaoAgenda[]> => {
@@ -413,7 +460,49 @@ export const getGoogleEvents = async (): Promise<EventoAgenda[]> => {
             throw error;
         }
 
-        return data as EventoAgenda[];
+        const rawItems = Array.isArray(data) ? data : (data as any)?.items || [];
+
+        return rawItems.map((e: any) => {
+            // Parsing robusto e sensível ao fuso horário local
+            let dataIso = '';
+            let hora = '';
+
+            // Prioriza o objeto estruturado 'start' vindo da nova versão da Edge Function (v6+)
+            const startNode = e.start;
+
+            if (startNode?.dateTime) {
+                // Evento com horário (ISO String UTC)
+                const dateObj = new Date(startNode.dateTime);
+                if (!isNaN(dateObj.getTime())) {
+                    // Convertemos para os componentes locais do navegador do usuário (Brasília -03:00)
+                    dataIso = dateObj.getFullYear() + '-' +
+                        String(dateObj.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(dateObj.getDate()).padStart(2, '0');
+
+                    hora = String(dateObj.getHours()).padStart(2, '0') + ':' +
+                        String(dateObj.getMinutes()).padStart(2, '0');
+                }
+            } else if (startNode?.date) {
+                // Evento de dia inteiro
+                dataIso = startNode.date;
+                hora = 'Dia Inteiro';
+            } else {
+                // Fallback para campos legados ou outros formatos
+                const fallbackStart = e.data || '';
+                dataIso = typeof fallbackStart === 'string' ? fallbackStart.split('T')[0] : '';
+                hora = e.hora || 'Dia Inteiro';
+            }
+
+            const baseEvent = {
+                ...e,
+                id: e.id || Math.random().toString(36).substr(2, 9),
+                data: dataIso,
+                hora: hora,
+                origem: 'Google Calendar'
+            };
+
+            return applyPrivacy(baseEvent);
+        });
     } catch (err) {
         console.error('Erro na chamada da agenda Google:', err);
         return [];

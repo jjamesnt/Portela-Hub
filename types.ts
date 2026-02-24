@@ -122,6 +122,7 @@ export interface EventoAgenda {
 
     local: string;
     descricao?: string;
+    privacidade?: 'Público' | 'Particular';
 }
 
 export interface Recurso {

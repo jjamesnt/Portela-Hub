@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
             <aside
                 className={`
                     fixed md:relative 
-                    inset-y-0 left-0 z-50 
+                    inset-y-0 left-0 z-[1050] 
                     w-64 bg-navy-dark text-white flex flex-col shrink-0 
                     transition-transform duration-300 ease-in-out
                     ${isSidebarOpen ? 'translate-x-0 shadow-2xl md:shadow-none' : '-translate-x-full md:translate-x-0'}
