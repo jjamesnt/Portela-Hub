@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { createEvento } from '../services/api';
+import { createEvento, updateEvento, deleteEvento } from '../services/api';
+import { EventoAgenda } from '../types';
 
 interface AgendaModalProps {
     isOpen: boolean;
     initialDate?: string;
+    eventToEdit?: EventoAgenda;
     onClose: () => void;
     onSuccess: () => void;
 }
 
-const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, onClose, onSuccess }) => {
+const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToEdit, onClose, onSuccess }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -25,12 +27,31 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, onClose,
 
     useEffect(() => {
         if (isOpen) {
-            setFormData(prev => ({
-                ...prev,
-                data: initialDate || new Date().toISOString().split('T')[0]
-            }));
+            if (eventToEdit) {
+                setFormData({
+                    titulo: eventToEdit.titulo,
+                    data: eventToEdit.data,
+                    hora: eventToEdit.hora || '',
+                    tipo: eventToEdit.tipo || 'Reunião',
+                    origem: eventToEdit.origem || 'Alê Portela',
+                    privacidade: eventToEdit.privacidade || 'Público',
+                    local: eventToEdit.local || '',
+                    descricao: eventToEdit.descricao || ''
+                });
+            } else {
+                setFormData({
+                    titulo: '',
+                    data: initialDate || new Date().toISOString().split('T')[0],
+                    hora: '',
+                    tipo: 'Reunião',
+                    origem: 'Alê Portela',
+                    privacidade: 'Público',
+                    local: '',
+                    descricao: ''
+                });
+            }
         }
-    }, [isOpen, initialDate]);
+    }, [isOpen, initialDate, eventToEdit]);
 
     if (!isOpen) return null;
 
@@ -45,7 +66,7 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, onClose,
         setError(null);
 
         try {
-            await createEvento({
+            const payload = {
                 titulo: formData.titulo,
                 data: formData.data,
                 hora: formData.hora,
@@ -54,7 +75,13 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, onClose,
                 privacidade: formData.privacidade as any,
                 local: formData.local,
                 descricao: formData.descricao
-            });
+            };
+
+            if (eventToEdit?.id) {
+                await updateEvento(eventToEdit.id, payload);
+            } else {
+                await createEvento(payload);
+            }
             onSuccess();
             onClose();
             setFormData({
@@ -74,13 +101,28 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, onClose,
         }
     };
 
+    const handleDelete = async () => {
+        if (!eventToEdit?.id || !window.confirm('Tem certeza que deseja excluir este evento?')) return;
+        
+        setIsSaving(true);
+        try {
+            await deleteEvento(eventToEdit.id);
+            onSuccess();
+            onClose();
+        } catch (err: any) {
+            setError(err.message || 'Erro ao excluir evento');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10002] flex items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200 border border-white/20">
                 <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
                     <div>
-                        <h3 className="font-black text-xl text-navy-dark dark:text-white">Novo Evento</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Adicionar à agenda oficial</p>
+                        <h3 className="font-black text-xl text-navy-dark dark:text-white">{eventToEdit ? 'Editar Evento' : 'Novo Evento'}</h3>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{eventToEdit ? 'Atualizar agenda oficial' : 'Adicionar à agenda oficial'}</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                         <span className="material-symbols-outlined">close</span>
@@ -167,36 +209,47 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, onClose,
 
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Agenda de Origem *</label>
-                        <div className="flex gap-4">
-                            <label className={`flex-1 flex items-center gap-3 p-3 border rounded-2xl cursor-pointer transition-all ${formData.origem === 'Alê Portela' ? 'bg-turquoise/10 border-turquoise shadow-sm' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                                <div className={`size-4 rounded-full border flex items-center justify-center ${formData.origem === 'Alê Portela' ? 'border-turquoise bg-turquoise' : 'border-slate-300'}`}>
-                                    {formData.origem === 'Alê Portela' && <div className="size-1.5 bg-white rounded-full"></div>}
-                                </div>
-                                <input
-                                    type="radio"
-                                    name="origem"
-                                    value="Alê Portela"
-                                    checked={formData.origem === 'Alê Portela'}
-                                    onChange={handleInputChange}
-                                    className="hidden"
-                                />
-                                <span className={`text-sm font-black ${formData.origem === 'Alê Portela' ? 'text-turquoise' : 'text-slate-500'}`}>Alê</span>
-                            </label>
-
-                            <label className={`flex-1 flex items-center gap-3 p-3 border rounded-2xl cursor-pointer transition-all ${formData.origem === 'Lincoln Portela' ? 'bg-blue-600/10 border-blue-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                                <div className={`size-4 rounded-full border flex items-center justify-center ${formData.origem === 'Lincoln Portela' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'}`}>
-                                    {formData.origem === 'Lincoln Portela' && <div className="size-1.5 bg-white rounded-full"></div>}
-                                </div>
-                                <input
-                                    type="radio"
-                                    name="origem"
-                                    value="Lincoln Portela"
-                                    checked={formData.origem === 'Lincoln Portela'}
-                                    onChange={handleInputChange}
-                                    className="hidden"
-                                />
-                                <span className={`text-sm font-black ${formData.origem === 'Lincoln Portela' ? 'text-blue-600' : 'text-slate-500'}`}>Lincoln</span>
-                            </label>
+                        <div className="flex flex-wrap gap-2 p-1 bg-slate-100/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800">
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, origem: 'Todos' }))}
+                                className={`flex-1 min-w-[60px] py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${formData.origem === 'Todos'
+                                    ? 'bg-navy-dark text-white shadow-md'
+                                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                Todos
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, origem: 'Lincoln Portela' }))}
+                                className={`flex-1 min-w-[70px] py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${formData.origem === 'Lincoln Portela'
+                                    ? 'bg-[#8db641] text-white shadow-md'
+                                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                Lincoln
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, origem: 'Alê Portela' }))}
+                                className={`flex-1 min-w-[60px] py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${formData.origem === 'Alê Portela'
+                                    ? 'bg-turquoise text-white shadow-md'
+                                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                Alê
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, origem: 'Marilda Portela' }))}
+                                className={`flex-1 min-w-[70px] py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${formData.origem === 'Marilda Portela'
+                                    ? 'bg-orange-500 text-white shadow-md'
+                                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                Marilda
+                            </button>
                         </div>
                     </div>
 
@@ -219,26 +272,40 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, onClose,
                         </div>
                     )}
 
-                    <div className="pt-4 flex gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 px-4 py-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-xs font-black hover:bg-slate-200 dark:hover:bg-slate-600 transition-all uppercase tracking-widest"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isSaving}
-                            className="flex-1 px-4 py-4 bg-navy-dark dark:bg-turquoise text-white rounded-2xl text-xs font-black hover:brightness-110 shadow-lg transition-all disabled:opacity-70 flex justify-center items-center gap-2 uppercase tracking-widest"
-                        >
-                            {isSaving ? (
-                                <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
-                            ) : (
-                                <span className="material-symbols-outlined text-[20px]">check</span>
-                            )}
-                            Salvar Evento
-                        </button>
+                    <div className="pt-4 flex flex-col gap-3">
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="flex-1 px-4 py-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-xs font-black hover:bg-slate-200 dark:hover:bg-slate-600 transition-all uppercase tracking-widest"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                className="flex-1 px-4 py-4 bg-navy-dark dark:bg-turquoise text-white rounded-2xl text-xs font-black hover:brightness-110 shadow-lg transition-all disabled:opacity-70 flex justify-center items-center gap-2 uppercase tracking-widest"
+                            >
+                                {isSaving ? (
+                                    <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+                                ) : (
+                                    <span className="material-symbols-outlined text-[20px]">check</span>
+                                )}
+                                {eventToEdit ? 'Salvar Alterações' : 'Salvar Evento'}
+                            </button>
+                        </div>
+                        
+                        {eventToEdit && (
+                            <button
+                                type="button"
+                                onClick={handleDelete}
+                                disabled={isSaving}
+                                className="w-full px-4 py-3 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
+                            >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                                Excluir Compromisso
+                            </button>
+                        )}
                     </div>
                 </form>
             </div>

@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
-import { getMunicipios, getLiderancas } from '../services/api';
+import { getMunicipios, getLiderancas, deleteLideranca, upsertLideranca } from '../services/api';
 import { Lideranca, Municipio } from '../types';
 import Loader from '../components/Loader';
 import ImageUpload from '../components/ImageUpload';
+import ErrorModal from '../components/ErrorModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface LiderancasPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
@@ -26,6 +28,10 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingLideranca, setEditingLideranca] = useState<Partial<Lideranca>>({});
+    const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<Lideranca | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [errorDetails, setErrorDetails] = useState<{ title: string; message: string; tech?: string } | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -80,15 +86,23 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
         setLiderancas(prev => prev.map(l => l.id === id ? { ...l, avatarUrl: newImage } : l));
     };
 
-    const handleSaveLideranca = () => {
-        if (editingLideranca.id) {
-            setLiderancas(prev => prev.map(l => l.id === editingLideranca.id ? { ...l, ...editingLideranca } as Lideranca : l));
-        } else {
-            const newId = Math.random().toString(36).substr(2, 9);
-            const newLideranca = {
+    const handleSaveLideranca = async () => {
+        // Validação de Telefone
+        const fone = (editingLideranca.contato || '').replace(/\D/g, '');
+        if (fone.length !== 11) {
+            setErrorDetails({
+                title: "Telefone Inválido",
+                message: "O telefone deve seguir o padrão (99) 99999-9999 com 11 dígitos (incluindo DDD).",
+                tech: `Pattern mismatch: Expected 11 digits, got ${fone.length}`
+            });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const liderancaToSave = {
                 ...editingLideranca,
-                id: newId,
-                status: 'Ativo',
+                status: editingLideranca.status || 'Ativo',
                 avatarUrl: editingLideranca.avatarUrl || 'https://via.placeholder.com/150',
                 endereco: editingLideranca.endereco || {
                     logradouro: '',
@@ -98,11 +112,41 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                     uf: '',
                     cep: ''
                 }
-            } as Lideranca;
-            setLiderancas(prev => [...prev, newLideranca]);
+            } as Partial<Lideranca>;
+
+            const savedLideranca = await upsertLideranca(liderancaToSave);
+
+            if (editingLideranca.id) {
+                setLiderancas(prev => prev.map(l => l.id === editingLideranca.id ? savedLideranca : l));
+            } else {
+                setLiderancas(prev => [...prev, savedLideranca]);
+            }
+
+            setIsModalOpen(false);
+            setEditingLideranca({});
+        } catch (error) {
+            console.error("Erro ao salvar liderança:", error);
+        } finally {
+            setIsSaving(false);
         }
-        setIsModalOpen(false);
-        setEditingLideranca({});
+    };
+
+    const handleDeleteClick = (lideranca: Lideranca) => {
+        setItemToDelete(lideranca);
+        setIsConfirmDeleteOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!itemToDelete) return;
+        try {
+            await deleteLideranca(itemToDelete.id);
+            setLiderancas(prev => prev.filter(l => l.id !== itemToDelete.id));
+            setIsConfirmDeleteOpen(false);
+            setItemToDelete(null);
+        } catch (error) {
+            console.error("Erro ao deletar liderança:", error);
+            setIsConfirmDeleteOpen(false);
+        }
     };
 
     const updateEndereco = (field: string, value: string) => {
@@ -251,9 +295,16 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                         <div key={lideranca.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 md:p-5 hover:shadow-md transition-all group relative">
                             <button
                                 onClick={() => { setEditingLideranca(lideranca); setIsModalOpen(true); }}
-                                className="absolute top-3 right-3 md:top-4 md:right-4 text-slate-300 hover:text-turquoise transition-colors"
+                                className="absolute top-3 right-10 md:top-4 md:right-12 text-slate-300 hover:text-turquoise transition-colors"
                             >
                                 <span className="material-symbols-outlined text-sm md:text-xl">edit</span>
+                            </button>
+
+                            <button
+                                onClick={() => handleDeleteClick(lideranca)}
+                                className="absolute top-3 right-3 md:top-4 md:right-4 text-slate-300 hover:text-rose-500 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-sm md:text-xl">delete</span>
                             </button>
 
                             <div className="flex items-center gap-3 md:gap-4 mb-3 md:mb-4">
@@ -382,8 +433,15 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                                         <input
                                             type="text"
                                             value={editingLideranca.contato || ''}
-                                            onChange={e => setEditingLideranca({ ...editingLideranca, contato: e.target.value })}
+                                            onChange={e => {
+                                                let v = e.target.value.replace(/\D/g, '');
+                                                if (v.length > 11) v = v.slice(0, 11);
+                                                if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+                                                if (v.length > 9) v = `${v.slice(0, 10)}-${v.slice(10)}`;
+                                                setEditingLideranca({ ...editingLideranca, contato: v });
+                                            }}
                                             className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            placeholder="(99) 99999-9999"
                                         />
                                     </div>
                                     <div>
@@ -485,12 +543,40 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                         </div>
 
                         <div className="flex justify-end gap-3 mt-6 border-t border-slate-100 dark:border-slate-700 pt-6">
-                            <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
-                            <button onClick={handleSaveLideranca} className="px-6 py-2.5 text-sm font-bold bg-turquoise text-white rounded-xl hover:brightness-110 shadow-lg shadow-turquoise/20 transition-all active:scale-95">Salvar Alterações</button>
+                            <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors" disabled={isSaving}>Cancelar</button>
+                            <button 
+                                onClick={handleSaveLideranca} 
+                                disabled={isSaving}
+                                className="px-6 py-2.5 text-sm font-bold bg-turquoise text-white rounded-xl hover:brightness-110 shadow-lg shadow-turquoise/20 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-70"
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <div className="size-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                        Salvando...
+                                    </>
+                                ) : 'Salvar Alterações'}
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
+
+            <ErrorModal 
+                isOpen={!!errorDetails}
+                onClose={() => setErrorDetails(null)}
+                title={errorDetails?.title || ''}
+                message={errorDetails?.message || ''}
+                technicalDetails={errorDetails?.tech}
+            />
+
+            <ConfirmModal
+                isOpen={isConfirmDeleteOpen}
+                onClose={() => setIsConfirmDeleteOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Excluir Liderança"
+                message={`Tem certeza que deseja remover a liderança ${itemToDelete?.nome}? Esta ação removerá o registro permanentemente.`}
+                confirmText="Excluir"
+            />
         </div>
     );
 };

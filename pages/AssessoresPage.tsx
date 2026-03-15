@@ -3,7 +3,9 @@ import { useAppContext } from '../hooks/useAppContext';
 import { Assessor } from '../types';
 import Loader from '../components/Loader';
 import ImageUpload from '../components/ImageUpload';
-import { MOCK_ASSESSORES } from '../constants/mocks';
+import { getAssessores, upsertAssessor, deleteAssessor } from '../services/api';
+import ConfirmModal from '../components/ConfirmModal';
+import ErrorModal from '../components/ErrorModal';
 
 interface AssessoresPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
@@ -14,6 +16,10 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAssessor, setEditingAssessor] = useState<Partial<Assessor>>({});
+    const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<Assessor | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [errorDetails, setErrorDetails] = useState<{ title: string; message: string; tech?: string } | null>(null);
 
     // Filtros
     const [busca, setBusca] = useState('');
@@ -21,11 +27,18 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
     const [filtroCargo, setFiltroCargo] = useState('Todos');
 
     useEffect(() => {
-        // Simular carregamento da API com dados centralizados
-        setTimeout(() => {
-            setAssessores(MOCK_ASSESSORES);
-            setIsLoading(false);
-        }, 600);
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                const data = await getAssessores();
+                setAssessores(data);
+                setIsLoading(false);
+            } catch (err) {
+                console.error("Erro ao carregar assessores", err);
+                setIsLoading(false);
+            }
+        };
+        fetchData();
     }, []);
 
     const { selectedMandato } = useAppContext();
@@ -49,21 +62,27 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
         setAssessores(prev => prev.map(a => a.id === id ? { ...a, avatarUrl: newImage } : a));
     };
 
-    const handleSaveAssessor = () => {
-        if (editingAssessor.id) {
-            // Edit existing
-            setAssessores(prev => prev.map(a => a.id === editingAssessor.id ? { ...a, ...editingAssessor } as Assessor : a));
-        } else {
-            // Create new
-            const newId = Math.random().toString(36).substr(2, 9);
-            const newAssessor = {
+    const handleSaveAssessor = async () => {
+        // Validação de Telefone
+        const fone = (editingAssessor.telefone || '').replace(/\D/g, '');
+        if (fone.length !== 11) {
+            setErrorDetails({
+                title: "Telefone Inválido",
+                message: "O telefone deve seguir o padrão (99) 99999-9999 com 11 dígitos (incluindo DDD).",
+                tech: `Pattern mismatch: Expected 11 digits, got ${fone.length}`
+            });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const assessorToSave = {
                 ...editingAssessor,
-                id: newId,
                 cargo: editingAssessor.cargo || 'Assessor Regional',
                 origem: editingAssessor.origem || 'Alê Portela',
                 avatarUrl: editingAssessor.avatarUrl || 'https://via.placeholder.com/150',
-                municipiosCobertos: 0,
-                liderancasGerenciadas: 0,
+                municipiosCobertos: editingAssessor.municipiosCobertos || 0,
+                liderancasGerenciadas: editingAssessor.liderancasGerenciadas || 0,
                 endereco: editingAssessor.endereco || {
                     logradouro: '',
                     numero: '',
@@ -72,11 +91,42 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                     uf: '',
                     cep: ''
                 }
-            } as Assessor;
-            setAssessores(prev => [...prev, newAssessor]);
+            } as Partial<Assessor>;
+
+            const savedAssessor = await upsertAssessor(assessorToSave);
+            
+            if (editingAssessor.id) {
+                setAssessores(prev => prev.map(a => a.id === editingAssessor.id ? savedAssessor : a));
+            } else {
+                setAssessores(prev => [...prev, savedAssessor]);
+            }
+            
+            setIsModalOpen(false);
+            setEditingAssessor({});
+        } catch (error) {
+            console.error("Erro ao salvar assessor:", error);
+        } finally {
+            setIsSaving(false);
         }
-        setIsModalOpen(false);
-        setEditingAssessor({});
+    };
+
+    const handleDeleteClick = (assessor: Assessor) => {
+        setItemToDelete(assessor);
+        setIsConfirmDeleteOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!itemToDelete) return;
+        try {
+            await deleteAssessor(itemToDelete.id);
+            setAssessores(prev => prev.filter(a => a.id !== itemToDelete.id));
+            setIsConfirmDeleteOpen(false);
+            setItemToDelete(null);
+        } catch (error) {
+            console.error("Erro ao deletar assessor:", error);
+            // Em um cenário real, poderíamos disparar um toast de erro aqui
+            setIsConfirmDeleteOpen(false);
+        }
     };
 
     const updateEndereco = (field: string, value: string) => {
@@ -87,6 +137,39 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                 [field]: value
             }
         }));
+    };
+
+    const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 8) value = value.slice(0, 8);
+        if (value.length > 5) value = `${value.slice(0, 5)}-${value.slice(5)}`;
+
+        updateEndereco('cep', value);
+
+        if (value.replace(/\D/g, '').length === 8) {
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${value.replace(/\D/g, '')}/json/`);
+                const data = await response.json();
+                if (!data.erro) {
+                    setEditingAssessor(prev => {
+                        const currentEndereco = prev.endereco || { numero: '', logradouro: '', bairro: '', cidade: '', uf: '', cep: value };
+                        return {
+                            ...prev,
+                            endereco: {
+                                ...currentEndereco,
+                                logradouro: data.logradouro || currentEndereco.logradouro,
+                                bairro: data.bairro || currentEndereco.bairro,
+                                cidade: data.localidade || currentEndereco.cidade,
+                                uf: data.uf || currentEndereco.uf,
+                                cep: value
+                            }
+                        };
+                    });
+                }
+            } catch (error) {
+                console.error("Erro ao buscar CEP:", error);
+            }
+        }
     };
 
     const filtersActive = busca !== '' || filtroRegiao !== 'Todos' || filtroCargo !== 'Todos';
@@ -208,9 +291,16 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                         <div key={assessor.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 md:p-5 hover:shadow-md transition-all group relative overflow-hidden">
                             <button
                                 onClick={() => { setEditingAssessor(assessor); setIsModalOpen(true); }}
-                                className="absolute top-2 right-2 md:top-4 md:right-4 text-slate-300 hover:text-turquoise transition-colors z-10"
+                                className="absolute top-2 right-10 md:top-4 md:right-12 text-slate-300 hover:text-turquoise transition-colors z-10"
                             >
                                 <span className="material-symbols-outlined text-sm md:text-xl">edit</span>
+                            </button>
+
+                            <button
+                                onClick={() => handleDeleteClick(assessor)}
+                                className="absolute top-2 right-3 md:top-4 md:right-4 text-slate-300 hover:text-rose-500 transition-colors z-10"
+                            >
+                                <span className="material-symbols-outlined text-sm md:text-xl">delete</span>
                             </button>
 
                             <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4 mb-3 md:mb-4 text-center md:text-left">
@@ -262,6 +352,14 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                             {/* Coluna 1: Dados Pessoais e Profissionais */}
                             <div className="space-y-4">
                                 <h4 className="text-sm font-bold text-turquoise uppercase tracking-wider mb-2">Dados Profissionais</h4>
+
+                                <div className="flex justify-center mb-6">
+                                    <ImageUpload
+                                        currentImage={editingAssessor.avatarUrl}
+                                        onImageSelected={(base64) => setEditingAssessor(prev => ({ ...prev, avatarUrl: base64 }))}
+                                    />
+                                </div>
+
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase">Nome Completo</label>
                                     <input
@@ -275,12 +373,13 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                     <div>
                                         <label className="text-xs font-bold text-slate-500 uppercase">Cargo</label>
                                         <select
-                                            value={editingAssessor.cargo || 'Assessor Regional'}
+                                            value={editingAssessor.cargo || 'Assessor'}
                                             onChange={e => setEditingAssessor({ ...editingAssessor, cargo: e.target.value as any })}
                                             className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
                                         >
-                                            <option>Coordenador Político</option>
+                                            <option>Assessor</option>
                                             <option>Assessor Regional</option>
+                                            <option>Coordenador Político</option>
                                             <option>Chefe de Gabinete</option>
                                         </select>
                                     </div>
@@ -321,8 +420,15 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                     <input
                                         type="tel"
                                         value={editingAssessor.telefone || ''}
-                                        onChange={e => setEditingAssessor({ ...editingAssessor, telefone: e.target.value })}
+                                        onChange={e => {
+                                            let v = e.target.value.replace(/\D/g, '');
+                                            if (v.length > 11) v = v.slice(0, 11);
+                                            if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+                                            if (v.length > 9) v = `${v.slice(0, 10)}-${v.slice(10)}`;
+                                            setEditingAssessor({ ...editingAssessor, telefone: v });
+                                        }}
                                         className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                        placeholder="(99) 99999-9999"
                                     />
                                 </div>
                             </div>
@@ -336,8 +442,10 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                         <input
                                             type="text"
                                             value={editingAssessor.endereco?.cep || ''}
-                                            onChange={e => updateEndereco('cep', e.target.value)}
+                                            onChange={handleCepChange}
                                             className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            placeholder="00000-000"
+                                            maxLength={9}
                                         />
                                     </div>
                                     <div className="col-span-2">
@@ -394,12 +502,40 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                         </div>
 
                         <div className="flex justify-end gap-3 mt-6 border-t border-slate-100 dark:border-slate-700 pt-6">
-                            <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
-                            <button onClick={handleSaveAssessor} className="px-6 py-2.5 text-sm font-bold bg-turquoise text-white rounded-xl hover:brightness-110 shadow-lg shadow-turquoise/20 transition-all active:scale-95">Salvar Assessor</button>
+                            <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors" disabled={isSaving}>Cancelar</button>
+                            <button 
+                                onClick={handleSaveAssessor} 
+                                disabled={isSaving}
+                                className="px-6 py-2.5 text-sm font-bold bg-turquoise text-white rounded-xl hover:brightness-110 shadow-lg shadow-turquoise/20 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <div className="size-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                        Salvando...
+                                    </>
+                                ) : 'Salvar Assessor'}
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={isConfirmDeleteOpen}
+                onClose={() => setIsConfirmDeleteOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Excluir Assessor"
+                message={`Tem certeza que deseja remover ${itemToDelete?.nome} da equipe? Esta ação não pode ser desfeita.`}
+                confirmText="Excluir"
+            />
+
+            <ErrorModal 
+                isOpen={!!errorDetails}
+                onClose={() => setErrorDetails(null)}
+                title={errorDetails?.title || ''}
+                message={errorDetails?.message || ''}
+                technicalDetails={errorDetails?.tech}
+            />
         </div>
     );
 };

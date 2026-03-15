@@ -19,6 +19,21 @@ export interface AppContextType {
     setSelectedMandato: (mandato: string) => void;
     isSidebarOpen: boolean;
     toggleSidebar: () => void;
+    user: any | null; // Supabase User
+    profile: Profile | null;
+    profileError: string | null;
+    isLoading: boolean;
+    signOut: () => Promise<void>;
+}
+
+export interface Profile {
+    id: string;
+    full_name: string;
+    phone: string;
+    email: string;
+    role: 'master' | 'admin' | 'user';
+    status: 'pending' | 'active' | 'blocked';
+    created_at: string;
 }
 
 export interface Municipio {
@@ -34,6 +49,18 @@ export interface Municipio {
     totalDemandas?: number;
     latitude?: number;
     longitude?: number;
+    // Campos Políticos e de Gestão
+    statusPrefeito?: 'Não' | 'Prefeitura Parceira' | 'Prefeitura Fechada';
+    idene?: boolean;
+    lincolnFechado?: boolean;
+    statusAtendimento?: 'Contemplado' | 'Não contemplado';
+    tipoAtendimento?: string;
+    principalDemanda?: string;
+    sugestaoSedese?: string;
+    observacao?: string;
+    assessorId?: string;
+    votacaoAle?: number;
+    votacaoLincoln?: number;
 }
 
 
@@ -118,7 +145,7 @@ export interface EventoAgenda {
     data: string; // YYYY-MM-DD
     hora: string; // HH:mm
     tipo: 'Reunião' | 'Visita Técnica' | 'Evento Público' | 'Sessão Plenária';
-    origem: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela' | 'Google Calendar';
+    origem: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela' | 'Google Calendar' | 'Justiça Eleitoral';
 
     local: string;
     descricao?: string;
@@ -172,4 +199,37 @@ export interface SolicitacaoAgenda {
     origem: string;
     municipio_id?: string;
     created_at?: string;
+}
+
+export interface NotificationLog {
+    id: string;
+    created_at: string;
+    event_id: string;
+    recipient_id: string | null;
+    recipient_type: 'assessor' | 'lideranca' | 'apoiador' | 'avulso';
+    recipient_name: string | null;
+    recipient_phone: string | null;
+    channel: 'whatsapp' | 'sms';
+    status: 'sent' | 'error' | 'pending';
+    error_message: string | null;
+    message_sid: string | null;
+    content: string;
+    agenda?: {
+        titulo: string;
+        data: string;
+        hora: string;
+        local: string;
+    };
+}
+
+export interface Apoiador {
+    id: string;
+    municipioId: string;
+    nome: string;
+    cargo: string;
+    telefone: string;
+    endereco: string;
+    email: string;
+    fotoUrl: string;
+    createdAt: string;
 }

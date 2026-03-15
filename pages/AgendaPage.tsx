@@ -6,16 +6,20 @@ import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import ptBrLocale from '@fullcalendar/core/locales/pt-br';
 import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents } from '../services/api';
+import { getElectoralEvents } from '../services/electoralCalendarService'; // Novo serviço
 import { EventoAgenda, SolicitacaoAgenda } from '../types';
 import Loader from '../components/Loader';
 import AgendaModal from '../components/AgendaModal';
 import AgendaSolicitacaoModal from '../components/AgendaSolicitacaoModal';
+import BroadcastModal from '../components/BroadcastModal';
+import BroadcastHistory from '../components/BroadcastHistory';
 
 interface AgendaPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
+    params?: { [key: string]: any };
 }
 
-const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
+const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
     const [eventos, setEventos] = useState<EventoAgenda[]>([]);
     const [solicitacoes, setSolicitacoes] = useState<SolicitacaoAgenda[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -25,6 +29,8 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
     const calendarRef = useRef<FullCalendar>(null);
 
@@ -36,7 +42,11 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                 getSolicitacoesAgenda(),
                 getGoogleEvents()
             ]);
-            setEventos([...eventosData, ...googleEventsData]);
+
+            // Integrar os eventos do Calendário Eleitoral 2026
+            const electoralEvents = getElectoralEvents();
+
+            setEventos([...eventosData, ...googleEventsData, ...electoralEvents]);
             setSolicitacoes(solicitacoesData);
             setError(null);
         } catch (err) {
@@ -46,9 +56,12 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
         }
     };
 
+
     useEffect(() => {
         fetchData();
     }, []);
+
+
 
     const tipoStyle = (tipo: string | undefined): string => {
         switch (tipo) {
@@ -77,15 +90,16 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                 title: isPrivate ? "🔒 Reservado" : e.titulo,
                 start: startTime,
                 allDay: !isTimeFormat,
-                backgroundColor: isPrivate ? '#64748b' : (e.origem === 'Google Calendar' ? tipoStyle('Google Calendar') : tipoStyle(e.tipo)),
+                backgroundColor: isPrivate ? '#64748b' : (e.origem === 'Google Calendar' ? tipoStyle('Google Calendar') : (e.origem === 'Justiça Eleitoral' ? '#f59e0b' : tipoStyle(e.tipo))),
                 borderColor: 'transparent',
-                className: isPrivate ? 'fc-event-private italic opacity-75' : '',
+                className: `${isPrivate ? 'fc-event-private italic opacity-75' : ''} cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md hover:brightness-110`,
                 extendedProps: {
                     ...e,
                     descricao: isPrivate ? undefined : e.descricao,
-                    local: isPrivate ? undefined : e.local,
+                    local: isPrivate ? undefined : (e.local || 'Local não informado'),
                     source: 'official'
                 }
+
             };
         });
 
@@ -96,16 +110,43 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                 title: `[REQ] ${s.titulo}`,
                 start: s.hora_inicio ? `${s.data}T${s.hora_inicio}` : s.data,
                 end: s.hora_fim ? `${s.data}T${s.hora_fim}` : undefined,
+                allDay: !s.hora_inicio,
                 backgroundColor: '#0ea5e9', // sky-500
                 borderColor: 'transparent',
+                className: 'cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md hover:brightness-110',
                 extendedProps: {
                     ...s,
                     source: 'solicitation'
                 }
             }));
 
+
         return [...officialEvents, ...approvedSol];
     }, [eventos, solicitacoes]);
+
+    // Efeito para tratar abertura automática de detalhes via Deep Link (params.eventId)
+    useEffect(() => {
+        if (!isLoading && params?.eventId && calendarEvents.length > 0) {
+            const event = calendarEvents.find(e => e.id === params.eventId);
+            if (event) {
+                // Simular o objeto de evento do FullCalendar esperado pelo modal
+                setSelectedEvent({
+                    id: event.id,
+                    title: event.title,
+                    start: new Date(event.start),
+                    allDay: (event as any).allDay,
+                    extendedProps: event.extendedProps
+                });
+                setIsDetailsModalOpen(true);
+
+                // Mover o calendário para a data do evento se o ref estiver pronto
+                if (calendarRef.current) {
+                    calendarRef.current.getApi().gotoDate(event.start);
+                }
+            }
+        }
+    }, [isLoading, params?.eventId, calendarEvents]);
+
 
     const handleDateClick = (arg: any) => {
         setSelectedDate(arg.dateStr);
@@ -120,11 +161,35 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
     return (
         <div className="p-4 md:p-8 pb-24 md:pb-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 md:mb-8 text-left">
+                <style>{`
+                    .fc-event {
+                        cursor: pointer !important;
+                        transition: all 0.2s ease-in-out !important;
+                    }
+                    .fc-event:hover {
+                        transform: translateY(-2px) scale(1.02) !important;
+                        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+                        filter: brightness(1.1) !important;
+                        z-index: 50 !important;
+                    }
+                    .fc-daygrid-event {
+                        border-radius: 6px !important;
+                        padding: 2px 4px !important;
+                    }
+                `}</style>
                 <div>
+
                     <h2 className="text-2xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white">Agenda Hub</h2>
                     <p className="text-xs md:text-base text-slate-500 dark:text-slate-400">Sincronização completa com Google e Mandatos.</p>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
+                    <button
+                        onClick={() => setIsHistoryModalOpen(true)}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3 md:px-5 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs md:text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
+                    >
+                        <span className="material-symbols-outlined text-lg text-blue-500">history</span>
+                        Histórico SMS
+                    </button>
                     <button
                         onClick={() => setIsRequestModalOpen(true)}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3 md:px-5 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs md:text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
@@ -191,92 +256,142 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
             </div>
 
             {/* Modal de Detalhes Customizado */}
-            {isDetailsModalOpen && selectedEvent && (
-                <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-navy-dark/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-white/20">
-                        <div className={`h-24 p-6 flex items-end relative ${selectedEvent.extendedProps.privacidade === 'Particular' ? 'bg-gradient-to-r from-slate-400 to-slate-600' : 'bg-gradient-to-r from-turquoise to-emerald-400'}`}>
-                            <button
-                                onClick={() => setIsDetailsModalOpen(false)}
-                                className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
-                            >
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                            <span className="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest">
-                                {selectedEvent.extendedProps.privacidade === 'Particular' ? 'Privado' : (selectedEvent.extendedProps.tipo || 'Compromisso')}
-                            </span>
-                        </div>
-                        <div className="p-6 md:p-8 space-y-6">
-                            <div>
-                                <h3 className="text-xl font-black text-navy-dark dark:text-white leading-tight">
-                                    {selectedEvent.title}
-                                </h3>
-                                <div className="flex items-center gap-2 mt-2 text-slate-500 dark:text-slate-400">
-                                    <span className="material-symbols-outlined text-sm">schedule</span>
-                                    <span className="text-xs font-bold">
-                                        {selectedEvent.start.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                        {selectedEvent.allDay ? ' (Dia todo)' : ` às ${selectedEvent.start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {selectedEvent.extendedProps.privacidade === 'Particular' ? (
-                                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                                    <span className="material-symbols-outlined text-slate-400">lock</span>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 italic font-medium">
-                                        Compromisso particular. Os detalhes estão ocultos para sua privacidade.
-                                    </p>
-                                </div>
-                            ) : (
-                                <>
-                                    {selectedEvent.extendedProps.descricao && (
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Descrição</p>
-                                            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                                                {selectedEvent.extendedProps.descricao}
-                                            </p>
-                                        </div>
+            {
+                isDetailsModalOpen && selectedEvent && (
+                    <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-navy-dark/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-white/20">
+                            <div className={`h-24 p-6 flex items-end relative ${selectedEvent.extendedProps.privacidade === 'Particular' ? 'bg-gradient-to-r from-slate-400 to-slate-600' : 'bg-gradient-to-r from-turquoise to-emerald-400'}`}>
+                                <div className="absolute top-4 right-4 flex gap-2">
+                                    {selectedEvent.extendedProps.origem !== 'Google Calendar' && selectedEvent.extendedProps.origem !== 'Justiça Eleitoral' && (
+                                        <button
+                                            onClick={() => {
+                                                setIsDetailsModalOpen(false);
+                                                setIsEventModalOpen(true);
+                                            }}
+                                            className="text-white/80 hover:text-white transition-colors"
+                                            title="Editar Evento"
+                                        >
+                                            <span className="material-symbols-outlined">edit</span>
+                                        </button>
                                     )}
+                                    <button
+                                        onClick={() => setIsDetailsModalOpen(false)}
+                                        className="text-white/80 hover:text-white transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
+                                <span className="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest">
+                                    {selectedEvent.extendedProps.privacidade === 'Particular' ? 'Privado' : (selectedEvent.extendedProps.tipo || 'Compromisso')}
+                                </span>
+                            </div>
+                            <div className="p-6 md:p-8 space-y-6">
+                                <div>
+                                    <h3 className="text-xl font-black text-navy-dark dark:text-white leading-tight">
+                                        {selectedEvent.title}
+                                    </h3>
+                                    <div className="flex items-center gap-2 mt-2 text-slate-500 dark:text-slate-400">
+                                        <span className="material-symbols-outlined text-sm">schedule</span>
+                                        <span className="text-xs font-bold">
+                                            {selectedEvent.start.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                            {selectedEvent.allDay ? ' (Dia todo)' : ` às ${selectedEvent.start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
+                                        </span>
+                                    </div>
+                                </div>
 
-                                    <div className="flex flex-col gap-4">
-                                        {selectedEvent.extendedProps.local && (
-                                            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                                                <div className="size-8 rounded-full bg-turquoise/10 flex items-center justify-center">
-                                                    <span className="material-symbols-outlined text-turquoise text-lg">location_on</span>
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Local</p>
-                                                    <p className="text-xs font-bold text-navy-dark dark:text-white truncate">{selectedEvent.extendedProps.local}</p>
-                                                </div>
-                                                <button
-                                                    onClick={() => navigateTo('Municipios')}
-                                                    className="px-3 py-1.5 bg-turquoise text-white rounded-lg text-xs font-extrabold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20"
-                                                >
-                                                    Ver no Mapa
-                                                </button>
+                                {selectedEvent.extendedProps.privacidade === 'Particular' ? (
+                                    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                                        <span className="material-symbols-outlined text-slate-400">lock</span>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 italic font-medium">
+                                            Compromisso particular. Os detalhes estão ocultos para sua privacidade.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {selectedEvent.extendedProps.categoria && (
+                                            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 mb-4">
+                                                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                                                    {selectedEvent.extendedProps.categoria}
+                                                </span>
                                             </div>
                                         )}
-                                    </div>
-                                </>
-                            )}
+                                        {selectedEvent.extendedProps.descricao && (
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Descrição</p>
+                                                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                                    {selectedEvent.extendedProps.descricao}
+                                                </p>
+                                            </div>
+                                        )}
 
-                            <div className="pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase">Origem:</span>
-                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-600 dark:text-slate-300">
-                                        {selectedEvent.extendedProps.origem || 'Interno'}
-                                    </span>
+                                        <div className="flex flex-col gap-4">
+                                            {selectedEvent.extendedProps.local && (
+                                                <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                                    <div className="size-8 rounded-full bg-turquoise/10 flex items-center justify-center">
+                                                        <span className="material-symbols-outlined text-turquoise text-lg">location_on</span>
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Local</p>
+                                                        <p className="text-xs font-bold text-navy-dark dark:text-white truncate">{selectedEvent.extendedProps.local}</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => navigateTo('Municipios')}
+                                                        className="px-3 py-1.5 bg-turquoise text-white rounded-lg text-xs font-extrabold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20"
+                                                    >
+                                                        Ver no Mapa
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+
+                                <div className="pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase">Origem:</span>
+                                        <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                                            {selectedEvent.extendedProps.origem || 'Interno'}
+                                        </span>
+                                    </div>
+                                    {selectedEvent.extendedProps.origem === 'Justiça Eleitoral' && (
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest opacity-60">
+                                            Fonte: TSE Res. 23.738/2024
+                                        </div>
+                                    )}
+                                    <button
+
+                                        onClick={() => setIsDetailsModalOpen(false)}
+                                        className="text-xs font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest"
+                                    >
+                                        Fechar
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsDetailsModalOpen(false);
+                                            setIsBroadcastModalOpen(true);
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-turquoise/10 text-turquoise hover:bg-turquoise hover:text-white rounded-xl text-xs font-black transition-all uppercase tracking-widest"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">send</span>
+                                        Divulgar
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => setIsDetailsModalOpen(false)}
-                                    className="text-xs font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest"
-                                >
-                                    Fechar
-                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
+
+            {
+                selectedEvent && (
+                    <BroadcastModal
+                        isOpen={isBroadcastModalOpen}
+                        onClose={() => setIsBroadcastModalOpen(false)}
+                        event={selectedEvent.extendedProps}
+                    />
+                )
+            }
 
             {/* Histórico de Solicitações - RESTAURADO */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-8">
@@ -351,9 +466,21 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
             <AgendaModal
                 isOpen={isEventModalOpen}
                 initialDate={selectedDate || undefined}
+                eventToEdit={selectedEvent?.extendedProps.source === 'official' && selectedEvent.extendedProps.origem !== 'Google Calendar' ? {
+                    id: selectedEvent.id,
+                    titulo: selectedEvent.title,
+                    data: selectedEvent.extendedProps.data,
+                    hora: selectedEvent.extendedProps.hora,
+                    tipo: selectedEvent.extendedProps.tipo,
+                    origem: selectedEvent.extendedProps.origem,
+                    privacidade: selectedEvent.extendedProps.privacidade,
+                    local: selectedEvent.extendedProps.local,
+                    descricao: selectedEvent.extendedProps.descricao
+                } : undefined}
                 onClose={() => {
                     setIsEventModalOpen(false);
                     setSelectedDate(null);
+                    setSelectedEvent(null);
                 }}
                 onSuccess={fetchData}
             />
@@ -364,7 +491,12 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo }) => {
                 onSuccess={fetchData}
                 navigateTo={navigateTo}
             />
-        </div>
+
+            <BroadcastHistory
+                isOpen={isHistoryModalOpen}
+                onClose={() => setIsHistoryModalOpen(false)}
+            />
+        </div >
     );
 };
 

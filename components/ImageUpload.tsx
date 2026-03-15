@@ -18,8 +18,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ currentImage, onImageSelected
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800; // Redimensionar para no máximo 800px de largura
-                const MAX_HEIGHT = 800;
+                const MAX_WIDTH = 400; // Redimensionar para no máximo 400px de largura
+                const MAX_HEIGHT = 400;
                 let width = img.width;
                 let height = img.height;
 
@@ -40,7 +40,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ currentImage, onImageSelected
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
 
-                const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.8); // Qualidade 80%
+                const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.6); // Qualidade 60%
                 setPreview(optimizedBase64);
                 onImageSelected(optimizedBase64);
             };

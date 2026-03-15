@@ -5,12 +5,20 @@ interface VotacaoKPIsProps {
     codigoIBGE: string;
     totalRecursos: number;
     selectedMandato: string;
+    votacaoAle?: number;
+    votacaoLincoln?: number;
 }
 
-const VotacaoKPIs: React.FC<VotacaoKPIsProps> = ({ municipioId, codigoIBGE, totalRecursos, selectedMandato }) => {
-    const [votos, setVotos] = useState<{ l: number; a: number; m?: number } | null>(null);
+const VotacaoKPIs: React.FC<VotacaoKPIsProps> = ({ municipioId, codigoIBGE, totalRecursos, selectedMandato, votacaoAle, votacaoLincoln }) => {
+    const [votos, setVotos] = useState<{ l: number; a: number; m?: number } | null>(
+        (votacaoAle !== undefined || votacaoLincoln !== undefined) 
+        ? { a: votacaoAle || 0, l: votacaoLincoln || 0 } 
+        : null
+    );
 
     useEffect(() => {
+        if (votacaoAle !== undefined && votacaoLincoln !== undefined) return;
+        
         fetch('/data/votos_resumo.json')
             .then(r => r.json())
             .then(data => {

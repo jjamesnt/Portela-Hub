@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getAllDemandas, updateDemanda, createDemanda, getMunicipios } from '../services/api';
+import { getAllDemandas, updateDemanda, createDemanda, getMunicipios, deleteDemanda } from '../services/api';
 import Loader from '../components/Loader';
 import MandatoBadge from '../components/MandatoBadge';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface DemandaRow {
     id: string;
@@ -64,6 +65,8 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
     const [showNovaModal, setShowNovaModal] = useState(false);
     const [novaForm, setNovaForm] = useState({ municipio_id: '', titulo: '', descricao: '', tipo: 'Infraestrutura', status: 'Em Análise', prioridade: 'Média', origem: 'Alê Portela', prazo: '' });
     const [saving, setSaving] = useState(false);
+    const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<DemandaRow | null>(null);
 
     // Filtros
     const [filtroTexto, setFiltroTexto] = useState('');
@@ -164,6 +167,26 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
             setShowNovaModal(false);
             setNovaForm({ municipio_id: '', titulo: '', descricao: '', tipo: 'Infraestrutura', status: 'Em Análise', prioridade: 'Média', origem: 'Alê Portela', prazo: '' });
             await fetchData();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteClick = (demanda: DemandaRow) => {
+        setItemToDelete(demanda);
+        setIsConfirmDeleteOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!itemToDelete) return;
+        setSaving(true);
+        try {
+            await deleteDemanda(itemToDelete.id);
+            await fetchData();
+            setIsConfirmDeleteOpen(false);
+            setItemToDelete(null);
         } catch (err) {
             console.error(err);
         } finally {
@@ -400,6 +423,13 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
                                                     <span className="material-symbols-outlined text-turquoise text-[16px] md:text-base group-hover/btn:scale-110 transition-transform">edit</span>
                                                 </button>
                                                 <button
+                                                    onClick={() => handleDeleteClick(d)}
+                                                    className="size-7 md:size-8 rounded-lg bg-rose-50 hover:bg-rose-100 flex items-center justify-center transition-all group/btn-del"
+                                                    title="Excluir"
+                                                >
+                                                    <span className="material-symbols-outlined text-rose-500 text-[16px] md:text-base group-hover/btn-del:scale-110 transition-transform">delete</span>
+                                                </button>
+                                                <button
                                                     onClick={() => navigateTo('DemandaMunicipio', { municipioId: d.municipioId, municipioNome: d.municipio_nome })}
                                                     className="size-7 md:size-8 rounded-lg bg-slate-50 dark:bg-slate-700/50 flex items-center justify-center transition-all group/btn2"
                                                     title="Ver mais"
@@ -519,6 +549,17 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
                     </div>
                 </div>
             )}
+            {/* Modal Nova Demanda content... */}
+            {/* Modal Nova Demanda code block ends around line 521 */}
+            
+            <ConfirmModal
+                isOpen={isConfirmDeleteOpen}
+                onClose={() => setIsConfirmDeleteOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Excluir Demanda"
+                message={`Tem certeza que deseja remover a demanda "${itemToDelete?.titulo}"? Esta ação não pode ser desfeita.`}
+                confirmText="Excluir"
+            />
         </div>
     );
 };

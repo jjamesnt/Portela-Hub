@@ -4,6 +4,9 @@ import { AppContext } from '../context/AppContext';
 import KpiCard from '../components/KpiCard';
 import Loader from '../components/Loader';
 import { getMunicipios, getLiderancas, getAssessores, getAgendaEventos, getRecursosTotais, getDemandasTotais, getAllRecursos, getGoogleEvents } from '../services/api';
+import { getElectoralEvents } from '../services/electoralCalendarService';
+import ElectoralTimeline from '../components/ElectoralTimeline';
+
 import { Municipio, Lideranca, Assessor, EventoAgenda, Recurso } from '../types';
 import VotacaoEstadualKPIs from '../components/VotacaoEstadualKPIs';
 import { mockLiderancas as mockLider } from '../data/mockLiderancas';
@@ -302,25 +305,36 @@ const AgendaSummary: React.FC<{ events: EventoAgenda[], isRefreshing: boolean, o
                                                 </p>
                                             </div>
                                             {!isPrivate && (
-                                                <div className="flex items-center gap-1 mt-0.5 md:mt-1">
-                                                    <span className="material-symbols-outlined text-turquoise text-[12px] md:text-[14px]">location_on</span>
-                                                    <p className="text-[10px] md:text-xs text-slate-500 truncate">{event.local || 'Não informado'}</p>
+                                                <div className="flex flex-col gap-1 mt-0.5 md:mt-1">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-turquoise text-[12px] md:text-[14px]">location_on</span>
+                                                        <p className="text-[10px] md:text-xs text-slate-500 truncate">{event.local || 'Não informado'}</p>
+                                                    </div>
+                                                    {event.origem === 'Justiça Eleitoral' && event.descricao && (
+                                                        <p className="text-[9px] md:text-[10px] text-slate-400 mt-0.5 leading-tight italic line-clamp-2 bg-slate-50 dark:bg-slate-900/40 p-1.5 rounded-md border-l-2 border-amber-500/50">
+                                                            {event.descricao}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             )}
+
                                             <div className="flex gap-1.5 mt-1.5">
                                                 {event.origem === 'Lincoln Portela' && (
                                                     <span className="px-1.5 py-0.5 bg-[#8db641]/10 text-[#8db641] text-[8px] md:text-[9px] font-black rounded border border-[#8db641]/20 uppercase">
                                                         Lincoln
                                                     </span>
                                                 )}
-                                                {(event.origem === 'Alê Portela' || !event.origem || event.origem === 'Google Calendar') && (
+                                                {(event.origem === 'Alê Portela' || !event.origem || event.origem === 'Google Calendar' || event.origem === 'Justiça Eleitoral') && (
                                                     <span className={`px-1.5 py-0.5 text-[8px] md:text-[9px] font-black rounded border uppercase ${event.origem === 'Google Calendar'
-                                                            ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                        ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                        : event.origem === 'Justiça Eleitoral'
+                                                            ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
                                                             : 'bg-turquoise/10 text-turquoise border-turquoise/20'
                                                         }`}>
-                                                        {event.origem === 'Google Calendar' ? 'Google' : 'Alê'}
+                                                        {event.origem === 'Google Calendar' ? 'Google' : (event.origem === 'Justiça Eleitoral' ? 'TSE' : 'Alê')}
                                                     </span>
                                                 )}
+
                                             </div>
                                         </div>
                                     </div>
@@ -544,16 +558,16 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                 recursosData,
                 googleEventsData
             ] = await Promise.all([
-                agendaOnly ? Promise.resolve(data?.municipios || []) : getMunicipios(),
-                agendaOnly ? Promise.resolve(data?.liderancas || []) : getLiderancas(),
-                agendaOnly ? Promise.resolve(data?.assessores || []) : getAssessores(),
-                getAgendaEventos(),
-                agendaOnly ? Promise.resolve(data?.recursosTotais || 0) : getRecursosTotais(),
-                agendaOnly ? Promise.resolve(data?.demandasTotais || 0) : getDemandasTotais(),
-                agendaOnly ? Promise.resolve(data?.aleDemandasCount || 0) : getDemandasTotais('Alê Portela'),
-                agendaOnly ? Promise.resolve(data?.lincolnDemandasCount || 0) : getDemandasTotais('Lincoln Portela'),
-                agendaOnly ? Promise.resolve(data?.recursos || []) : getAllRecursos(),
-                getGoogleEvents()
+                (agendaOnly ? Promise.resolve(data?.municipios || []) : getMunicipios()).catch(err => { console.error("Erro Municípios:", err); return []; }),
+                (agendaOnly ? Promise.resolve(data?.liderancas || []) : getLiderancas()).catch(err => { console.error("Erro Lideranças:", err); return []; }),
+                (agendaOnly ? Promise.resolve(data?.assessores || []) : getAssessores()).catch(err => { console.error("Erro Assessores:", err); return []; }),
+                getAgendaEventos().catch(err => { console.error("Erro Agenda:", err); return []; }),
+                (agendaOnly ? Promise.resolve(data?.recursosTotais || 0) : getRecursosTotais()).catch(err => { console.error("Erro Recursos Totais:", err); return 0; }),
+                (agendaOnly ? Promise.resolve(data?.demandasTotais || 0) : getDemandasTotais()).catch(err => { console.error("Erro Demandas Totais:", err); return 0; }),
+                (agendaOnly ? Promise.resolve(data?.aleDemandasCount || 0) : getDemandasTotais('Alê Portela')).catch(err => { console.error("Erro Demandas Alê:", err); return 0; }),
+                (agendaOnly ? Promise.resolve(data?.lincolnDemandasCount || 0) : getDemandasTotais('Lincoln Portela')).catch(err => { console.error("Erro Demandas Lincoln:", err); return 0; }),
+                (agendaOnly ? Promise.resolve(data?.recursos || []) : getAllRecursos()).catch(err => { console.error("Erro Lista Recursos:", err); return []; }),
+                getGoogleEvents().catch(err => { console.error("Erro Google Events:", err); return []; })
             ]);
 
             const combinedLiderancas = agendaOnly ? (data?.liderancas || []) : liderancasData.map(l => {
@@ -589,9 +603,22 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
             const startDate = formatLocalISO(twoDaysAgo);
             const endDate = formatLocalISO(fifteenDaysAhead);
 
-            const combinedAgenda = [...agendaData, ...googleEventsData];
+            const electoralEvents = getElectoralEvents();
+            const nextElectoralEvents = electoralEvents
+                .filter(e => e.data >= startDate)
+                .sort((a, b) => a.data.localeCompare(b.data))
+                .slice(0, 2);
+
+            const combinedAgenda = [...agendaData, ...googleEventsData, ...nextElectoralEvents];
+
             const filteredAgenda = combinedAgenda
-                .filter(event => event.data >= startDate && event.data <= endDate)
+                .filter(event => {
+                    // Eventos normais e Google seguem a regra de 15 dias
+                    // Eventos eleitorais já foram pré-filtrados para os próximos 2
+                    if (event.origem === 'Justiça Eleitoral') return true;
+                    return event.data >= startDate && event.data <= endDate;
+                })
+
                 .sort((a, b) => {
                     if (a.data !== b.data) return a.data.localeCompare(b.data);
 
@@ -601,7 +628,8 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
 
                     return a.hora.localeCompare(b.hora);
                 })
-                .slice(0, 12); // Aumentado para 12 para melhor visibilidade e contexto
+                .slice(0, 15); // Aumentado para 15 para melhor visibilidade e contexto
+
 
             setData({
                 municipios: agendaOnly ? (data?.municipios || []) : municipiosData,
@@ -630,10 +658,21 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
     useEffect(() => {
         fetchDashboardData();
 
+        // Safety timeout para o Dashboard
+        const timer = setTimeout(() => {
+            setIsLoading(prev => {
+                if (prev) console.warn("[Dashboard] Carregamento forçado via safety timeout.");
+                return false;
+            });
+        }, 15000);
+
         // Auto-refresh every 5 minutes
         const intervalId = setInterval(() => fetchDashboardData(true), 5 * 60 * 1000);
 
-        return () => clearInterval(intervalId);
+        return () => {
+            clearTimeout(timer);
+            clearInterval(intervalId);
+        };
     }, []);
 
     const handleManualRefresh = () => {
@@ -674,6 +713,12 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                     <span>{new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                 </div>
             </div>
+
+            <ElectoralTimeline
+                onEventClick={(e) => navigateTo('Agenda', { eventId: e.id })}
+                onViewFullCalendar={() => navigateTo('Agenda')}
+            />
+
 
             {/* Filtrando dados para exibição */}
             {(() => {

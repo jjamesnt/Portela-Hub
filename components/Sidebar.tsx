@@ -11,6 +11,7 @@ const navItems = [
     { label: 'Dashboard', icon: 'dashboard' },
     { label: 'Municípios', icon: 'location_city' },
     { label: 'Lideranças', icon: 'groups' },
+    { label: 'Apoiadores', icon: 'volunteer_activism' },
     { label: 'Assessores', icon: 'badge' },
     { label: 'Agenda', icon: 'calendar_today' },
     { label: 'Recursos', icon: 'payments' },
@@ -19,7 +20,7 @@ const navItems = [
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
-    const { selectedMandato, isSidebarOpen, toggleSidebar } = useAppContext();
+    const { selectedMandato, isSidebarOpen, toggleSidebar, profile, signOut } = useAppContext();
 
     const isActive = (itemLabel: string) => {
         if (itemLabel === 'Municípios' && activePage === 'MunicipioDetalhes') {
@@ -31,9 +32,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
     return (
         <>
             {/* Mobile Backdrop */}
-            {isSidebarOpen && (
+            {isSidebarOpen && window.innerWidth < 768 && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden glass"
+                    className="fixed inset-0 bg-black/60 z-[1040] glass backdrop-blur-sm"
                     onClick={toggleSidebar}
                 />
             )}
@@ -140,7 +141,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                     </div>
                 </div>
 
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <div className="p-4 border-t border-white/10 bg-[#001a38]">
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                             <div className="size-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
@@ -166,6 +167,36 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                             </span>
                             <span className="text-xs font-bold">WhatsApp</span>
                         </a>
+                    </div>
+                </div>
+
+                {/* Dados do Usuário e Logout */}
+                <div className="p-4 border-t border-white/5 bg-navy-darker">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="size-9 rounded-full bg-turquoise/20 flex items-center justify-center shrink-0 border border-turquoise/30">
+                                <span className="material-symbols-outlined text-turquoise text-base">person</span>
+                            </div>
+                            <div className="flex flex-col overflow-hidden">
+                                <span className="text-sm font-bold text-white truncate">{profile?.full_name || 'Usuário'}</span>
+                                <span className="text-[10px] text-slate-400 truncate tracking-wide">{profile?.email || ''}</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={signOut}
+                            className="p-2 text-slate-400 hover:text-white hover:bg-rose-500/20 rounded-lg transition-colors shrink-0 group"
+                            title="Sair do sistema"
+                        >
+                            <span className="material-symbols-outlined group-hover:text-rose-400">logout</span>
+                        </button>
+                    </div>
+                    <div className="mt-3 flex items-center">
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${profile?.role === 'master' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                                profile?.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                                    'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                            }`}>
+                            {profile?.role === 'master' ? 'Master Admin' : profile?.role === 'admin' ? 'Coordenador' : 'Usuário Base'}
+                        </span>
                     </div>
                 </div>
             </aside>

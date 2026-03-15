@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { MunicipioDetalhado, Lideranca, Assessor, EventoAgenda, Demanda, LiderancaLocal, Recurso, SolicitacaoAgenda } from '../types';
+import { MunicipioDetalhado, Lideranca, Assessor, EventoAgenda, Demanda, LiderancaLocal, Recurso, SolicitacaoAgenda, NotificationLog, Apoiador } from '../types';
 import { mockLiderancas } from '../data/mockLiderancas';
 import { mockAssessores } from '../data/mockAssessores';
 
@@ -15,6 +15,18 @@ const mapMunicipio = (m: any) => ({
     influencia: m.influencia,
     liderancasAtivas: m.liderancas_ativas,
     statusAtividade: m.status_atividade,
+    // Novos campos políticos
+    statusPrefeito: m.status_prefeito,
+    idene: m.idene,
+    lincolnFechado: m.lincoln_fechado,
+    statusAtendimento: m.status_atendimento,
+    tipoAtendimento: m.tipo_atendimento,
+    principalDemanda: m.principal_demanda,
+    sugestaoSedese: m.sugestao_sedese,
+    observacao: m.observacao,
+    assessorId: m.assessor_id,
+    votacaoAle: m.votacao_ale,
+    votacaoLincoln: m.votacao_lincoln,
 });
 
 // --- Municípios ---
@@ -101,22 +113,75 @@ export const getMunicipioById = async (id: string): Promise<MunicipioDetalhado |
 
 // --- Lideranças ---
 export const getLiderancas = async (): Promise<Lideranca[]> => {
-    // Retornando dados mockados conforme solicitado pelo usuário para visualizar a cobertura
     const { data: dbData, error } = await supabase
         .from('liderancas')
         .select('*');
 
     if (error) {
         console.error('Erro ao buscar lideranças do banco:', error);
+        return [];
     }
 
-    // Mesclar dados do banco com mock para garantir cobertura total
-    const dbLiderancas = (dbData || []).map(l => ({
-        ...l,
-        municipio: l.municipio_nome
+    return (dbData || []).map(l => ({
+        id: l.id,
+        nome: l.nome,
+        municipio: l.municipio_nome,
+        regiao: l.regiao,
+        partido: l.partido,
+        cargo: l.cargo,
+        contato: l.contato,
+        email: l.email,
+        status: l.status,
+        origem: l.origem,
+        avatarUrl: l.avatar_url,
+        endereco: l.endereco,
+        latitude: l.latitude,
+        longitude: l.longitude
     })) as Lideranca[];
+};
 
-    return [...mockLiderancas, ...dbLiderancas];
+export const upsertLideranca = async (lideranca: Partial<Lideranca>) => {
+    // Se o ID não existir ou for uma string temporária (não-UUID), removemos para o Supabase gerar um novo
+    const isNew = !lideranca.id || lideranca.id.length < 20;
+
+    const dbData: any = {
+        nome: lideranca.nome,
+        municipio_nome: lideranca.municipio,
+        regiao: lideranca.regiao,
+        partido: lideranca.partido,
+        cargo: lideranca.cargo,
+        contato: lideranca.contato,
+        email: lideranca.email,
+        status: lideranca.status,
+        origem: lideranca.origem,
+        avatar_url: lideranca.avatarUrl,
+        endereco: lideranca.endereco,
+        latitude: lideranca.latitude,
+        longitude: lideranca.longitude
+    };
+
+    if (!isNew) {
+        dbData.id = lideranca.id;
+    }
+
+    const { data, error } = await supabase
+        .from('liderancas')
+        .upsert([dbData], { onConflict: 'id' })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Erro ao salvar liderança:', error);
+        throw error;
+    }
+    
+    // Mapear de volta para o formato do Frontend
+    return {
+        ...lideranca,
+        id: data.id,
+        avatarUrl: data.avatar_url,
+        municipio: data.municipio_nome
+    } as Lideranca;
 };
 
 // --- Assessores ---
@@ -127,20 +192,115 @@ export const getAssessores = async (): Promise<Assessor[]> => {
 
     if (error) {
         console.error('Erro ao buscar assessores do banco:', error);
+        return [];
     }
 
-    const dbAssessores = (dbData || []).map(a => ({
-        ...a,
-        cargo: 'Assessor Regional' as const,
+    return (dbData || []).map(a => ({
+        id: a.id,
+        nome: a.nome,
+        avatarUrl: a.avatar_url,
+        cargo: a.cargo as any,
         regiaoAtuacao: a.regiao_atuacao,
         municipiosCobertos: a.municipios_cobertos || 0,
         liderancasGerenciadas: a.liderancas_gerenciadas || 0,
         latitude: a.latitude,
         longitude: a.longitude,
-        origem: a.origem
+        origem: a.origem,
+        telefone: a.telefone,
+        email: a.email,
+        endereco: a.endereco
     })) as Assessor[];
+};
 
-    return [...mockAssessores, ...dbAssessores];
+export const upsertAssessor = async (assessor: Partial<Assessor>) => {
+    const isNew = !assessor.id || assessor.id.length < 20;
+
+    const dbData: any = {
+        nome: assessor.nome,
+        avatar_url: assessor.avatarUrl,
+        cargo: assessor.cargo,
+        regiao_atuacao: assessor.regiaoAtuacao,
+        municipios_cobertos: assessor.municipiosCobertos,
+        liderancas_gerenciadas: assessor.liderancasGerenciadas,
+        latitude: assessor.latitude,
+        longitude: assessor.longitude,
+        origem: assessor.origem,
+        telefone: assessor.telefone,
+        email: assessor.email,
+        endereco: assessor.endereco
+    };
+
+    if (!isNew) {
+        dbData.id = assessor.id;
+    }
+
+    const { data, error } = await supabase
+        .from('assessores')
+        .upsert([dbData], { onConflict: 'id' })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Erro ao salvar assessor:', error);
+        throw error;
+    }
+
+    return {
+        ...assessor,
+        id: data.id,
+        avatarUrl: data.avatar_url,
+        regiaoAtuacao: data.regiao_atuacao
+    } as Assessor;
+};
+
+export const deleteLideranca = async (id: string) => {
+    // Nota: Como o sistema usa uma mistura de Mocks e DB, 
+    // a exclusão real só ocorrerá se o ID existir no Supabase.
+    const { error } = await supabase
+        .from('liderancas')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Erro ao deletar liderança:', error);
+        throw error;
+    }
+};
+
+export const deleteAssessor = async (id: string) => {
+    const { error } = await supabase
+        .from('assessores')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Erro ao deletar assessor:', error);
+        throw error;
+    }
+};
+
+export const deleteDemanda = async (id: string) => {
+    const { error } = await supabase
+        .from('demandas')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Erro ao deletar demanda:', error);
+        throw error;
+    }
+};
+
+export const deleteRecurso = async (id: string) => {
+    const { error } = await supabase
+        .from('recursos')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Erro ao deletar recurso:', error);
+        throw error;
+    }
 };
 
 // --- Helper para Privacidade ---
@@ -215,6 +375,36 @@ export const createEvento = async (evento: Omit<EventoAgenda, 'id'>) => {
         ...data,
         data: data.data ? data.data.split('T')[0] : ''
     } as EventoAgenda;
+};
+
+export const updateEvento = async (id: string, evento: Partial<EventoAgenda>) => {
+    const { data, error } = await supabase
+        .from('agenda')
+        .update(evento)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Erro ao atualizar evento:', error);
+        throw error;
+    }
+    return {
+        ...data,
+        data: data.data ? data.data.split('T')[0] : ''
+    } as EventoAgenda;
+};
+
+export const deleteEvento = async (id: string) => {
+    const { error } = await supabase
+        .from('agenda')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Erro ao deletar evento:', error);
+        throw error;
+    }
 };
 
 export const getSolicitacoesAgenda = async (): Promise<SolicitacaoAgenda[]> => {
@@ -453,11 +643,20 @@ export const updateDemanda = async (id: string, updates: {
 // --- Integração Google Agenda (Edge Function) ---
 export const getGoogleEvents = async (): Promise<EventoAgenda[]> => {
     try {
-        const { data, error } = await supabase.functions.invoke('get-calendar');
+        console.log("[API] Iniciando busca da Google Agenda...");
+
+        // Timeout de 8 segundos para evitar travamento do Dashboard
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout na busca da Google Agenda')), 8000)
+        );
+
+        const fetchPromise = supabase.functions.invoke('get-calendar');
+
+        const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
         if (error) {
             console.error('Erro ao invocar Edge Function get-calendar:', error);
-            throw error;
+            return []; // Retorna lista vazia em vez de travar o app
         }
 
         const rawItems = Array.isArray(data) ? data : (data as any)?.items || [];
@@ -506,5 +705,136 @@ export const getGoogleEvents = async (): Promise<EventoAgenda[]> => {
     } catch (err) {
         console.error('Erro na chamada da agenda Google:', err);
         return [];
+    }
+};
+// --- Notificações Twilio ---
+export const broadcastEvent = async (params: {
+    eventId: string;
+    recipients: Array<{ id: string; phone: string; type: string }>;
+    channel: 'whatsapp' | 'sms';
+    message: string;
+}) => {
+    const { data, error } = await supabase.functions.invoke('twilio-broadcast', {
+        body: params
+    });
+
+    if (error) {
+        console.error('Erro ao disparar notificações:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const getNotificationLogs = async (eventId?: string): Promise<NotificationLog[]> => {
+    let query = supabase
+        .from('notification_logs')
+        .select('*, agenda(titulo, data, hora, local)')
+        .order('created_at', { ascending: false });
+
+    if (eventId) {
+        query = query.eq('event_id', eventId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data as any) || [];
+};
+
+// --- Apoiadores ---
+export const getApoiadores = async (): Promise<Apoiador[]> => {
+    const { data, error } = await supabase
+        .from('apoiadores')
+        .select('*, municipios(nome)')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Erro ao buscar apoiadores:', error);
+        return [];
+    }
+    return (data || []).map(a => ({
+        id: a.id,
+        municipioId: a.municipio_id,
+        municipioNome: a.municipios?.nome,
+        nome: a.nome,
+        cargo: a.cargo,
+        telefone: a.telefone,
+        endereco: a.endereco,
+        email: a.email,
+        fotoUrl: a.foto_url,
+        createdAt: a.created_at
+    })) as any[];
+};
+
+export const getApoiadoresByMunicipio = async (municipioId: string): Promise<Apoiador[]> => {
+    const { data, error } = await supabase
+        .from('apoiadores')
+        .select('*')
+        .eq('municipio_id', municipioId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Erro ao buscar apoiadores do município:', error);
+        return [];
+    }
+    return (data || []).map(a => ({
+        id: a.id,
+        municipioId: a.municipio_id,
+        nome: a.nome,
+        cargo: a.cargo,
+        telefone: a.telefone,
+        endereco: a.endereco,
+        email: a.email,
+        fotoUrl: a.foto_url,
+        createdAt: a.created_at
+    })) as Apoiador[];
+};
+
+export const upsertApoiador = async (apoiador: Partial<Apoiador>) => {
+    const isNew = !apoiador.id || apoiador.id.length < 20;
+
+    const dbData: any = {
+        municipio_id: apoiador.municipioId,
+        nome: apoiador.nome,
+        cargo: apoiador.cargo,
+        telefone: apoiador.telefone,
+        endereco: apoiador.endereco,
+        email: apoiador.email,
+        foto_url: apoiador.fotoUrl,
+    };
+
+    if (!isNew) {
+        dbData.id = apoiador.id;
+    }
+
+    const { data, error } = await supabase
+        .from('apoiadores')
+        .upsert([dbData], { onConflict: 'id' })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Erro ao salvar apoiador:', error);
+        throw error;
+    }
+
+    return {
+        ...apoiador,
+        id: data.id,
+        municipioId: data.municipio_id,
+        fotoUrl: data.foto_url,
+        createdAt: data.created_at
+    } as Apoiador;
+};
+
+export const deleteApoiador = async (id: string) => {
+    const { error } = await supabase
+        .from('apoiadores')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Erro ao deletar apoiador:', error);
+        throw error;
     }
 };

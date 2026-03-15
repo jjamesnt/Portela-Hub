@@ -10,6 +10,12 @@ import Loader from '../components/Loader';
 import RecursosCard from '../components/RecursosCard';
 import DemandaModal from '../components/DemandaModal';
 import VotacaoKPIs from '../components/VotacaoKPIs';
+import PoliticaGestaoCard from '../components/PoliticaGestaoCard';
+import AtendimentoDemandasCard from '../components/AtendimentoDemandasCard';
+import ApoiadoresCard from '../components/ApoiadoresCard';
+import ApoiadorModal from '../components/ApoiadorModal';
+import { getApoiadoresByMunicipio, getAssessores, deleteApoiador } from '../services/api';
+import { Apoiador, Assessor } from '../types';
 
 
 interface MunicipioDetalhesPageProps {
@@ -25,6 +31,10 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isDemandaModalOpen, setIsDemandaModalOpen] = useState(false);
+    const [isApoiadorModalOpen, setIsApoiadorModalOpen] = useState(false);
+    const [editingApoiador, setEditingApoiador] = useState<Apoiador | null>(null);
+    const [apoiadores, setApoiadores] = useState<Apoiador[]>([]);
+    const [assessores, setAssessores] = useState<Assessor[]>([]);
     const [votos, setVotos] = useState<{ l: number; a: number } | null>(null);
 
     const fetchMunicipio = async () => {
@@ -44,6 +54,19 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
         }
     };
 
+    const fetchRelatedData = async () => {
+        try {
+            const [apoiadoresData, assessoresData] = await Promise.all([
+                getApoiadoresByMunicipio(municipioId),
+                getAssessores()
+            ]);
+            setApoiadores(apoiadoresData);
+            setAssessores(assessoresData);
+        } catch (err) {
+            console.error('Erro ao buscar dados relacionados:', err);
+        }
+    };
+
     const fetchAllMunicipios = async () => {
         try {
             const data = await getMunicipios();
@@ -56,11 +79,23 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
     useEffect(() => {
         fetchMunicipio();
         fetchAllMunicipios();
+        fetchRelatedData();
         fetch('/data/votos_resumo.json')
             .then(r => r.json())
             .then(data => { if (data[municipioId]) setVotos(null); })
             .catch(() => { });
     }, [municipioId]);
+
+    const handleDeleteApoiador = async (id: string) => {
+        if (window.confirm('Tem certeza que deseja excluir este apoiador?')) {
+            try {
+                await deleteApoiador(id);
+                fetchRelatedData();
+            } catch (err) {
+                console.error("Erro ao excluir apoiador", err);
+            }
+        }
+    };
 
 
     if (isLoading) {
@@ -97,7 +132,7 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
                                         <option key={m.id} value={m.id}>{m.nome}</option>
                                     ))}
                                 </select>
-                                <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm md:text-base pointer-events-none">swap_horiz</span>
+                                <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">keyboard_arrow_down</span>
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2 items-center">
@@ -116,6 +151,12 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
                         <span>Relatório</span>
                     </button>
                     <button
+                        onClick={() => { setEditingApoiador(null); setIsApoiadorModalOpen(true); }}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2.5 bg-rose-500 text-white text-[11px] md:text-sm font-black uppercase px-5 py-3 md:px-8 md:py-3.5 rounded-xl shadow-xl shadow-rose-500/30 hover:brightness-110 active:scale-95 transition-all">
+                        <span className="material-symbols-outlined text-[20px]">volunteer_activism</span>
+                        <span>Novo Apoiador</span>
+                    </button>
+                    <button
                         onClick={() => setIsDemandaModalOpen(true)}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2.5 bg-primary text-white text-[11px] md:text-sm font-black uppercase px-5 py-3 md:px-8 md:py-3.5 rounded-xl shadow-xl shadow-primary/30 hover:brightness-110 active:scale-95 transition-all">
                         <span className="material-symbols-outlined text-[20px]">add_circle</span>
@@ -131,6 +172,8 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
                 codigoIBGE={municipio.codigoIBGE}
                 totalRecursos={municipio.totalRecursos || 0}
                 selectedMandato={selectedMandato}
+                votacaoAle={municipio.votacaoAle}
+                votacaoLincoln={municipio.votacaoLincoln}
             />
 
             {/* Row 2: Operational KPIs */}
@@ -152,6 +195,10 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
 
             <div className="grid grid-cols-12 gap-8">
                 <div className="col-span-12 lg:col-span-4 space-y-8">
+                    <PoliticaGestaoCard 
+                        municipio={municipio} 
+                        assessor={assessores.find(a => a.id === municipio.assessorId)} 
+                    />
                     <InfoGeraisCard
                         idh={municipio.idh}
                         pibPerCapita={municipio.pibPerCapita}
@@ -159,6 +206,13 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
                     />
                 </div>
                 <div className="col-span-12 lg:col-span-8 space-y-8">
+                    <AtendimentoDemandasCard municipio={municipio} />
+                    <ApoiadoresCard 
+                        apoiadores={apoiadores} 
+                        onAddClick={() => { setEditingApoiador(null); setIsApoiadorModalOpen(true); }}
+                        onEditClick={(a) => { setEditingApoiador(a); setIsApoiadorModalOpen(true); }}
+                        onDeleteClick={handleDeleteApoiador}
+                    />
                     <RecursosCard municipioId={municipio.id} />
                     <DemandasCard demandas={municipio.demandas} />
                     <LiderancasLocaisCard liderancas={municipio.liderancas} />
@@ -170,6 +224,14 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
                 isOpen={isDemandaModalOpen}
                 onClose={() => setIsDemandaModalOpen(false)}
                 onSuccess={fetchMunicipio}
+            />
+
+            <ApoiadorModal 
+                isOpen={isApoiadorModalOpen}
+                onClose={() => setIsApoiadorModalOpen(false)}
+                onSuccess={fetchRelatedData}
+                municipio={municipio}
+                editingApoiador={editingApoiador}
             />
         </div>
     );

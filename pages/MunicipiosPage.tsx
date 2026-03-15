@@ -31,31 +31,27 @@ const getRegionColor = (regiao: string) => {
     return REGION_COLORS[regiao] || { bg: 'bg-slate-100 dark:bg-slate-700', text: 'text-slate-600 dark:text-slate-300' };
 };
 
-const StatusBadge: React.FC<{ status: Municipio['statusAtividade'] }> = ({ status }) => {
-    const styles = {
-        'Consolidado': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-        'Expansão': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-        'Manutenção': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-        'Atenção': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    };
-    return <span className={`px-3 py-1 text-[9px] font-black rounded-full uppercase tracking-wider ${styles[status]}`}>{status}</span>;
-}
+// Status do Prefeito Colors
+const getStatusPrefeitoColor = (status?: string) => {
+    switch (status) {
+        case 'Prefeitura Fechada': return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400';
+        case 'Prefeitura Parceira': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+        case 'Não': return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400';
+        default: return 'bg-slate-50 text-slate-400 dark:bg-slate-800/50';
+    }
+};
 
 // Skeleton Loading Component
-const TableSkeleton = () => (
-    <tbody>
-        {[...Array(6)].map((_, i) => (
-            <tr key={i} className="animate-pulse">
-                <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32"></div></td>
-                <td className="px-6 py-4"><div className="h-5 bg-slate-200 dark:bg-slate-700 rounded-full w-28"></div></td>
-                <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16"></div></td>
-                <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16"></div></td>
-                <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div></td>
-                <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-8 mx-auto"></div></td>
-                <td className="px-6 py-4"><div className="h-5 bg-slate-200 dark:bg-slate-700 rounded-full w-20 mx-auto"></div></td>
-            </tr>
+const CardSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {[...Array(8)].map((_, i) => (
+            <div key={i} className="animate-pulse bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 h-[180px]">
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-4"></div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mb-6"></div>
+                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+            </div>
         ))}
-    </tbody>
+    </div>
 );
 
 // Highlight text component
@@ -74,7 +70,7 @@ const HighlightText: React.FC<{ text: string, highlight: string }> = ({ text, hi
 
 // Sort direction type
 type SortDirection = 'asc' | 'desc' | null;
-type SortField = 'nome' | 'regiao' | 'totalRecursos' | 'totalDemandas' | 'statusAtividade' | 'populacao';
+type SortField = 'nome' | 'regiao' | 'totalRecursos' | 'totalDemandas' | 'statusAtividade' | 'populacao' | 'statusAtendimento' | 'principalDemanda';
 
 const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
     const { selectedMandato } = useAppContext();
@@ -90,9 +86,10 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [filterRegion, setFilterRegion] = useState<string>('');
-    const [filterStatus, setFilterStatus] = useState<string[]>([]);
-    const [filterInvestment, setFilterInvestment] = useState<string>('');
+    const [filterRegion, setFilterRegion] = useState<string>('Todos');
+    const [filterAssessor, setFilterAssessor] = useState<string>('Todos');
+    const [filterStatusPrefeito, setFilterStatusPrefeito] = useState<string>('Todos');
+    const [filterStatusAtividade, setFilterStatusAtividade] = useState<string[]>([]);
 
     // Sorting
     const [sortField, setSortField] = useState<SortField | null>(null);
@@ -164,16 +161,17 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
             // Search filter
             if (debouncedSearch && !m.nome.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
             // Region filter
-            if (filterRegion && m.regiao !== filterRegion) return false;
-            // Status filter
-            if (filterStatus.length > 0 && !filterStatus.includes(m.statusAtividade)) return false;
-            // Investment filter
-            if (filterInvestment) {
-                const total = m.totalRecursos || 0;
-                if (filterInvestment === 'low' && total >= 500000) return false;
-                if (filterInvestment === 'mid' && (total < 500000 || total >= 1000000)) return false;
-                if (filterInvestment === 'high' && total < 1000000) return false;
+            if (filterRegion !== 'Todos' && m.regiao !== filterRegion) return false;
+            // Assessor filter
+            if (filterAssessor !== 'Todos') {
+                const assessor = assessores.find(a => a.id === m.assessorId);
+                if (assessor?.nome !== filterAssessor) return false;
             }
+            // Status Prefeito filter
+            if (filterStatusPrefeito !== 'Todos' && m.statusPrefeito !== filterStatusPrefeito) return false;
+            // Status Atividade filter
+            if (filterStatusAtividade.length > 0 && !filterStatusAtividade.includes(m.statusAtividade)) return false;
+            
             return true;
         });
 
@@ -188,6 +186,8 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                     case 'totalDemandas': aVal = a.totalDemandas || 0; bVal = b.totalDemandas || 0; break;
                     case 'statusAtividade': aVal = a.statusAtividade; bVal = b.statusAtividade; break;
                     case 'populacao': aVal = a.populacao || 0; bVal = b.populacao || 0; break;
+                    case 'statusAtendimento': aVal = a.statusAtendimento || ''; bVal = b.statusAtendimento || ''; break;
+                    case 'principalDemanda': aVal = a.principalDemanda || ''; bVal = b.principalDemanda || ''; break;
                     default: return 0;
                 }
                 if (typeof aVal === 'string') {
@@ -198,7 +198,7 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
         }
 
         return filtered;
-    }, [debouncedSearch, filterRegion, filterStatus, filterInvestment, municipios, sortField, sortDirection]);
+    }, [debouncedSearch, filterRegion, filterAssessor, filterStatusPrefeito, filterStatusAtividade, municipios, sortField, sortDirection]);
 
     // Summary stats
     const summaryStats = useMemo(() => ({
@@ -263,32 +263,40 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
     };
 
     const toggleStatusFilter = (status: string) => {
-        setFilterStatus(prev =>
+        setFilterStatusAtividade(prev =>
             prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
         );
     };
 
     const clearFilters = () => {
         setSearchTerm('');
-        setFilterRegion('');
-        setFilterStatus([]);
-        setFilterInvestment('');
+        setFilterRegion('Todos');
+        setFilterAssessor('Todos');
+        setFilterStatusPrefeito('Todos');
+        setFilterStatusAtividade([]);
     };
 
-    const hasActiveFilters = searchTerm || filterRegion || filterStatus.length > 0 || filterInvestment;
+    const hasActiveFilters = searchTerm || filterRegion !== 'Todos' || filterAssessor !== 'Todos' || filterStatusPrefeito !== 'Todos' || filterStatusAtividade.length > 0;
 
     const regioes = ['Região Metropolitana', 'Zona da Mata', 'Triângulo Mineiro', 'Norte de Minas', 'Sul de Minas', 'Alto Paranaíba', 'Central Mineira', 'Vale do Rio Doce', 'Oeste de Minas', 'Campo das Vertentes', 'Jequitinhonha', 'Vale do Mucuri', 'Noroeste de Minas'];
     const statusOptions = ['Consolidado', 'Expansão', 'Manutenção', 'Atenção'];
 
-    // Sort icon component
-    const SortIcon: React.FC<{ field: SortField }> = ({ field }) => {
-        if (sortField !== field) return <span className="material-symbols-outlined text-[14px] opacity-30">unfold_more</span>;
-        return (
-            <span className="material-symbols-outlined text-[14px] text-turquoise">
-                {sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward'}
-            </span>
-        );
-    };
+    // Unified Filter Select Component for mirroring ApoiadoresPage
+    const FilterSelect = ({ value, onChange, options, placeholder }: { value: string, onChange: (val: string) => void, options: string[], placeholder: string }) => (
+        <div className="relative group flex-1">
+            <select
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                className={`w-full pl-3 pr-9 py-2 md:py-2.5 border rounded-xl text-xs md:text-sm outline-none font-medium transition-all cursor-pointer ${value !== 'Todos' ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}
+            >
+                <option value="Todos">{placeholder}</option>
+                {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center">
+                <span className={`material-symbols-outlined text-[20px] transition-all ${value !== 'Todos' ? 'text-white' : 'text-slate-400'}`}>keyboard_arrow_down</span>
+            </div>
+        </div>
+    );
 
     return (
         <div className="p-4 md:p-8">
@@ -331,121 +339,77 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                {/* Filters Section */}
-                <div className="p-3 md:p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20">
-                    <div className="flex flex-col gap-3">
-                        <div className="flex flex-wrap gap-2 items-center">
-                            {/* Search */}
-                            <div className="relative flex-1 min-w-[150px] md:max-w-md">
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-2 md:pl-3 text-slate-400">
-                                    <span className="material-symbols-outlined text-[18px] md:text-lg">search</span>
-                                </span>
-                                <input
-                                    type="text"
-                                    placeholder="Buscar..."
-                                    className="w-full pl-8 md:pl-10 pr-4 py-1.5 md:py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs md:text-sm focus:ring-2 focus:ring-turquoise/30 outline-none transition-all"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-
-                            {/* Clear Filters (Mobile shortcut) */}
-                            {hasActiveFilters && (
-                                <button
-                                    onClick={clearFilters}
-                                    className="md:hidden flex items-center justify-center p-1.5 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg"
-                                >
-                                    <span className="material-symbols-outlined text-[20px]">filter_alt_off</span>
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 items-center">
-                            {/* Region Filter */}
-                            <select
-                                value={filterRegion}
-                                onChange={(e) => setFilterRegion(e.target.value)}
-                                className="flex-1 md:flex-none px-2 md:px-3 py-1.5 md:py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] md:text-sm font-medium focus:ring-2 focus:ring-turquoise/30 outline-none"
-                            >
-                                <option value="">Todas Regiões</option>
-                                {uniqueRegions.map(r => <option key={r} value={r}>{r}</option>)}
-                            </select>
-
-                            {/* Investment Filter */}
-                            <select
-                                value={filterInvestment}
-                                onChange={(e) => setFilterInvestment(e.target.value)}
-                                className="flex-1 md:flex-none px-2 md:px-3 py-1.5 md:py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] md:text-sm font-medium focus:ring-2 focus:ring-turquoise/30 outline-none"
-                            >
-                                <option value="">Investimento</option>
-                                <option value="low">{"< R$500k"}</option>
-                                <option value="mid">R$500k-1M</option>
-                                <option value="high">{"> R$1M"}</option>
-                            </select>
-
-                            {/* Clear Filters (Desktop) */}
-                            {hasActiveFilters && (
-                                <button
-                                    onClick={clearFilters}
-                                    className="hidden md:flex items-center gap-1 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                >
-                                    <span className="material-symbols-outlined text-sm">close</span>
-                                    Limpar
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Status Filter Chips */}
-                        <div className="flex flex-wrap gap-1 md:gap-2">
-                            {statusOptions.map(status => (
-                                <button
-                                    key={status}
-                                    onClick={() => toggleStatusFilter(status)}
-                                    className={`px-2 md:px-2.5 py-0.5 md:py-1 text-[9px] md:text-[10px] font-bold rounded-full uppercase transition-all ${filterStatus.includes(status)
-                                        ? 'bg-turquoise text-white'
-                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
-                                        }`}
-                                >
-                                    {status}
-                                </button>
-                            ))}
-                        </div>
+            <div className="bg-white dark:bg-slate-800 p-3 md:p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6 md:mb-8">
+                <div className="flex flex-col md:flex-row gap-2 md:gap-3">
+                    <div className="flex-1 relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-[18px]">search</span>
+                        <input
+                            type="text"
+                            placeholder="Buscar município..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 md:py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs md:text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                        />
                     </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 flex-[2]">
+                        <FilterSelect
+                            value={filterRegion}
+                            onChange={setFilterRegion}
+                            options={uniqueRegions}
+                            placeholder="Regiões"
+                        />
+                        <FilterSelect
+                            value={filterAssessor}
+                            onChange={setFilterAssessor}
+                            options={assessores.map(a => a.nome).sort()}
+                            placeholder="Assessores"
+                        />
+                        <FilterSelect
+                            value={filterStatusPrefeito}
+                            onChange={setFilterStatusPrefeito}
+                            options={['Prefeitura Parceira', 'Prefeitura Fechada', 'Não']}
+                            placeholder="Status Prefeito"
+                        />
+                    </div>
+                    {hasActiveFilters && (
+                        <button
+                            onClick={clearFilters}
+                            className="px-4 py-2 border border-rose-200 text-rose-500 rounded-xl hover:bg-rose-50 transition-all text-xs font-bold"
+                        >
+                            Limpar
+                        </button>
+                    )}
                 </div>
+            </div>
 
-                <div className="overflow-x-auto scrollbar-hide">
-                    <table className="w-full text-left min-w-[500px] md:min-w-0">
-                        <thead className="bg-slate-50/50 dark:bg-slate-900/50 text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
-                            <tr>
-                                <th className="px-3 md:px-6 py-2 md:py-4 cursor-pointer hover:text-turquoise transition-colors" onClick={() => handleSort('nome')}>
-                                    <div className="flex items-center gap-1">Município <SortIcon field="nome" /></div>
-                                </th>
-                                <th className="px-3 md:px-6 py-2 md:py-4 cursor-pointer hover:text-turquoise transition-colors" onClick={() => handleSort('regiao')}>
-                                    <div className="flex items-center gap-1">Região <SortIcon field="regiao" /></div>
-                                </th>
-                                <th className="px-3 md:px-6 py-2 md:py-4 cursor-pointer hover:text-turquoise transition-colors text-right md:text-center" onClick={() => handleSort('totalRecursos')}>
-                                    <div className="flex items-center justify-end md:justify-center gap-1">Invest. <SortIcon field="totalRecursos" /></div>
-                                </th>
-                                <th className="hidden sm:table-cell px-2 md:px-4 py-2 md:py-4 cursor-pointer hover:text-turquoise transition-colors text-center" onClick={() => handleSort('totalDemandas')}>
-                                    <div className="flex items-center justify-center gap-1">Demandas <SortIcon field="totalDemandas" /></div>
-                                </th>
-                                <th className="px-3 md:px-6 py-2 md:py-4 cursor-pointer hover:text-turquoise transition-colors text-center" onClick={() => handleSort('statusAtividade')}>
-                                    <div className="flex items-center justify-center gap-1">Status <SortIcon field="statusAtividade" /></div>
-                                </th>
-                            </tr>
-                        </thead>
-                        {isLoading ? <TableSkeleton /> : error ? (
-                            <tbody>
-                                <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center text-red-500">{error}</td>
+            {isLoading ? <CardSkeleton /> : (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => handleSort('nome')}>
+                                        <div className="flex items-center gap-1">
+                                            Município
+                                            {sortField === 'nome' && <span className="material-symbols-outlined text-[14px]">{sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward'}</span>}
+                                        </div>
+                                    </th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status Político</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => handleSort('statusAtendimento')}>
+                                        <div className="flex items-center gap-1">
+                                            Atendimento
+                                            {sortField === 'statusAtendimento' && <span className="material-symbols-outlined text-[14px]">{sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward'}</span>}
+                                        </div>
+                                    </th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Demanda</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assessoria</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Técnico</th>
                                 </tr>
-                            </tbody>
-                        ) : (
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                                 {municipiosFiltrados.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
+                                        <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
                                             <span className="material-symbols-outlined text-5xl mb-2 opacity-30">location_city</span>
                                             <p className="font-medium">Nenhum município encontrado</p>
                                             <p className="text-sm">{hasActiveFilters ? 'Tente ajustar os filtros' : 'Clique em "Novo Município" para começar'}</p>
@@ -453,49 +417,96 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                                     </tr>
                                 ) : (
                                     municipiosFiltrados.map(municipio => {
+                                        const assessor = assessores.find(a => a.id === municipio.assessorId);
                                         const regionColor = getRegionColor(municipio.regiao);
 
                                         return (
-                                            <tr
-                                                key={municipio.id}
+                                            <tr 
+                                                key={municipio.id} 
                                                 onClick={() => navigateTo('MunicipioDetalhes', { id: municipio.id })}
-                                                className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer"
+                                                className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group"
                                             >
-                                                <td className="px-3 md:px-6 py-2.5 md:py-4">
+                                                <td className="px-6 py-4">
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-navy-custom dark:text-white text-xs md:text-sm">
+                                                        <span className="text-sm font-bold text-navy-dark dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                                             <HighlightText text={municipio.nome} highlight={debouncedSearch} />
                                                         </span>
-                                                        {municipio.populacao && (
-                                                            <span className="text-[9px] md:text-[10px] text-slate-400">{formatPopulation(municipio.populacao)} hab</span>
+                                                        <span className={`inline-block w-fit mt-1 px-1.5 py-0.5 text-[8px] font-bold rounded-md ${regionColor.bg} ${regionColor.text} uppercase tracking-tighter`}>
+                                                            {municipio.regiao}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${getStatusPrefeitoColor(municipio.statusPrefeito)}`}>
+                                                            {municipio.statusPrefeito || 'Não informado'}
+                                                        </span>
+                                                        {municipio.lincolnFechado && (
+                                                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500 text-white flex items-center gap-1">
+                                                                <span className="material-symbols-outlined text-[12px]">beenhere</span>
+                                                                Fechado
+                                                            </span>
+                                                        )}
+                                                        {municipio.idene && (
+                                                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">IDENE</span>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-3 md:px-6 py-2.5 md:py-4">
-                                                    <span className={`px-2 py-0.5 md:py-1 text-[9px] md:text-[10px] font-bold rounded-full ${regionColor.bg} ${regionColor.text}`}>
-                                                        {municipio.regiao}
-                                                    </span>
+                                                <td className="px-6 py-4">
+                                                    {municipio.statusAtendimento ? (
+                                                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${
+                                                            municipio.statusAtendimento === 'Contemplado' 
+                                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                                                            : 'bg-amber-50 text-amber-600 border border-amber-100'
+                                                        }`}>
+                                                            {municipio.statusAtendimento}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] text-slate-400 font-bold italic">Pendente</span>
+                                                    )}
                                                 </td>
-                                                <td className="px-3 md:px-6 py-2.5 md:py-4 text-right md:text-center font-bold text-emerald-600 whitespace-nowrap text-xs md:text-sm">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(municipio.totalRecursos || 0)}
+                                                <td className="px-6 py-4">
+                                                    <div className="max-w-[150px]">
+                                                        <p className="text-xs text-slate-600 dark:text-slate-300 font-medium truncate" title={municipio.principalDemanda}>
+                                                            {municipio.principalDemanda || '—'}
+                                                        </p>
+                                                    </div>
                                                 </td>
-                                                <td className="hidden sm:table-cell px-2 md:px-4 py-2.5 md:py-4 text-center">
-                                                    <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs font-bold text-slate-600 dark:text-slate-300">
-                                                        {municipio.totalDemandas || 0}
-                                                    </span>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="size-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center border border-slate-200 dark:border-slate-600">
+                                                            <span className="material-symbols-outlined text-[16px] text-slate-400">person</span>
+                                                        </div>
+                                                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                                            {assessor?.nome || '—'}
+                                                        </span>
+                                                    </div>
                                                 </td>
-                                                <td className="px-3 md:px-6 py-2.5 md:py-4 text-center scale-90 md:scale-100">
-                                                    <StatusBadge status={municipio.statusAtividade} />
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Recursos</span>
+                                                            <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">
+                                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(municipio.totalRecursos || 0)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Demandas</span>
+                                                            <span className="text-xs font-black text-navy-dark dark:text-white bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                                                                {municipio.totalDemandas || 0}
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
                                     })
                                 )}
                             </tbody>
-                        )}
-                    </table>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Modal */}
             {showModal && (

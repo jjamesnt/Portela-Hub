@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getAllRecursos } from '../services/api';
-import { Recurso } from '../types';
+import { getAllRecursos, createRecurso, getMunicipios, deleteRecurso } from '../services/api';
+import { Recurso, Municipio } from '../types';
 import Loader from '../components/Loader';
 import MandatoBadge from '../components/MandatoBadge';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface ExtendedRecurso extends Recurso {
     municipio_nome: string;
@@ -48,6 +49,24 @@ const TipoBadge: React.FC<{ tipo: string }> = ({ tipo }) => {
 const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) => void }> = ({ navigateTo }) => {
     const [recursos, setRecursos] = useState<ExtendedRecurso[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [municipios, setMunicipios] = useState<Municipio[]>([]);
+    const [showNovoModal, setShowNovaModal] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<ExtendedRecurso | null>(null);
+
+    const [novaForm, setNovaForm] = useState({
+        municipio_id: '',
+        tipo: 'Emenda',
+        descricao: '',
+        valor: 0,
+        origem: 'Alê Portela' as Recurso['origem'],
+        responsavel: '',
+        status: 'Aprovado' as Recurso['status'],
+        data_aprovacao: new Date().toISOString().split('T')[0],
+        observacoes: ''
+    });
+
     const [filtroTexto, setFiltroTexto] = useState('');
     const [filtroMunicipio, setFiltroMunicipio] = useState('Todos');
     const [filtroRegiao, setFiltroRegiao] = useState('Todas');
@@ -56,20 +75,24 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
     const [filtroStatus, setFiltroStatus] = useState('Todos');
     const [filtroDeputado, setFiltroDeputado] = useState('Todos');
 
+    const fetchData = async () => {
+        try {
+            setIsLoading(true);
+            const [recursosData, municipiosData] = await Promise.all([
+                getAllRecursos(),
+                getMunicipios()
+            ]);
+            setRecursos(recursosData as ExtendedRecurso[]);
+            setMunicipios(municipiosData);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchRecursos = async () => {
-            try {
-                const data = await getAllRecursos();
-                // Ordenação inicial por maior valor
-                const sortedData = (data as ExtendedRecurso[]).sort((a, b) => b.valor - a.valor);
-                setRecursos(sortedData);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchRecursos();
+        fetchData();
     }, []);
 
     const municipiosList = useMemo(() => ['Todos', ...new Set(recursos.map(r => r.municipio_nome))].sort(), [recursos]);
@@ -138,7 +161,10 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                         <span className="material-symbols-outlined text-indigo-500 text-base md:text-lg">description</span>
                         Relatório
                     </button>
-                    <button className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2.5 md:py-3 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20">
+                    <button
+                        onClick={() => setShowNovaModal(true)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2.5 md:py-3 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:bg-turquoise/90 transition-all shadow-lg shadow-turquoise/20"
+                    >
                         <span className="material-symbols-outlined text-base md:text-lg">add_circle</span>
                         Novo
                     </button>
@@ -328,12 +354,25 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                                     </td>
                                     <td className="px-4 md:px-6 py-2.5 md:py-4 text-center"><StatusBadge status={r.status} /></td>
                                     <td className="px-4 md:px-6 py-2.5 md:py-4 text-center">
-                                        <button
-                                            onClick={() => navigateTo('MunicipioDetalhes', { id: r.municipioId })}
-                                            className="size-7 md:size-8 rounded-lg bg-turquoise/10 hover:bg-turquoise/20 flex items-center justify-center transition-all group/btn"
-                                        >
-                                            <span className="material-symbols-outlined text-turquoise text-[14px] md:text-base group-hover/btn:scale-110 transition-transform">open_in_new</span>
-                                        </button>
+                                        <div className="flex items-center justify-center gap-1.5">
+                                            <button
+                                                onClick={() => navigateTo('MunicipioDetalhes', { id: r.municipioId })}
+                                                className="size-7 md:size-8 rounded-lg bg-turquoise/10 hover:bg-turquoise/20 flex items-center justify-center transition-all group/btn"
+                                                title="Ver no Mapa/Cidade"
+                                            >
+                                                <span className="material-symbols-outlined text-turquoise text-[14px] md:text-base group-hover/btn:scale-110 transition-transform">open_in_new</span>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setItemToDelete(r);
+                                                    setIsConfirmDeleteOpen(true);
+                                                }}
+                                                className="size-7 md:size-8 rounded-lg bg-rose-50 hover:bg-rose-100 flex items-center justify-center transition-all group/btn-del"
+                                                title="Excluir"
+                                            >
+                                                <span className="material-symbols-outlined text-rose-500 text-[14px] md:text-base group-hover/btn-del:scale-110 transition-transform">delete</span>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -347,6 +386,174 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                     )}
                 </div>
             </div>
+            {/* Modal Novo Recurso */}
+            {showNovoModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowNovaModal(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-extrabold text-navy-dark dark:text-white">Novo Recurso</h3>
+                                <p className="text-sm text-slate-400">Registre a alocação de um novo recurso.</p>
+                            </div>
+                            <button onClick={() => setShowNovaModal(false)} className="size-9 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                                <span className="material-symbols-outlined text-slate-500">close</span>
+                            </button>
+                        </div>
+
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            setSaving(true);
+                            try {
+                                await createRecurso(novaForm);
+                                fetchData();
+                                setShowNovaModal(false);
+                            } catch (err) {
+                                console.error(err);
+                            } finally {
+                                setSaving(false);
+                            }
+                        }} className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Município *</label>
+                                    <select
+                                        required
+                                        value={novaForm.municipio_id}
+                                        onChange={e => setNovaForm({...novaForm, municipio_id: e.target.value})}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                    >
+                                        <option value="">Selecione o município beneficiado...</option>
+                                        {municipios.sort((a,b) => a.nome.localeCompare(b.nome)).map(m => (
+                                            <option key={m.id} value={m.id}>{m.nome}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="col-span-2">
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Descrição do Recurso *</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        placeholder="Ex: Emenda para custeio de saúde"
+                                        value={novaForm.descricao}
+                                        onChange={e => setNovaForm({...novaForm, descricao: e.target.value})}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Valor (R$) *</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        value={novaForm.valor || ''}
+                                        onChange={e => setNovaForm({...novaForm, valor: parseFloat(e.target.value) || 0})}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30 font-bold"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Tipo/Destinação *</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        placeholder="Ex: Emenda, Veículo..."
+                                        value={novaForm.tipo}
+                                        onChange={e => setNovaForm({...novaForm, tipo: e.target.value})}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Origem/Mandato *</label>
+                                    <select
+                                        value={novaForm.origem}
+                                        onChange={e => setNovaForm({...novaForm, origem: e.target.value as any})}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                    >
+                                        <option value="Alê Portela">Alê Portela</option>
+                                        <option value="Lincoln Portela">Lincoln Portela</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Status</label>
+                                    <select
+                                        value={novaForm.status}
+                                        onChange={e => setNovaForm({...novaForm, status: e.target.value as any})}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                    >
+                                        <option value="Aprovado">Aprovado</option>
+                                        <option value="Em Execução">Em Execução</option>
+                                        <option value="Concluído">Concluído</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Responsável (Assessor)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Nome do assessor..."
+                                        value={novaForm.responsavel}
+                                        onChange={e => setNovaForm({...novaForm, responsavel: e.target.value})}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Data de Aprovação</label>
+                                    <input
+                                        type="date"
+                                        value={novaForm.data_aprovacao}
+                                        onChange={e => setNovaForm({...novaForm, data_aprovacao: e.target.value})}
+                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNovaModal(false)}
+                                    className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={saving || !novaForm.municipio_id || !novaForm.descricao || !novaForm.valor}
+                                    className="px-6 py-2.5 text-sm font-bold bg-turquoise text-white rounded-xl hover:brightness-110 shadow-lg shadow-turquoise/20 transition-all active:scale-95 disabled:opacity-50"
+                                >
+                                    {saving ? 'Gravando...' : 'Salvar Recurso'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            <ConfirmModal
+                isOpen={isConfirmDeleteOpen}
+                onClose={() => setIsConfirmDeleteOpen(false)}
+                onConfirm={async () => {
+                    if (!itemToDelete) return;
+                    setSaving(true);
+                    try {
+                        await deleteRecurso(itemToDelete.id);
+                        await fetchData();
+                        setIsConfirmDeleteOpen(false);
+                    } catch (err) {
+                        console.error(err);
+                    } finally {
+                        setSaving(false);
+                    }
+                }}
+                title="Excluir Recurso"
+                message={`Tem certeza que deseja remover o recurso "${itemToDelete?.descricao}"? O valor de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(itemToDelete?.valor || 0)} será removido do balanço do município.`}
+                confirmText="Excluir"
+            />
         </div>
     );
 };
