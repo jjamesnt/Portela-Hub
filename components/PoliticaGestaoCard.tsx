@@ -9,9 +9,9 @@ interface PoliticaGestaoCardProps {
 
 const PoliticaGestaoCard: React.FC<PoliticaGestaoCardProps> = ({ municipio, assessor }) => {
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 h-full">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
             <div className="flex items-center gap-2 mb-6">
-                <span className="material-symbols-outlined text-indigo-500">account_balance</span>
+                <span className="material-symbols-outlined text-indigo-500">strategy</span>
                 <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-wider">Gestão Política</h3>
             </div>
 
@@ -33,20 +33,34 @@ const PoliticaGestaoCard: React.FC<PoliticaGestaoCardProps> = ({ municipio, asse
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lincoln Portela fechado?</p>
-                        <div className="flex items-center gap-2 mt-2">
-                            <span className={`size-3 rounded-full ${municipio.lincolnFechado ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
-                            <span className={`text-xs font-black uppercase ${municipio.lincolnFechado ? 'text-emerald-600' : 'text-slate-500'}`}>
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex justify-between items-center group">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lincoln Fechado?</p>
+                            <p className={`text-xs font-black uppercase mt-1 ${municipio.lincolnFechado ? 'text-emerald-600' : 'text-rose-600'}`}>
                                 {municipio.lincolnFechado ? 'Sim' : 'Não'}
+                            </p>
+                        </div>
+                        <div className={`size-8 rounded-xl flex items-center justify-center transition-all ${
+                            municipio.lincolnFechado ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'
+                        }`}>
+                            <span className="material-symbols-outlined text-[18px]">
+                                {municipio.lincolnFechado ? 'check_circle' : 'cancel'}
                             </span>
                         </div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">IDENE</p>
-                        <div className="flex items-center gap-2 mt-2">
-                             <span className={`text-xs font-black uppercase ${municipio.idene ? 'text-amber-600' : 'text-slate-500'}`}>
+
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex justify-between items-center group">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">IDENE</p>
+                            <p className={`text-xs font-black uppercase mt-1 ${municipio.idene ? 'text-amber-600' : 'text-rose-600'}`}>
                                 {municipio.idene ? 'Sim' : 'Não'}
+                            </p>
+                        </div>
+                        <div className={`size-8 rounded-xl flex items-center justify-center transition-all ${
+                            municipio.idene ? 'bg-amber-50 text-amber-500' : 'bg-rose-50 text-rose-500'
+                        }`}>
+                            <span className="material-symbols-outlined text-[18px]">
+                                {municipio.idene ? 'verified' : 'cancel'}
                             </span>
                         </div>
                     </div>

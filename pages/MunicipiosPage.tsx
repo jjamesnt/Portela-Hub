@@ -450,6 +450,12 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                                                         {municipio.idene && (
                                                             <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">IDENE</span>
                                                         )}
+                                                        {(municipio as any).totalApoiadores > 0 && (
+                                                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 flex items-center gap-1">
+                                                                <span className="material-symbols-outlined text-[12px]">group</span>
+                                                                {(municipio as any).totalApoiadores} {(municipio as any).totalApoiadores === 1 ? 'Apoiador' : 'Apoiadores'}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">

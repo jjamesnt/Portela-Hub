@@ -555,8 +555,7 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                 demandasTotaisData,
                 aleDemandasCount,
                 lincolnDemandasCount,
-                recursosData,
-                googleEventsData
+                recursosData
             ] = await Promise.all([
                 (agendaOnly ? Promise.resolve(data?.municipios || []) : getMunicipios()).catch(err => { console.error("Erro Municípios:", err); return []; }),
                 (agendaOnly ? Promise.resolve(data?.liderancas || []) : getLiderancas()).catch(err => { console.error("Erro Lideranças:", err); return []; }),
@@ -566,8 +565,7 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                 (agendaOnly ? Promise.resolve(data?.demandasTotais || 0) : getDemandasTotais()).catch(err => { console.error("Erro Demandas Totais:", err); return 0; }),
                 (agendaOnly ? Promise.resolve(data?.aleDemandasCount || 0) : getDemandasTotais('Alê Portela')).catch(err => { console.error("Erro Demandas Alê:", err); return 0; }),
                 (agendaOnly ? Promise.resolve(data?.lincolnDemandasCount || 0) : getDemandasTotais('Lincoln Portela')).catch(err => { console.error("Erro Demandas Lincoln:", err); return 0; }),
-                (agendaOnly ? Promise.resolve(data?.recursos || []) : getAllRecursos()).catch(err => { console.error("Erro Lista Recursos:", err); return []; }),
-                getGoogleEvents().catch(err => { console.error("Erro Google Events:", err); return []; })
+                (agendaOnly ? Promise.resolve(data?.recursos || []) : getAllRecursos()).catch(err => { console.error("Erro Lista Recursos:", err); return []; })
             ]);
 
             const combinedLiderancas = agendaOnly ? (data?.liderancas || []) : liderancasData.map(l => {
@@ -609,33 +607,28 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                 .sort((a, b) => a.data.localeCompare(b.data))
                 .slice(0, 2);
 
-            const combinedAgenda = [...agendaData, ...googleEventsData, ...nextElectoralEvents];
+            const helperFilterAndSortAgenda = (items: EventoAgenda[]) => {
+                return items
+                    .filter(event => {
+                        if (event.origem === 'Justiça Eleitoral') return true;
+                        return event.data >= startDate && event.data <= endDate;
+                    })
+                    .sort((a, b) => {
+                        if (a.data !== b.data) return a.data.localeCompare(b.data);
+                        if (a.hora === 'Dia Inteiro' && b.hora !== 'Dia Inteiro') return -1;
+                        if (a.hora !== 'Dia Inteiro' && b.hora === 'Dia Inteiro') return 1;
+                        return a.hora.localeCompare(b.hora);
+                    })
+                    .slice(0, 15);
+            };
 
-            const filteredAgenda = combinedAgenda
-                .filter(event => {
-                    // Eventos normais e Google seguem a regra de 15 dias
-                    // Eventos eleitorais já foram pré-filtrados para os próximos 2
-                    if (event.origem === 'Justiça Eleitoral') return true;
-                    return event.data >= startDate && event.data <= endDate;
-                })
-
-                .sort((a, b) => {
-                    if (a.data !== b.data) return a.data.localeCompare(b.data);
-
-                    // Tratamento para 'Dia Inteiro' (vem primeiro no dia)
-                    if (a.hora === 'Dia Inteiro' && b.hora !== 'Dia Inteiro') return -1;
-                    if (a.hora !== 'Dia Inteiro' && b.hora === 'Dia Inteiro') return 1;
-
-                    return a.hora.localeCompare(b.hora);
-                })
-                .slice(0, 15); // Aumentado para 15 para melhor visibilidade e contexto
-
+            const initialAgenda = helperFilterAndSortAgenda([...agendaData, ...nextElectoralEvents]);
 
             setData({
                 municipios: agendaOnly ? (data?.municipios || []) : municipiosData,
                 liderancas: combinedLiderancas,
                 assessores: combinedAssessores,
-                agenda: filteredAgenda,
+                agenda: initialAgenda,
                 recursosTotais: agendaOnly ? (data?.recursosTotais || 0) : recursosTotaisData,
                 demandasTotais: agendaOnly ? (data?.demandasTotais || 0) : demandasTotaisData,
                 aleDemandasCount: agendaOnly ? (data?.aleDemandasCount || 0) : aleDemandasCount,
@@ -645,6 +638,22 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                     municipio_nome: (municipiosData || data?.municipios).find(m => m.id === r.municipioId)?.nome || 'Desconhecido'
                 }))
             });
+
+            // Disparar Google Events em background sem travar o render principal
+            getGoogleEvents().then(googleEventsData => {
+                if (googleEventsData.length > 0) {
+                    setData(prev => {
+                        if (!prev) return null;
+                        const existingIds = new Set(prev.agenda.map(e => e.id));
+                        const uniqueGoogle = googleEventsData.filter(e => !existingIds.has(e.id));
+                        const fullAgenda = [...agendaData, ...nextElectoralEvents, ...uniqueGoogle];
+                        return {
+                            ...prev,
+                            agenda: helperFilterAndSortAgenda(fullAgenda)
+                        };
+                    });
+                }
+            }).catch(err => console.error("Erro secundário Google Agenda:", err));
             setError(null);
         } catch (err: any) {
             console.error("Dashboard fetch error:", err);

@@ -46,30 +46,42 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
         fetchData();
     }, []);
 
-    const municipiosFiltrados = useMemo(() => {
-        return municipios.filter(m => {
-            const correspondeBusca = m.nome.toLowerCase().includes(busca.toLowerCase());
+    // Filtro para Apoiadores (Iterar por apoiador, agregando dados do município)
+    const apoiadoresFiltrados = useMemo(() => {
+        // Usa apenas os dados do servidor (para evitar duplicidade do mock anterior)
+        const totalBase = apoiadoresTotal.map(a => {
+            const m = municipios.find(city => city.id === a.municipioId);
+            const assessor = m ? assessores.find(ass => ass.id === m.assessorId) : undefined;
+            return { ...a, municipio: m, assessor };
+        });
+
+        return totalBase.filter(a => {
+            const m = a.municipio;
+            if (!m) return false;
+
+            const correspondeBusca = a.nome.toLowerCase().includes(busca.toLowerCase()) || m.nome.toLowerCase().includes(busca.toLowerCase());
             const correspondeRegiao = filtroRegiao === 'Todos' || m.regiao === filtroRegiao;
-            
-            const assessor = assessores.find(a => a.id === m.assessorId);
-            const correspondeAssessor = filtroAssessor === 'Todos' || assessor?.nome === filtroAssessor;
-            
+            const correspondeAssessor = filtroAssessor === 'Todos' || a.assessor?.nome === filtroAssessor;
             const correspondeStatus = filtroStatusPrefeito === 'Todos' || m.statusPrefeito === filtroStatusPrefeito;
 
             return correspondeBusca && correspondeRegiao && correspondeAssessor && correspondeStatus;
         });
-    }, [busca, filtroRegiao, filtroAssessor, filtroStatusPrefeito, municipios, assessores]);
+    }, [apoiadoresTotal, municipios, assessores, busca, filtroRegiao, filtroAssessor, filtroStatusPrefeito]);
 
     const summaryStats = useMemo(() => {
-        const parceiras = municipiosFiltrados.filter(m => m.statusPrefeito === 'Prefeitura Parceira' || m.statusPrefeito === 'Prefeitura Fechada').length;
-        const totalApoiadoresVisiveis = apoiadoresTotal.filter(a => municipiosFiltrados.some(m => m.id === a.municipioId)).length;
-        
+        // Contar municípios distintos de apoiadores visíveis
+        const municipiosIds = new Set(apoiadoresFiltrados.map(a => a.municipioId));
+        const parceiras = Array.from(municipiosIds).filter(id => {
+            const m = municipios.find(city => city.id === id);
+            return m?.statusPrefeito === 'Prefeitura Parceira' || m?.statusPrefeito === 'Prefeitura Fechada';
+        }).length;
+
         return {
-            totalMunicipios: municipiosFiltrados.length,
+            totalMunicipios: municipiosIds.size,
             cidadesParceiras: parceiras,
-            totalApoiadores: totalApoiadoresVisiveis
+            totalApoiadores: apoiadoresFiltrados.length
         };
-    }, [municipiosFiltrados, apoiadoresTotal]);
+    }, [apoiadoresFiltrados, municipios]);
 
     const getStatusPrefeitoColor = (status?: string) => {
         switch (status) {
@@ -107,8 +119,8 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
         <div className="p-4 md:p-8 animate-in fade-in duration-500 pb-24 md:pb-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 md:mb-8">
                 <div>
-                    <h2 className="text-xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white">Apoiadores por Município</h2>
-                    <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">Acompanhe a situação política e os apoiadores em cada cidade.</p>
+                    <h2 className="text-xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white">Apoiadores</h2>
+                    <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">Acompanhe as lideranças e sua situação em cada cidade.</p>
                 </div>
                 <button 
                   onClick={() => setIsModalOpen(true)}
@@ -119,7 +131,7 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                 </button>
             </div>
 
-            {/* Summary Bar para Espelhar MunicipiosPage */}
+            {/* Summary Bar */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 mb-4 md:mb-6">
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-3 md:p-4 border border-slate-200 dark:border-slate-700">
                     <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase">Municípios</p>
@@ -142,7 +154,7 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-[18px]">search</span>
                         <input
                             type="text"
-                            placeholder="Buscar município..."
+                            placeholder="Buscar apoiador ou município..."
                             value={busca}
                             onChange={e => setBusca(e.target.value)}
                             className="w-full pl-9 pr-4 py-2 md:py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs md:text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
@@ -158,7 +170,7 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                         <FilterSelect
                             value={filtroAssessor}
                             onChange={setFiltroAssessor}
-                            options={assessores.map(a => a.nome).sort()}
+                            options={Array.from(new Set(assessores.map(a => a.nome))).sort()}
                             placeholder="Assessores"
                         />
                         <FilterSelect
@@ -185,23 +197,33 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Município</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status Político</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Atendimento</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Demanda</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assessoria</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Votação 2022</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Apoiador</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Cidade</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status Prefeito</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Votação 2022</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assessor/Responsável</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Atendimento / Demanda</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                                {municipiosFiltrados.map(m => {
-                                    const assessor = assessores.find(a => a.id === m.assessorId);
+                                {apoiadoresFiltrados.map(a => {
+                                    const m = a.municipio!;
                                     return (
                                         <tr 
-                                            key={m.id} 
+                                            key={a.id} 
                                             onClick={() => navigateTo('MunicipioDetalhes', { id: m.id })}
                                             className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group"
                                         >
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                                                        {a.nome}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                        {a.cargo}
+                                                    </span>
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-bold text-navy-dark dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
@@ -220,58 +242,58 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                                                     {m.lincolnFechado && (
                                                         <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500 text-white flex items-center gap-1">
                                                             <span className="material-symbols-outlined text-[12px]">beenhere</span>
-                                                            Fechado
+                                                            Lincoln Portela
                                                         </span>
                                                     )}
-                                                    {m.idene && (
-                                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">IDENE</span>
-                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                {m.statusAtendimento ? (
-                                                    <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${
-                                                        m.statusAtendimento === 'Contemplado' 
-                                                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                                                        : 'bg-amber-50 text-amber-600 border border-amber-100'
-                                                    }`}>
-                                                        {m.statusAtendimento}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-[10px] text-slate-400 font-bold italic">Pendente</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="max-w-[180px]">
-                                                    <p className="text-xs text-slate-600 dark:text-slate-300 font-medium truncate" title={m.principalDemanda}>
-                                                        {m.principalDemanda || '—'}
-                                                    </p>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="size-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center border border-slate-200 dark:border-slate-600">
-                                                        <span className="material-symbols-outlined text-[16px] text-slate-400">person</span>
-                                                    </div>
-                                                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                                        {assessor?.nome || '—'}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex flex-col items-end gap-1">
+                                                <div className="flex flex-col items-center gap-1">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[9px] font-black text-slate-400 uppercase">Alê</span>
                                                         <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-1.5 py-0.5 rounded">
-                                                            {m.votacaoAle?.toLocaleString() || '0'}
+                                                            {m.votacaoAle?.toLocaleString() || '—'}
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[9px] font-black text-slate-400 uppercase">Lincoln</span>
                                                         <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">
-                                                            {m.votacaoLincoln?.toLocaleString() || '0'}
+                                                            {m.votacaoLincoln?.toLocaleString() || '—'}
                                                         </span>
                                                     </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="size-6 rounded-full bg-slate-100 flex items-center justify-center">
+                                                        <span className="material-symbols-outlined text-[14px] text-slate-400">person</span>
+                                                    </div>
+                                                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                                        {a.assessor?.nome || '—'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-1 max-w-[200px]">
+                                                    {m.statusAtendimento && (
+                                                        <span className={`w-fit px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                                            m.statusAtendimento === 'Contemplado' 
+                                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                                                            : 'bg-amber-50 text-amber-600 border border-amber-100'
+                                                        }`}>
+                                                            {m.statusAtendimento}
+                                                        </span>
+                                                    )}
+                                                    {m.principalDemanda && (
+                                                        <p className="text-[10px] text-slate-600 dark:text-slate-300 font-bold truncate">
+                                                            {m.principalDemanda}
+                                                        </p>
+                                                    )}
+                                                    {m.sugestaoSedese && (
+                                                        <span className="text-[9px] text-indigo-500 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 w-fit">
+                                                            SEDESE: {m.sugestaoSedese}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -291,6 +313,7 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                     setIsModalOpen(false);
                 }}
                 allMunicipios={municipios}
+                allApoiadores={apoiadoresTotal}
             />
         </div>
     );

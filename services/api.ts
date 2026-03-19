@@ -38,7 +38,8 @@ export const getMunicipios = async (): Promise<MunicipioDetalhado[]> => {
         .select(`
             *,
             recursos (valor),
-            demandas (count)
+            demandas (count),
+            apoiadores (count)
         `);
 
     if (error) {
@@ -49,7 +50,8 @@ export const getMunicipios = async (): Promise<MunicipioDetalhado[]> => {
     return data.map(m => ({
         ...mapMunicipio(m),
         totalRecursos: m.recursos?.reduce((acc: number, r: any) => acc + (parseFloat(r.valor) || 0), 0) || 0,
-        totalDemandas: m.demandas?.[0]?.count || 0
+        totalDemandas: m.demandas?.[0]?.count || 0,
+        totalApoiadores: m.apoiadores?.[0]?.count || 0
     })) as any[];
 };
 
@@ -71,6 +73,21 @@ export const createMunicipio = async (municipio: {
 
     if (error) {
         console.error('Erro ao criar município:', error);
+        throw error;
+    }
+    return mapMunicipio(data);
+};
+
+export const updateMunicipio = async (id: string, updates: any): Promise<any> => {
+    const { data, error } = await supabase
+        .from('municipios')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Erro ao atualizar município:', error);
         throw error;
     }
     return mapMunicipio(data);

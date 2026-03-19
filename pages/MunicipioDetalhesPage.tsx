@@ -14,6 +14,7 @@ import PoliticaGestaoCard from '../components/PoliticaGestaoCard';
 import AtendimentoDemandasCard from '../components/AtendimentoDemandasCard';
 import ApoiadoresCard from '../components/ApoiadoresCard';
 import ApoiadorModal from '../components/ApoiadorModal';
+import EleitoradoCard from '../components/EleitoradoCard';
 import { getApoiadoresByMunicipio, getAssessores, deleteApoiador } from '../services/api';
 import { Apoiador, Assessor } from '../types';
 
@@ -167,56 +168,49 @@ const MunicipioDetalhesPage: React.FC<MunicipioDetalhesPageProps> = ({ municipio
 
 
             {/* Row 1: Main KPIs - Recursos + Votos dos Deputados */}
-            <VotacaoKPIs
-                municipioId={municipio.id}
-                codigoIBGE={municipio.codigoIBGE}
-                totalRecursos={municipio.totalRecursos || 0}
-                selectedMandato={selectedMandato}
-                votacaoAle={municipio.votacaoAle}
-                votacaoLincoln={municipio.votacaoLincoln}
-            />
-
-            {/* Row 2: Operational KPIs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                <KpiResumoCard title="Taxa de Conclusão" value="64%" trend="+5.2%">
-                    <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full mt-4 overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: '64%' }}></div></div>
-                </KpiResumoCard>
-
-                <KpiResumoCard title="Tempo de Resposta" value="12d" meta="Meta: 10d">
-                    <div className="flex gap-1 mt-4">
-                        <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
-                        <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
-                        <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
-                        <div className="h-1.5 flex-1 bg-slate-100 dark:bg-slate-700 rounded-full"></div>
-                    </div>
-                </KpiResumoCard>
+            {/* Top Row: Gestão Política e Informações Gerais */}
+            {/* Row 1: Gestão Política e Eleitorado */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <PoliticaGestaoCard 
+                    municipio={municipio} 
+                    assessor={assessores.find(a => a.id === municipio.assessorId)} 
+                />
+                <EleitoradoCard codigoIBGE={municipio.codigoIBGE} />
             </div>
 
+            {/* Row 2: Apoiadores Estratégicos e Votos Compacto */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <ApoiadoresCard 
+                    apoiadores={apoiadores} 
+                    onAddClick={() => { setEditingApoiador(null); setIsApoiadorModalOpen(true); }}
+                    onEditClick={(a) => { setEditingApoiador(a); setIsApoiadorModalOpen(true); }}
+                    onDeleteClick={handleDeleteApoiador}
+                />
+                <VotacaoKPIs
+                    municipioId={municipio.id}
+                    codigoIBGE={municipio.codigoIBGE}
+                    totalRecursos={municipio.totalRecursos || 0}
+                    selectedMandato={selectedMandato}
+                    votacaoAle={municipio.votacaoAle}
+                    votacaoLincoln={municipio.votacaoLincoln}
+                    compact={true}
+                />
+            </div>
 
-            <div className="grid grid-cols-12 gap-8">
-                <div className="col-span-12 lg:col-span-4 space-y-8">
-                    <PoliticaGestaoCard 
-                        municipio={municipio} 
-                        assessor={assessores.find(a => a.id === municipio.assessorId)} 
-                    />
-                    <InfoGeraisCard
-                        idh={municipio.idh}
-                        pibPerCapita={municipio.pibPerCapita}
-                        codigoIBGE={municipio.codigoIBGE}
-                    />
-                </div>
-                <div className="col-span-12 lg:col-span-8 space-y-8">
-                    <AtendimentoDemandasCard municipio={municipio} />
-                    <ApoiadoresCard 
-                        apoiadores={apoiadores} 
-                        onAddClick={() => { setEditingApoiador(null); setIsApoiadorModalOpen(true); }}
-                        onEditClick={(a) => { setEditingApoiador(a); setIsApoiadorModalOpen(true); }}
-                        onDeleteClick={handleDeleteApoiador}
-                    />
-                    <RecursosCard municipioId={municipio.id} />
-                    <DemandasCard demandas={municipio.demandas} />
-                    <LiderancasLocaisCard liderancas={municipio.liderancas} />
-                </div>
+            {/* Row 3: Geral Expandido */}
+            <div className="mb-8">
+                <InfoGeraisCard
+                    idh={municipio.idh}
+                    pibPerCapita={municipio.pibPerCapita}
+                    codigoIBGE={municipio.codigoIBGE}
+                />
+            </div>
+
+            <div className="space-y-8 mt-8">
+                <RecursosCard municipioId={municipio.id} />
+                <DemandasCard demandas={municipio.demandas} />
+                <LiderancasLocaisCard liderancas={municipio.liderancas} />
+                <AtendimentoDemandasCard municipio={municipio} />
             </div>
 
             <DemandaModal

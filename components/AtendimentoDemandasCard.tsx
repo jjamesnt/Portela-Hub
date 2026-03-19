@@ -14,6 +14,34 @@ const AtendimentoDemandasCard: React.FC<AtendimentoDemandasCardProps> = ({ munic
                 <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-wider">Atendimento e Demandas</h3>
             </div>
 
+            {/* KPIs de Taxa de Conclusão e Tempo de Resposta */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 dark:bg-slate-900/50 dark:border-slate-800">
+                    <div className="flex justify-between items-baseline mb-1">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">Taxa de Conclusão</p>
+                        <span className="text-[9px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md">+5.2%</span>
+                    </div>
+                    <p className="text-xl font-black text-navy-dark dark:text-white">64%</p>
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+                        <div className="h-full bg-primary rounded-full" style={{ width: '64%' }}></div>
+                    </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 dark:bg-slate-900/50 dark:border-slate-800">
+                    <div className="flex justify-between items-baseline mb-1">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">Tempo de Resposta</p>
+                        <span className="text-[9px] font-bold text-slate-400">Meta: 10d</span>
+                    </div>
+                    <p className="text-xl font-black text-navy-dark dark:text-white">12d</p>
+                    <div className="flex gap-1 mt-2.5">
+                        <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
+                        <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
+                        <div className="h-1.5 flex-1 bg-primary rounded-full"></div>
+                        <div className="h-1.5 flex-1 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                     <div>
