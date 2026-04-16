@@ -122,6 +122,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                         <h3 className="text-sm font-bold text-white">Ações Rápidas</h3>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
+                        <button 
+                            onClick={() => setActivePage('Apoiadores')}
+                            className="flex flex-col items-center justify-center p-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 transition-all border border-rose-500/30 group"
+                        >
+                            <span className="material-symbols-outlined text-rose-400 mb-1 text-xl group-hover:scale-110 transition-transform">person_add</span>
+                            <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider text-center leading-tight">Novo Apoiador</span>
+                        </button>
                         <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
                             <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">person_add</span>
                             <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Nova Liderança</span>
@@ -129,10 +136,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                         <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
                             <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">upload_file</span>
                             <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Importar CSV</span>
-                        </button>
-                        <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
-                            <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">mail</span>
-                            <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Enviar Ofício</span>
                         </button>
                         <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
                             <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">print</span>

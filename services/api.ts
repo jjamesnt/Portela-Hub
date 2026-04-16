@@ -762,7 +762,7 @@ export const getNotificationLogs = async (eventId?: string): Promise<Notificatio
 export const getApoiadores = async (): Promise<Apoiador[]> => {
     const { data, error } = await supabase
         .from('apoiadores')
-        .select('*, municipios(nome)')
+        .select('*, municipios(*)')
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -773,6 +773,7 @@ export const getApoiadores = async (): Promise<Apoiador[]> => {
         id: a.id,
         municipioId: a.municipio_id,
         municipioNome: a.municipios?.nome,
+        municipio: a.municipios ? mapMunicipio(a.municipios) : undefined,
         nome: a.nome,
         cargo: a.cargo,
         telefone: a.telefone,
@@ -786,7 +787,7 @@ export const getApoiadores = async (): Promise<Apoiador[]> => {
 export const getApoiadoresByMunicipio = async (municipioId: string): Promise<Apoiador[]> => {
     const { data, error } = await supabase
         .from('apoiadores')
-        .select('*')
+        .select('*, municipios(*)')
         .eq('municipio_id', municipioId)
         .order('created_at', { ascending: false });
 
@@ -797,6 +798,7 @@ export const getApoiadoresByMunicipio = async (municipioId: string): Promise<Apo
     return (data || []).map(a => ({
         id: a.id,
         municipioId: a.municipio_id,
+        municipio: a.municipios ? mapMunicipio(a.municipios) : undefined,
         nome: a.nome,
         cargo: a.cargo,
         telefone: a.telefone,
@@ -805,6 +807,46 @@ export const getApoiadoresByMunicipio = async (municipioId: string): Promise<Apo
         fotoUrl: a.foto_url,
         createdAt: a.created_at
     })) as Apoiador[];
+};
+
+export const getApoiadorById = async (id: string): Promise<Apoiador | undefined> => {
+    const { data, error } = await supabase
+        .from('apoiadores')
+        .select(`
+            *,
+            municipios:municipio_id (
+                *,
+                assessor:assessor_id (
+                    id,
+                    nome
+                )
+            )
+        `)
+        .eq('id', id)
+        .single();
+
+    if (error) {
+        console.error(`Erro ao buscar apoiador ${id}:`, error);
+        return undefined;
+    }
+
+    const municipioMapped = data.municipios ? mapMunicipio(data.municipios) : undefined;
+    const assessor = data.municipios?.assessor;
+
+    return {
+        id: data.id,
+        municipioId: data.municipio_id,
+        municipioNome: data.municipios?.nome,
+        municipio: municipioMapped,
+        assessor: assessor,
+        nome: data.nome,
+        cargo: data.cargo,
+        telefone: data.telefone,
+        endereco: data.endereco,
+        email: data.email,
+        fotoUrl: data.foto_url,
+        createdAt: data.created_at
+    } as any;
 };
 
 export const upsertApoiador = async (apoiador: Partial<Apoiador>) => {
@@ -855,3 +897,232 @@ export const deleteApoiador = async (id: string) => {
         throw error;
     }
 };
+
+// --- Sincronização ---
+
+const deepNormalize = (s: string) => {
+    return (s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .replace(/\./g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+export const syncSpreadsheetData = async (csvUrl: string): Promise<{ success: number, errors: number }> => {
+    console.log('[Sync] Iniciando sincronização via CSV:', csvUrl);
+    
+    try {
+        const response = await fetch(csvUrl);
+        if (!response.ok) throw new Error('Não foi possível carregar a planilha. Verifique se o link está correto e publicado como CSV.');
+        
+        const csvText = await response.text();
+        const rows = parseCSV(csvText);
+        
+        // 1. Mapear assessores para IDs
+        const assessores = await getAssessores();
+        const assessorMap: Record<string, string> = {};
+        assessores.forEach(a => assessorMap[a.nome.toLowerCase().trim()] = a.id);
+
+        // 2. Mapear Municípios existentes
+        const { data: allMunicipios, error: munError } = await supabase
+            .from('municipios')
+            .select('id, nome');
+        
+        if (munError) throw new Error('Erro ao buscar lista de municípios: ' + munError.message);
+        
+        const municipioMap: Record<string, { id: string, nome: string }> = {};
+        allMunicipios.forEach(m => {
+            municipioMap[deepNormalize(m.nome)] = { id: m.id, nome: m.nome };
+        });
+
+        // 3. Mapear Apoiadores existentes para evitar duplicidade
+        const { data: allApoiadores, error: apoError } = await supabase
+            .from('apoiadores')
+            .select('id, nome, municipio_id');
+        
+        if (apoError) throw new Error('Erro ao buscar lista de apoiadores: ' + apoError.message);
+
+        const existingApoiadorMap: Record<string, string> = {};
+        allApoiadores.forEach(a => {
+            const key = `${a.municipio_id}_${a.nome.toLowerCase().trim()}`;
+            existingApoiadorMap[key] = a.id;
+        });
+
+        const normalize = deepNormalize;
+
+        // --- NOVO: Coletar e Criar Assessores faltantes ---
+        const spreadsheetAssessorNames = new Set<string>();
+        rows.forEach(row => {
+            const val = row[Object.keys(row).find(k => normalize(k) === 'assessor resp') || ''];
+            if (val && typeof val === 'string' && val.trim().length > 1) {
+                let name = val.trim();
+                if (normalize(name) === 'deputada') name = 'Alê Portela';
+                spreadsheetAssessorNames.add(name);
+            }
+        });
+
+        for (const name of spreadsheetAssessorNames) {
+            const normName = normalize(name);
+            // Verifica se existe no assessorMap (DB)
+            const exists = Object.keys(assessorMap).some(k => k === normName || k.includes(normName) || normName.includes(k));
+            
+            if (!exists) {
+                console.log(`[Sync] Criando assessor faltante: ${name}`);
+                const { data: newAssessor, error: assInsError } = await supabase
+                    .from('assessores')
+                    .insert([{ 
+                        nome: name, 
+                        cargo: 'Assessor Regional', 
+                        origem: 'Alê Portela',
+                        avatar_url: 'https://via.placeholder.com/150'
+                    }])
+                    .select()
+                    .single();
+                
+                if (!assInsError && newAssessor) {
+                    assessorMap[normalize(name)] = newAssessor.id;
+                }
+            }
+        }
+
+        let errorCount = 0;
+        const municipioUpdates = new Map<string, any>();
+        const apoiadorUpdates = new Map<string, any>();
+
+        const parseNum = (s: any) => {
+            if (typeof s !== 'string') return parseInt(s) || 0;
+            const clean = s.replace(/\./g, '').replace(/,/g, '.').replace(/[^0-9.]/g, '');
+            return parseInt(clean) || 0;
+        };
+
+        const isSim = (val: any) => {
+            const s = String(val || '').toLowerCase();
+            return s === 'sim' || s === 's' || s === 'true' || s === 'x';
+        };
+
+        // 4. Processar cada linha
+        for (const row of rows) {
+            const getCol = (name: string) => {
+                const normName = normalize(name);
+                const key = Object.keys(row).find(k => normalize(k) === normName);
+                return key ? row[key] : null;
+            };
+
+            const cidade = getCol("Cidade");
+            const nomeBruto = getCol("Nome apoiador");
+            if (!cidade || !nomeBruto) continue;
+
+            const mun = municipioMap[deepNormalize(cidade)];
+            if (!mun) {
+                errorCount++;
+                continue;
+            }
+
+            // A) Vincular Assessor
+            let assessorNome = getCol("Assessor Resp");
+            if (assessorNome && normalize(assessorNome) === 'deputada') assessorNome = 'Alê Portela';
+            
+            let assessorId = null;
+            if (assessorNome) {
+                const normSearch = normalize(assessorNome);
+                // Busca exata ou parcial no mapa atualizado
+                const matchKey = Object.keys(assessorMap).find(k => k === normSearch || k.includes(normSearch) || normSearch.includes(k));
+                assessorId = matchKey ? assessorMap[matchKey] : null;
+            }
+
+            municipioUpdates.set(mun.id, {
+                id: mun.id,
+                nome: mun.nome,
+                status_prefeito: getCol("Status do Prefeito"),
+                votacao_ale: parseNum(getCol("Votação Alê")),
+                votacao_lincoln: parseNum(getCol("Votação Lincoln")),
+                idene: isSim(getCol("IDENE?")),
+                lincoln_fechado: isSim(getCol("Lincoln Portela")) || isSim(getCol("Lincoln Portela fechado?")),
+                status_atendimento: getCol("Status de atendimento"),
+                tipo_atendimento: getCol("Tipo de atendimento"),
+                principal_demanda: getCol("Principal Demanda"),
+                sugestao_sedese: getCol("Sugestão de Programa SEDESE"),
+                observacao: getCol("OBSERVAÇÃO"),
+                assessor_id: assessorId
+            });
+
+            // B) Preparar dados do Apoiador
+            let nomeSemCargo = nomeBruto;
+            let cargoDetectado = '';
+            const cargosPrefixos = ["Vereador ", "Vereadora ", "Vice-Prefeito ", "Vice-Prefeita ", "Prefeito ", "Prefeita ", "Liderança ", "Candidato ", "Candidata "];
+            
+            for (const prefix of cargosPrefixos) {
+                if (nomeBruto.toLowerCase().startsWith(prefix.toLowerCase())) {
+                    cargoDetectado = prefix.trim();
+                    nomeSemCargo = nomeBruto.substring(prefix.length).trim();
+                    break;
+                }
+            }
+
+            const apoiadorKey = `${mun.id}_${nomeSemCargo.toLowerCase().trim()}`;
+            const existingId = existingApoiadorMap[apoiadorKey];
+
+            apoiadorUpdates.set(apoiadorKey, {
+                ...(existingId ? { id: existingId } : {}),
+                municipio_id: mun.id,
+                nome: nomeSemCargo,
+                cargo: cargoDetectado || getCol("Cargo") || '',
+            });
+        }
+
+        // 5. Execuções em Bloco
+        const municipioList = Array.from(municipioUpdates.values());
+        const apoiadorList = Array.from(apoiadorUpdates.values());
+
+        console.log(`[Sync] Sincronizando ${municipioList.length} municípios e ${apoiadorList.length} apoiadores...`);
+        const promessas = [];
+        if (municipioList.length > 0) promessas.push(supabase.from('municipios').upsert(municipioList));
+        if (apoiadorList.length > 0) promessas.push(supabase.from('apoiadores').upsert(apoiadorList));
+
+        const resultados = await Promise.all(promessas);
+        const erroSync = resultados.find(r => r.error);
+        if (erroSync) throw new Error('Erro ao salvar no banco: ' + erroSync.error.message);
+
+        return { success: apoiadorList.length, errors: errorCount };
+    } catch (err) {
+        console.error('[Sync] Erro crítico:', err);
+        throw err;
+    }
+};
+
+// Helper simples para parsear CSV (considerando vírgulas e aspas)
+function parseCSV(text: string) {
+    const lines = text.split(/\r?\n/);
+    if (lines.length === 0) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const results = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        // Regex simplificado para colunas separadas por vírgula, lidando com aspas
+        const values = [];
+        let start = 0;
+        let inQuotes = false;
+        
+        for (let j = 0; j < line.length; j++) {
+            if (line[j] === '"') inQuotes = !inQuotes;
+            if (line[j] === ',' && !inQuotes) {
+                values.push(line.substring(start, j).trim().replace(/^"|"$/g, ''));
+                start = j + 1;
+            }
+        }
+        values.push(line.substring(start).trim().replace(/^"|"$/g, ''));
+        
+        const row: any = {};
+        headers.forEach((h, idx) => {
+            row[h] = values[idx] || '';
+        });
+        results.push(row);
+    }
+    return results;
+}

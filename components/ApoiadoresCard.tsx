@@ -45,7 +45,25 @@ const ApoiadoresCard: React.FC<ApoiadoresCardProps> = ({ apoiadores, onAddClick,
                                 )}
                                 <div className="flex flex-col min-w-0">
                                     <span className="text-xs font-bold text-navy-dark dark:text-white truncate">{a.nome}</span>
-                                    <span className="text-[10px] text-slate-500 font-medium truncate italic">{a.cargo || 'Apoiador'}</span>
+                                    <span className="text-[10px] text-slate-500 font-medium truncate italic mb-1">{a.cargo || 'Apoiador'}</span>
+                                    
+                                    {/* Badges de Informação Política */}
+                                    <div className="flex flex-wrap gap-1">
+                                        {a.municipio?.statusAtendimento && (
+                                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                                                a.municipio.statusAtendimento === 'Contemplado' 
+                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                                                : 'bg-amber-50 text-amber-600 border-amber-100'
+                                            }`}>
+                                                {a.municipio.statusAtendimento}
+                                            </span>
+                                        )}
+                                        {a.municipio?.sugestaoSedese && (
+                                            <span className="bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider">
+                                                SEDESE: {a.municipio.sugestaoSedese}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             

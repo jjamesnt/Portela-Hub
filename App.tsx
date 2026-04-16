@@ -16,9 +16,12 @@ import DemandasPage from './pages/DemandasPage';
 import DemandaMunicipioPage from './pages/DemandaMunicipioPage';
 import RecursosRelatorioPage from './pages/RecursosRelatorioPage';
 import ApoiadoresPage from './pages/ApoiadoresPage';
+import ApoiadorPerfilPage from './pages/ApoiadorPerfilPage';
 
 import LoginPage from './pages/LoginPage';
 import { AppContext } from './context/AppContext';
+import { syncSpreadsheetData } from './services/api';
+import { useEffect, useRef } from 'react';
 
 interface PageState {
   page: string;
@@ -42,6 +45,7 @@ const AppContent: React.FC = () => {
     if (path.includes('/recursos')) return { page: 'Recursos' };
     if (path.includes('/demandas')) return { page: 'Demandas' };
     if (path.includes('/configuracoes')) return { page: 'Configurações' };
+    if (path.includes('/apoiador/')) return { page: 'ApoiadorPerfil', params: { id: path.split('/apoiador/')[1] } };
     if (path.includes('/apoiadores')) return { page: 'Apoiadores' };
 
     return { page: 'Dashboard' };
@@ -49,6 +53,26 @@ const AppContent: React.FC = () => {
 
   if (!context) return null;
   const { user, profile, isLoading } = context;
+  const hasSynced = useRef(false);
+
+  useEffect(() => {
+    const initSync = async () => {
+      const url = localStorage.getItem('portela_hub_sync_url');
+      if (user && profile?.role === 'master' && url && !hasSynced.current) {
+        hasSynced.current = true;
+        console.log('[App] Iniciando sincronização automática de login...');
+        try {
+          await syncSpreadsheetData(url);
+          const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          localStorage.setItem('portela_hub_last_sync', now);
+          console.log('[App] Sincronização automática concluída.');
+        } catch (err) {
+          console.error('[App] Erro na sincronização de login:', err);
+        }
+      }
+    };
+    initSync();
+  }, [user]);
 
   const navigateTo = (page: string, params?: { [key: string]: any }) => {
     setCurrentPage({ page, params });
@@ -67,6 +91,8 @@ const AppContent: React.FC = () => {
 
     if (pathMap[page]) {
       window.history.pushState({}, '', pathMap[page]);
+    } else if (page === 'ApoiadorPerfil' && params?.id) {
+      window.history.pushState({}, '', `/apoiador/${params.id}`);
     }
   };
 
@@ -96,6 +122,8 @@ const AppContent: React.FC = () => {
         return <ConfiguracoesPage navigateTo={navigateTo} />;
       case 'Apoiadores':
         return <ApoiadoresPage navigateTo={navigateTo} />;
+      case 'ApoiadorPerfil':
+        return <ApoiadorPerfilPage apoiadorId={currentPage.params?.id} navigateTo={navigateTo} />;
       default:
         return <div className="p-8 text-center text-slate-500 font-bold">Página não encontrada</div>;
     }

@@ -51,13 +51,20 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ currentImage, onImageSelected
 
     return (
         <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-            <img
-                src={preview || 'https://via.placeholder.com/150'}
-                alt="Avatar do Assessor"
-                className="w-32 h-32 rounded-full object-cover border-4 border-white dark:border-slate-700 shadow-lg transition-transform group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="material-symbols-outlined text-white text-3xl">photo_camera</span>
+            {preview ? (
+                <img
+                    src={preview}
+                    alt="Foto do Apoiador"
+                    className="w-32 h-32 rounded-full object-cover border-4 border-white dark:border-slate-700 shadow-xl transition-transform group-hover:scale-105"
+                />
+            ) : (
+                <div className="w-32 h-32 rounded-full bg-slate-100 dark:bg-slate-800 border-4 border-white dark:border-slate-700 shadow-xl flex flex-col items-center justify-center gap-1 transition-transform group-hover:scale-105">
+                    <span className="material-symbols-outlined text-slate-400 text-5xl">person</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Sem Foto</span>
+                </div>
+            )}
+            <div className="absolute inset-0 bg-navy-dark/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="material-symbols-outlined text-white text-3xl">add_a_photo</span>
             </div>
             <input
                 type="file"

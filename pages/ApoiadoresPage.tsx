@@ -1,15 +1,20 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { getMunicipios, getAssessores } from '../services/api';
+import React, { useState, useMemo, useEffect, useContext } from 'react';
+import { getMunicipios, getAssessores, syncSpreadsheetData } from '../services/api';
+import { AppContext } from '../context/AppContext';
 import { Municipio, Assessor, Apoiador } from '../types';
 import Loader from '../components/Loader';
 import ApoiadorModal from '../components/ApoiadorModal';
+import ApoiadoresReportModal from '../components/ApoiadoresReportModal';
 
 interface ApoiadoresPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
 }
 
 const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
+    const context = useContext(AppContext);
+    const profile = context?.profile;
+
     const [municipios, setMunicipios] = useState<Municipio[]>([]);
     const [assessores, setAssessores] = useState<Assessor[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -22,35 +27,86 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
     const [filtroAssessor, setFiltroAssessor] = useState('Todos');
     const [filtroStatusPrefeito, setFiltroStatusPrefeito] = useState('Todos');
     
-    // Modal
+    // Modal e Sincronia
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncUrl, setSyncUrl] = useState(localStorage.getItem('portela_hub_sync_url') || '');
+    const [lastSyncTime, setLastSyncTime] = useState<string | null>(localStorage.getItem('portela_hub_last_sync') || null);
+
+    const fetchData = async () => {
+        try {
+            setIsLoading(true);
+            const [munData, assData, apoData] = await Promise.all([
+                getMunicipios(),
+                getAssessores(),
+                import('../services/api').then(m => m.getApoiadores())
+            ]);
+            setMunicipios(munData);
+            setAssessores(assData);
+            setApoiadoresTotal(apoData);
+        } catch (err) {
+            console.error("Erro ao carregar dados de apoiadores", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSync = async (silent = false) => {
+        let url = syncUrl;
+        
+        if (!silent) {
+            const promptedUrl = prompt("Cole aqui o link da planilha publicada como CSV:", syncUrl);
+            if (!promptedUrl) return;
+            url = promptedUrl;
+        }
+
+        if (!url) return;
+
+        try {
+            if (!silent) setIsSyncing(true);
+            
+            localStorage.setItem('portela_hub_sync_url', url);
+            setSyncUrl(url);
+
+            const result = await syncSpreadsheetData(url);
+            
+            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            setLastSyncTime(now);
+            localStorage.setItem('portela_hub_last_sync', now);
+
+            if (!silent) {
+                alert(`Sincronização concluída!\n✅ ${result.success} cidades atualizadas.\n❌ ${result.errors} erros.`);
+            }
+            
+            // Recarregar os dados na tela
+            await fetchData();
+        } catch (err: any) {
+            if (!silent) alert("Erro na sincronização: " + err.message);
+            console.error("Erro no auto-sync:", err);
+        } finally {
+            if (!silent) setIsSyncing(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                const [munData, assData, apoData] = await Promise.all([
-                    getMunicipios(),
-                    getAssessores(),
-                    import('../services/api').then(m => m.getApoiadores())
-                ]);
-                setMunicipios(munData);
-                setAssessores(assData);
-                setApoiadoresTotal(apoData);
-            } catch (err) {
-                console.error("Erro ao carregar dados de apoiadores", err);
-            } finally {
-                setIsLoading(false);
+        const init = async () => {
+            await fetchData();
+            // Se houver uma URL salva, faz o sync automático em background
+            if (syncUrl) {
+                handleSync(true);
             }
         };
-        fetchData();
+        init();
     }, []);
 
     // Filtro para Apoiadores (Iterar por apoiador, agregando dados do município)
     const apoiadoresFiltrados = useMemo(() => {
         // Usa apenas os dados do servidor (para evitar duplicidade do mock anterior)
         const totalBase = apoiadoresTotal.map(a => {
-            const m = municipios.find(city => city.id === a.municipioId);
+            // Se o apoiador já vem com o município da API, usamos ele. 
+            // Caso contrário, fazemos o fallback para o join local.
+            const m = a.municipio || municipios.find(city => city.id === a.municipioId);
             const assessor = m ? assessores.find(ass => ass.id === m.assessorId) : undefined;
             return { ...a, municipio: m, assessor };
         });
@@ -120,15 +176,57 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 md:mb-8">
                 <div>
                     <h2 className="text-xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white">Apoiadores</h2>
-                    <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">Acompanhe as lideranças e sua situação em cada cidade.</p>
+                    <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                        {lastSyncTime ? (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.1)] group transition-all">
+                                <span className="relative flex size-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full size-2.5 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
+                                </span>
+                                <span className="text-[10px] md:text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                    Sincronizado {lastSyncTime}
+                                </span>
+                            </div>
+                        ) : (
+                            profile?.role === 'master' && (
+                                <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full group transition-all">
+                                    <span className="size-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
+                                    <span className="text-[10px] md:text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                                        Configuração pendente (CSV)
+                                    </span>
+                                </div>
+                            )
+                        )}
+                    </div>
                 </div>
-                <button 
-                  onClick={() => setIsModalOpen(true)}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-rose-500 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-xl shadow-rose-500/20 hover:brightness-110 active:scale-95 transition-all"
-                >
-                    <span className="material-symbols-outlined">volunteer_activism</span>
-                    Novo Apoiador
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                    {profile?.role === 'master' && (
+                        <button 
+                        onClick={() => handleSync()}
+                        disabled={isSyncing}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider hover:border-indigo-500 hover:text-indigo-500 transition-all disabled:opacity-50 shadow-sm"
+                        >
+                            <span className={`material-symbols-outlined text-[18px] ${isSyncing ? 'animate-spin' : ''}`}>
+                                {isSyncing ? 'sync' : 'table_chart'}
+                            </span>
+                            {isSyncing ? 'Sincronizar' : 'Sincronizar Planilha'}
+                        </button>
+                    )}
+                    <button 
+                      onClick={() => setIsReportModalOpen(true)}
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all shadow-sm group"
+                    >
+                        <span className="material-symbols-outlined text-[18px] group-hover:animate-pulse">description</span>
+                        Gerar Relatório
+                    </button>
+                    <button 
+                      onClick={() => setIsModalOpen(true)}
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md shadow-rose-500/20 hover:bg-rose-600 active:scale-95 transition-all"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">add</span>
+                        Novo Apoiador
+                    </button>
+                </div>
             </div>
 
             {/* Summary Bar */}
@@ -198,10 +296,10 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Apoiador</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Cidade</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Cidade / Região</th>
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status Prefeito</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Votação 2022</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assessor/Responsável</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Votos (A/L)</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Responsável</th>
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Atendimento / Demanda</th>
                                 </tr>
                             </thead>
@@ -211,7 +309,7 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                                     return (
                                         <tr 
                                             key={a.id} 
-                                            onClick={() => navigateTo('MunicipioDetalhes', { id: m.id })}
+                                            onClick={() => navigateTo('ApoiadorPerfil', { id: a.id })}
                                             className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group"
                                         >
                                             <td className="px-6 py-4">
@@ -229,8 +327,8 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                                                     <span className="text-sm font-bold text-navy-dark dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                                         {m.nome}
                                                     </span>
-                                                    <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">
-                                                        {m.regiao}
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                                        Região: {m.regiao || '—'}
                                                     </span>
                                                 </div>
                                             </td>
@@ -304,6 +402,20 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                     </div>
                 </div>
             )}
+            {/* Modal de Relatório */}
+            <ApoiadoresReportModal 
+                isOpen={isReportModalOpen}
+                onClose={() => setIsReportModalOpen(false)}
+                apoiadores={apoiadoresFiltrados}
+                filtrosativos={{
+                    busca,
+                    regiao: filtroRegiao,
+                    assessor: filtroAssessor,
+                    statusPrefeito: filtroStatusPrefeito
+                }}
+                usuarioNome={profile?.full_name}
+            />
+
             {/* Modal de Novo Apoiador */}
             <ApoiadorModal 
                 isOpen={isModalOpen}
@@ -314,6 +426,7 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                 }}
                 allMunicipios={municipios}
                 allApoiadores={apoiadoresTotal}
+                allAssessores={assessores}
             />
         </div>
     );

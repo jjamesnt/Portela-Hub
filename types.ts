@@ -225,6 +225,7 @@ export interface NotificationLog {
 export interface Apoiador {
     id: string;
     municipioId: string;
+    municipio?: Municipio;
     nome: string;
     cargo: string;
     telefone: string;

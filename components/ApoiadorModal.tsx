@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Apoiador, Municipio } from '../types';
+import { Apoiador, Municipio, Assessor } from '../types';
 import { upsertApoiador, updateMunicipio, createMunicipio } from '../services/api';
 import ImageUpload from './ImageUpload';
 import votosData from '../public/data/votos_resumo.json';
@@ -12,10 +12,11 @@ interface ApoiadorModalProps {
     municipio?: Municipio | null;
     allMunicipios?: Municipio[];
     allApoiadores?: Apoiador[];
+    allAssessores?: Assessor[];
     editingApoiador?: Apoiador | null;
 }
 
-const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSuccess, municipio, allMunicipios, allApoiadores, editingApoiador }) => {
+const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSuccess, municipio, allMunicipios, allApoiadores, allAssessores, editingApoiador }) => {
     const [formData, setFormData] = useState<any>({
         nome: '',
         cargo: '',
@@ -29,11 +30,18 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
         idene: municipio?.idene,
         statusAtendimento: municipio?.statusAtendimento,
         principalDemanda: municipio?.principalDemanda,
-        sugestaoSedese: municipio?.sugestaoSedese
+        sugestaoSedese: municipio?.sugestaoSedese,
+        assessorId: municipio?.assessorId || ''
     });
     const [isSaving, setIsSaving] = useState(false);
     const [isCreatingMunicipio, setIsCreatingMunicipio] = useState(false);
+    const [isChangingMunicipio, setIsChangingMunicipio] = useState(false);
     const [newMunicipioData, setNewMunicipioData] = useState({ nome: '', regiao: '' });
+
+    // Autocomplete state
+    const [munSearchTerm, setMunSearchTerm] = useState('');
+    const [showMunSuggestions, setShowMunSuggestions] = useState(false);
+    const munSearchRef = React.useRef<HTMLDivElement>(null);
 
     const selectedMunicipioApoiadores = formData.municipioId && allApoiadores 
         ? allApoiadores.filter(a => a.id !== editingApoiador?.id && a.municipioId === formData.municipioId)
@@ -52,8 +60,10 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
                 idene: m?.idene || false,
                 statusAtendimento: m?.statusAtendimento || '',
                 principalDemanda: m?.principalDemanda || '',
-                sugestaoSedese: m?.sugestaoSedese || ''
+                sugestaoSedese: m?.sugestaoSedese || '',
+                assessorId: m?.assessorId || ''
             });
+            setMunSearchTerm(m?.nome || '');
         } else {
             setFormData({
                 nome: '',
@@ -68,10 +78,37 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
                 idene: municipio?.idene || false,
                 statusAtendimento: municipio?.statusAtendimento || '',
                 principalDemanda: municipio?.principalDemanda || '',
-                sugestaoSedese: municipio?.sugestaoSedese || ''
+                sugestaoSedese: municipio?.sugestaoSedese || '',
+                assessorId: municipio?.assessorId || ''
             });
+            setMunSearchTerm(municipio?.nome || '');
         }
     }, [editingApoiador, municipio, isOpen, allMunicipios]);
+
+    // Close suggestions when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (munSearchRef.current && !munSearchRef.current.contains(event.target as Node)) {
+                setShowMunSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const normalize = (text: string) =>
+        text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+    const filteredMunicipios = allMunicipios
+        ? allMunicipios
+            .filter(m => {
+                const search = normalize(munSearchTerm);
+                return normalize(m.nome).includes(search) || 
+                       normalize(m.regiao).includes(search);
+            })
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+            .slice(0, 10)
+        : [];
 
     if (!isOpen) return null;
 
@@ -92,7 +129,8 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
                 const createdM = await createMunicipio({
                     nome: newMunicipioData.nome,
                     regiao: newMunicipioData.regiao,
-                    status_atividade: 'Manutenção'
+                    status_atividade: 'Manutenção',
+                    assessor_id: anyFormData.assessorId
                 });
                 targetMunicipioId = createdM.id;
             }
@@ -111,6 +149,7 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
             if (anyFormData.lincolnFechado !== undefined) mUpdates.lincoln_fechado = anyFormData.lincolnFechado;
             if (anyFormData.idene !== undefined) mUpdates.idene = anyFormData.idene;
             if (anyFormData.statusAtendimento !== undefined) mUpdates.status_atendimento = anyFormData.statusAtendimento;
+            if (anyFormData.assessorId !== undefined) mUpdates.assessor_id = anyFormData.assessorId;
 
             if (Object.keys(mUpdates).length > 0 && targetMunicipioId) {
                 await updateMunicipio(targetMunicipioId, mUpdates);
@@ -126,49 +165,140 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
     };
 
     return (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-xl shadow-2xl space-y-6 my-8">
+        <div className="fixed inset-0 z-[2000] flex justify-center items-start bg-black/60 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-xl shadow-2xl space-y-6 mt-4 mb-10 md:mt-12 md:mb-20 max-h-fit overflow-x-hidden scrollbar-hide">
                 <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-4">
                     <div>
                         <h3 className="text-xl font-black text-navy-dark dark:text-white">
                             {editingApoiador ? 'Editar Apoiador' : 'Novo Apoiador'}
                         </h3>
-                        {municipio ? (
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{municipio.nome}</p>
-                        ) : (
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Selecione o Município</p>
-                        )}
+                        {municipio && !isChangingMunicipio ? (
+                            <div className="flex items-center gap-2">
+                                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{municipio.nome}</p>
+                                <button 
+                                    onClick={() => setIsChangingMunicipio(true)}
+                                    className="text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:underline"
+                                >
+                                    (Trocar)
+                                </button>
+                            </div>
+                        ) : isChangingMunicipio || !municipio ? (
+                            <div className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px] text-indigo-500 animate-pulse">location_on</span>
+                                <p className="text-xs text-indigo-600 font-black uppercase tracking-wider">
+                                    {munSearchTerm || 'Selecione o Município'}
+                                </p>
+                            </div>
+                        ) : null}
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-rose-500 transition-colors">
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
 
-                {!municipio && allMunicipios && (
+                {(!municipio || isChangingMunicipio) && allMunicipios && (
                     <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl flex flex-col gap-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             {isCreatingMunicipio ? 'Cadastrando Novas Informações de Município' : 'Selecione o Município para o Apoiador'}
                         </label>
                         
                         {!isCreatingMunicipio ? (
-                            <div className="space-y-2">
-                                <select
-                                    value={formData.municipioId}
-                                    onChange={e => {
-                                        if (e.target.value === 'CREATE_NEW') {
-                                            setIsCreatingMunicipio(true);
-                                        } else {
-                                            setFormData(prev => ({ ...prev, municipioId: e.target.value }));
-                                        }
-                                    }}
-                                    className="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-navy-dark dark:text-white"
-                                >
-                                    <option value="">Selecione um município...</option>
-                                    {allMunicipios.sort((a,b) => a.nome.localeCompare(b.nome)).map(m => (
-                                        <option key={m.id} value={m.id}>{m.nome}</option>
-                                    ))}
-                                    <option value="CREATE_NEW" className="text-indigo-600 font-bold">+ Cadastrar Novo Município...</option>
-                                </select>
+                            <div className="relative" ref={munSearchRef}>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-[18px]">search</span>
+                                        <input
+                                            type="text"
+                                            value={munSearchTerm}
+                                            onChange={e => {
+                                                setMunSearchTerm(e.target.value);
+                                                setShowMunSuggestions(true);
+                                                // Reset municipioId if typing
+                                                if (formData.municipioId) setFormData(prev => ({ ...prev, municipioId: '' }));
+                                            }}
+                                            onFocus={() => setShowMunSuggestions(true)}
+                                            placeholder="Busque o município (ex: Belo Horizonte)..."
+                                            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-navy-dark dark:text-white"
+                                        />
+                                        {munSearchTerm && !formData.municipioId && (
+                                            <button 
+                                                onClick={() => { setMunSearchTerm(''); setFormData(p => ({ ...p, municipioId: '' })); }}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">close</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Botões de Ação na Busca */}
+                                    <div className="flex gap-1">
+                                        {formData.municipioId && (
+                                            <button 
+                                                onClick={() => setIsChangingMunicipio(false)}
+                                                className="px-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1 transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                                                Confirmar
+                                            </button>
+                                        )}
+                                        {municipio && (
+                                            <button 
+                                                onClick={() => {
+                                                    setIsChangingMunicipio(false);
+                                                    setFormData(p => ({ ...p, municipioId: municipio.id }));
+                                                    setMunSearchTerm(municipio.nome);
+                                                }}
+                                                className="px-4 bg-slate-200 dark:bg-slate-700 hover:bg-rose-500 hover:text-white text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {showMunSuggestions && (munSearchTerm.length > 0 || filteredMunicipios.length > 0) && (
+                                    <div className="absolute z-[100] left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 duration-150">
+                                        <div className="max-h-60 overflow-y-auto">
+                                            {filteredMunicipios.map(m => (
+                                                <button
+                                                    key={m.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setFormData(prev => ({ 
+                                                            ...prev, 
+                                                            municipioId: m.id,
+                                                            statusPrefeito: m.statusPrefeito || prev.statusPrefeito,
+                                                            lincolnFechado: m.lincolnFechado || prev.lincolnFechado,
+                                                            idene: m.idene || prev.idene,
+                                                            statusAtendimento: m.statusAtendimento || prev.statusAtendimento,
+                                                            principalDemanda: m.principalDemanda || prev.principalDemanda,
+                                                            sugestaoSedese: m.sugestaoSedese || prev.sugestaoSedese
+                                                        }));
+                                                        setMunSearchTerm(m.nome);
+                                                        setShowMunSuggestions(false);
+                                                    }}
+                                                    className="w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 flex flex-col border-b border-slate-100 dark:border-slate-700 last:border-0 transition-colors"
+                                                >
+                                                    <span className="text-sm font-bold text-navy-dark dark:text-white">{m.nome}</span>
+                                                    <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">{m.regiao}</span>
+                                                </button>
+                                            ))}
+                                            
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsCreatingMunicipio(true);
+                                                    setShowMunSuggestions(false);
+                                                    setNewMunicipioData(prev => ({ ...prev, nome: munSearchTerm }));
+                                                }}
+                                                className="w-full px-4 py-3 text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/10 flex items-center gap-2 text-indigo-600 dark:text-indigo-400 transition-colors border-t border-slate-100 dark:border-slate-700 italic"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">add_location</span>
+                                                <span className="text-xs font-black uppercase tracking-wider">Cadastrar "{munSearchTerm || 'Novo Município'}"...</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
@@ -181,23 +311,37 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
                                         className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
                                     />
                                 </div>
-                                <div className="flex gap-2">
-                                    <select 
-                                        value={newMunicipioData.regiao}
-                                        onChange={e => setNewMunicipioData(prev => ({ ...prev, regiao: e.target.value }))}
-                                        className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
-                                    >
-                                        <option value="">Região?</option>
-                                        {['Central Mineira', 'Zona da Mata', 'Norte de Minas', 'Sul de Minas', 'Triângulo Mineiro', 'Alto Paranaíba', 'Oeste de Minas'].map(r => (
-                                            <option key={r} value={r}>{r}</option>
-                                        ))}
-                                    </select>
-                                    <button 
-                                        onClick={() => setIsCreatingMunicipio(false)}
-                                        className="px-2 text-slate-400 hover:text-rose-500"
-                                    >
-                                        <span className="material-symbols-outlined text-[18px]">close</span>
-                                    </button>
+                                <div className="flex gap-2 items-end">
+                                    <div className="flex-1">
+                                        <select 
+                                            value={newMunicipioData.regiao}
+                                            onChange={e => setNewMunicipioData(prev => ({ ...prev, regiao: e.target.value }))}
+                                            className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                                        >
+                                            <option value="">Região?</option>
+                                            {['Central Mineira', 'Zona da Mata', 'Norte de Minas', 'Sul de Minas', 'Triângulo Mineiro', 'Alto Paranaíba', 'Oeste de Minas'].map(r => (
+                                                <option key={r} value={r}>{r}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex gap-1 h-[34px]">
+                                        <button 
+                                            onClick={() => setIsCreatingMunicipio(false)}
+                                            className="px-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1 transition-colors"
+                                        >
+                                            Concluído
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                setIsCreatingMunicipio(false);
+                                                setNewMunicipioData({ nome: '', regiao: '' });
+                                            }}
+                                            className="px-2 text-slate-400 hover:text-rose-500"
+                                            title="Cancelar"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">close</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -232,23 +376,15 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex flex-col items-center gap-4">
-                        <ImageUpload 
-                            currentImage={formData.fotoUrl}
-                            onImageSelected={(img) => setFormData(prev => ({ ...prev, fotoUrl: img }))}
-                        />
-                        <p className="text-[10px] text-slate-400 font-bold uppercase text-center">Foto do Apoiador</p>
-                    </div>
-                    
-                    <div className="space-y-4">
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome Completo</label>
                             <input 
                                 type="text"
                                 value={formData.nome || ''}
                                 onChange={e => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold"
                                 placeholder="Nome do apoiador"
                             />
                         </div>
@@ -258,11 +394,19 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
                                 type="text"
                                 value={formData.cargo || ''}
                                 onChange={e => setFormData(prev => ({ ...prev, cargo: e.target.value }))}
-                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                placeholder="Ex: Liderança, Vereador..."
+                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold"
+                                placeholder="Ex: Vereador, Liderança..."
                             />
                         </div>
                     </div>
+
+                    <div className="flex justify-center">
+                        <ImageUpload 
+                            currentImage={formData.fotoUrl}
+                            onImageSelected={(img) => setFormData(prev => ({ ...prev, fotoUrl: img }))}
+                        />
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase text-center -mt-2">Foto do Apoiador</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -350,6 +494,23 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
                                 <option value="">Pendente</option>
                                 <option value="Contemplado">Contemplado</option>
                                 <option value="Não contemplado">Não contemplado</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px]">badge</span>
+                                Responsável (Assessor)
+                            </label>
+                            <select 
+                                value={(formData as any).assessorId || ''}
+                                onChange={e => setFormData(prev => ({ ...prev, assessorId: e.target.value } as any))}
+                                className="w-full mt-1 p-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-indigo-600 dark:text-indigo-400"
+                            >
+                                <option value="">Selecione o Responsável...</option>
+                                {allAssessores?.map(ass => (
+                                    <option key={ass.id} value={ass.id}>{ass.nome}</option>
+                                ))}
                             </select>
                         </div>
 

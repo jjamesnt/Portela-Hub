@@ -33,7 +33,7 @@ def is_running(pid):
     except OSError:
         return False
 
-def get_start_command(root):
+def get_start_command(root, mode="dev"):
     pkg_file = root / "package.json"
     if not pkg_file.exists():
         return None
@@ -42,13 +42,16 @@ def get_start_command(root):
         data = json.load(f)
     
     scripts = data.get("scripts", {})
+    if mode == "preview" and "preview" in scripts:
+        return ["npm", "run", "preview"]
+    
     if "dev" in scripts:
         return ["npm", "run", "dev"]
     elif "start" in scripts:
         return ["npm", "start"]
     return None
 
-def start_server(port=3000):
+def start_server(port=3000, mode="dev"):
     if PID_FILE.exists():
         try:
             pid = int(PID_FILE.read_text().strip())
@@ -59,10 +62,10 @@ def start_server(port=3000):
             pass # Invalid PID file
 
     root = get_project_root()
-    cmd = get_start_command(root)
+    cmd = get_start_command(root, mode)
     
     if not cmd:
-        print("[X] No 'dev' or 'start' script found in package.json")
+        print(f"[X] No '{mode}' or 'start' script found in package.json")
         sys.exit(1)
     
     # Add port env var if needed (simple heuristic)
@@ -135,11 +138,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["start", "stop", "status"])
     parser.add_argument("port", nargs="?", default="3000")
+    parser.add_argument("--preview", action="store_true", help="Start in preview mode (build)")
     
     args = parser.parse_args()
     
     if args.action == "start":
-        start_server(int(args.port))
+        mode = "preview" if args.preview else "dev"
+        start_server(int(args.port), mode)
     elif args.action == "stop":
         stop_server()
     elif args.action == "status":
