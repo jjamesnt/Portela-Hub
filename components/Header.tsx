@@ -3,10 +3,25 @@ import React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 
 const Header: React.FC = () => {
-    const { theme, toggleTheme, selectedMandato, setSelectedMandato, toggleSidebar } = useAppContext();
+    const { theme, toggleTheme, selectedMandato, setSelectedMandato, toggleSidebar, impersonatedProfile, stopImpersonating } = useAppContext();
 
     return (
-        <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-3 md:px-8 shrink-0 gap-2 md:gap-4">
+        <>
+            {impersonatedProfile && (
+                <div className="bg-amber-600 dark:bg-amber-700 text-white px-4 md:px-8 py-2.5 flex justify-between items-center z-[5000] sticky top-0 shadow-lg border-b border-amber-500/30 animate-in slide-in-from-top duration-300">
+                    <div className="flex items-center gap-3 text-[10px] md:text-sm font-black uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-lg md:text-xl">visibility</span>
+                        <span>MODO SUPORTE: Visualizando como <strong className="bg-white/20 px-2 py-0.5 rounded">{impersonatedProfile.full_name}</strong></span>
+                    </div>
+                    <button 
+                        onClick={stopImpersonating}
+                        className="bg-white text-amber-700 hover:bg-amber-50 px-3 md:px-4 py-1 rounded-full text-[9px] md:text-xs font-black transition-all hover:scale-105 active:scale-95 shadow-sm"
+                    >
+                        ENCERRAR SESSÃO
+                    </button>
+                </div>
+            )}
+            <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-3 md:px-8 shrink-0 gap-2 md:gap-4">
 
             {/* Mobile Menu Button */}
             <button
@@ -75,6 +90,7 @@ const Header: React.FC = () => {
                 </button>
             </div>
         </header>
+        </>
     );
 };
 export default Header;

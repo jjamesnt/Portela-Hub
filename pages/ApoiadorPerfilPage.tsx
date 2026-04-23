@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getApoiadorById, deleteApoiador } from '../services/api';
-import { Apoiador, Municipio } from '../types';
+import { Apoiador, Municipio, Assessor } from '../types';
 import Loader from '../components/Loader';
 import ApoiadorModal from '../components/ApoiadorModal';
 import ConfirmModal from '../components/ConfirmModal';

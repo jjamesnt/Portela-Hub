@@ -21,9 +21,22 @@ export interface AppContextType {
     toggleSidebar: () => void;
     user: any | null; // Supabase User
     profile: Profile | null;
+    setProfile: React.Dispatch<React.SetStateAction<Profile | null>>;
+    impersonatedProfile: Profile | null;
     profileError: string | null;
     isLoading: boolean;
     signOut: () => Promise<void>;
+    impersonateUser: (profile: Profile) => void;
+    stopImpersonating: () => void;
+    rolePermissions: Record<string, string[]>;
+    setRolePermissions: React.Dispatch<React.SetStateAction<Record<string, string[]>>>;
+    roleDisplayNames: Record<string, string>;
+    setRoleDisplayNames: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+    updateRolePermission: (role: string, itemLabel: string, active: boolean) => Promise<void>;
+    bulkUpdateRolePermissions: (role: string, itemLabels: string[]) => Promise<void>;
+    createRole: (roleName: string) => Promise<void>;
+    deleteRole: (roleName: string) => Promise<void>;
+    renameRole: (oldRole: string, newRole: string) => Promise<void>;
 }
 
 export interface Profile {
@@ -31,7 +44,7 @@ export interface Profile {
     full_name: string;
     phone: string;
     email: string;
-    role: 'master' | 'admin' | 'user';
+    role: string;
     status: 'pending' | 'active' | 'blocked';
     created_at: string;
 }

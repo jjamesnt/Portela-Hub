@@ -43,6 +43,7 @@ const CoberturaMap: React.FC<{
     recursos: Recurso[],
     selectedMandato: string
 }> = ({ municipios, liderancas, assessores, recursos, selectedMandato }) => {
+    const { theme } = useContext(AppContext)!;
     // MG Coordinates center
     const center: [number, number] = [-18.5122, -44.5550];
 
@@ -98,16 +99,19 @@ const CoberturaMap: React.FC<{
                     className="map-pt-br-minimalist"
                 >
                     <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                        url={theme === 'dark' 
+                            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                            : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                        }
                     />
 
                     {/* Map Mask: Dims everything outside Minas Gerais */}
                     <Polygon
                         positions={MG_MASK_COORDINATES}
                         pathOptions={{
-                            fillColor: '#f1f5f9',
-                            fillOpacity: 0.8,
+                            fillColor: theme === 'dark' ? '#0f172a' : '#f1f5f9',
+                            fillOpacity: theme === 'dark' ? 0.7 : 0.8,
                             weight: 0,
                             stroke: false
                         }}
@@ -116,10 +120,11 @@ const CoberturaMap: React.FC<{
                     <GeoJSON
                         data={MG_GEOJSON as any}
                         style={{
-                            color: "#0d9488",
-                            weight: 3,
-                            fillColor: "transparent",
-                            dashArray: '10, 10'
+                            color: "var(--color-primary)",
+                            weight: 2,
+                            fillColor: "var(--color-primary)",
+                            fillOpacity: 0.05,
+                            opacity: 0.8
                         }}
                     />
                     <ResizeMap />
@@ -134,9 +139,14 @@ const CoberturaMap: React.FC<{
                                         zIndexOffset={100}
                                         icon={L.divIcon({
                                             className: 'lider-icon-marker',
-                                            html: `<div style="background-color: #3b82f6; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(59, 130, 246, 0.8), 0 0 5px rgba(0,0,0,0.3); z-index: 1000;"></div>`,
-                                            iconSize: [12, 12],
-                                            iconAnchor: [6, 6]
+                                            html: `
+                                                <div class="relative flex items-center justify-center">
+                                                    <div class="absolute w-6 h-6 bg-blue-500/20 rounded-full animate-ping"></div>
+                                                    <div style="background-color: #3b82f6; width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); position: relative; z-index: 10;"></div>
+                                                </div>
+                                            `,
+                                            iconSize: [24, 24],
+                                            iconAnchor: [12, 12]
                                         })}
                                     >
                                         <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
@@ -167,9 +177,14 @@ const CoberturaMap: React.FC<{
                                         zIndexOffset={200}
                                         icon={L.divIcon({
                                             className: 'assessor-icon-marker',
-                                            html: `<div style="background-color: #f97316; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8), 0 0 5px rgba(0,0,0,0.3); z-index: 1000;"></div>`,
-                                            iconSize: [12, 12],
-                                            iconAnchor: [6, 6]
+                                            html: `
+                                                <div class="relative flex items-center justify-center">
+                                                    <div class="absolute w-6 h-6 bg-orange-500/20 rounded-full animate-ping"></div>
+                                                    <div style="background-color: #f97316; width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); position: relative; z-index: 10;"></div>
+                                                </div>
+                                            `,
+                                            iconSize: [24, 24],
+                                            iconAnchor: [12, 12]
                                         })}
                                     >
                                         <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
@@ -198,9 +213,21 @@ const CoberturaMap: React.FC<{
                                         position={[mun.latitude!, mun.longitude!]}
                                         icon={L.divIcon({
                                             className: 'municipio-icon',
-                                            html: `<div style="background-color: rgba(20, 184, 166, 0.3); width: ${Math.min(24, (mun.totalRecursos || 0) / 10000 + 10)}px; height: ${Math.min(24, (mun.totalRecursos || 0) / 10000 + 10)}px; border-radius: 50%; border: 1.5px solid #14b8a6; box-shadow: inset 0 0 5px rgba(20, 184, 166, 0.2);"></div>`,
-                                            iconSize: [24, 24],
-                                            iconAnchor: [12, 12]
+                                            html: `
+                                                <div class="relative flex items-center justify-center">
+                                                    <div style="
+                                                        background-color: rgba(20, 184, 166, 0.15); 
+                                                        width: ${Math.min(32, (mun.totalRecursos || 0) / 50000 + 16)}px; 
+                                                        height: ${Math.min(32, (mun.totalRecursos || 0) / 50000 + 16)}px; 
+                                                        border-radius: 50%; 
+                                                        border: 1px solid rgba(20, 184, 166, 0.4);
+                                                        backdrop-filter: blur(1px);
+                                                    "></div>
+                                                    <div class="absolute w-2 h-2 bg-teal-500 rounded-full border border-white shadow-sm"></div>
+                                                </div>
+                                            `,
+                                            iconSize: [32, 32],
+                                            iconAnchor: [16, 16]
                                         })}
                                     >
                                         <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>

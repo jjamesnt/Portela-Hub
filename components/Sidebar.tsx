@@ -7,20 +7,23 @@ interface SidebarProps {
     setActivePage: (page: string) => void;
 }
 
-const navItems = [
-    { label: 'Dashboard', icon: 'dashboard' },
-    { label: 'Municípios', icon: 'location_city' },
-    { label: 'Lideranças', icon: 'groups' },
-    { label: 'Apoiadores', icon: 'volunteer_activism' },
-    { label: 'Assessores', icon: 'badge' },
-    { label: 'Agenda', icon: 'calendar_today' },
-    { label: 'Recursos', icon: 'payments' },
-    { label: 'Demandas', icon: 'assignment' },
-    { label: 'Configurações', icon: 'settings' },
+export const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+    { id: 'municipios', label: 'Municípios', icon: 'location_city' },
+    { id: 'liderancas', label: 'Lideranças', icon: 'groups' },
+    { id: 'apoiadores', label: 'Apoiadores', icon: 'volunteer_activism' },
+    { id: 'assessores', label: 'Assessores', icon: 'badge' },
+    { id: 'agenda', label: 'Agenda', icon: 'calendar_today' },
+    { id: 'recursos', label: 'Recursos', icon: 'payments' },
+    { id: 'demandas', label: 'Demandas', icon: 'assignment' },
+    { id: 'configuracoes', label: 'Configurações', icon: 'settings' },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
-    const { selectedMandato, isSidebarOpen, toggleSidebar, profile, signOut } = useAppContext();
+    const { selectedMandato, isSidebarOpen, toggleSidebar, profile, signOut, rolePermissions } = useAppContext();
+
+    const role = profile?.role || 'user';
+    const allowedItems = rolePermissions[role] || rolePermissions.user || [];
 
     const isActive = (itemLabel: string) => {
         if (itemLabel === 'Municípios' && activePage === 'MunicipioDetalhes') {
@@ -28,6 +31,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
         }
         return activePage === itemLabel;
     };
+
+    const filteredNavItems = navItems.filter(item => allowedItems.includes(item.label));
 
     return (
         <>
@@ -98,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                     )}
                 </div>
                 <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-                    {navItems.map(item => (
+                    {filteredNavItems.map(item => (
                         <button
                             key={item.label}
                             onClick={() => {
@@ -117,30 +122,43 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                 </nav>
 
                 <div className="p-4 border-t border-white/10 bg-[#001a38]">
-                    <div className="flex items-center gap-2 mb-4 px-1">
-                        <span className="material-symbols-outlined text-turquoise text-xl">bolt</span>
-                        <h3 className="text-sm font-bold text-white">Ações Rápidas</h3>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button 
-                            onClick={() => setActivePage('Apoiadores')}
-                            className="flex flex-col items-center justify-center p-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 transition-all border border-rose-500/30 group"
-                        >
-                            <span className="material-symbols-outlined text-rose-400 mb-1 text-xl group-hover:scale-110 transition-transform">person_add</span>
-                            <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider text-center leading-tight">Novo Apoiador</span>
-                        </button>
-                        <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
-                            <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">person_add</span>
-                            <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Nova Liderança</span>
-                        </button>
-                        <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
-                            <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">upload_file</span>
-                            <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Importar CSV</span>
-                        </button>
-                        <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
-                            <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">print</span>
-                            <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Gerar PDF</span>
-                        </button>
+                    <div className="p-4 border-t border-white/10 bg-[#001a38]">
+                        <div className="flex items-center gap-2 mb-4 px-1">
+                            <span className="material-symbols-outlined text-turquoise text-xl">bolt</span>
+                            <h3 className="text-sm font-bold text-white">Ações Rápidas</h3>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {allowedItems.includes('Apoiadores') && (
+                                <button
+                                    onClick={() => setActivePage('Apoiadores')}
+                                    className="flex flex-col items-center justify-center p-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 transition-all border border-rose-500/30 group"
+                                >
+                                    <span className="material-symbols-outlined text-rose-400 mb-1 text-xl group-hover:scale-110 transition-transform">person_add</span>
+                                    <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider text-center leading-tight">Novo Apoiador</span>
+                                </button>
+                            )}
+                            {allowedItems.includes('Lideranças') && (
+                                <button
+                                    onClick={() => setActivePage('Lideranças')}
+                                    className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group"
+                                >
+                                    <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">person_add</span>
+                                    <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Nova Liderança</span>
+                                </button>
+                            )}
+                            {allowedItems.includes('Municípios') && (
+                                <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
+                                    <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">upload_file</span>
+                                    <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Importar CSV</span>
+                                </button>
+                            )}
+                            {(allowedItems.includes('Recursos') || allowedItems.includes('Demandas')) && (
+                                <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
+                                    <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">print</span>
+                                    <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Gerar PDF</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 

@@ -6,13 +6,46 @@
     <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
     <title>Portela Hub</title>
     <style>
-        .map-pt-br-minimalist .leaflet-tile-pane {
-            filter: grayscale(100%) brightness(1.05) contrast(0.9) opacity(0.9) !important;
-        }
-
         .lider-icon-marker div,
         .assessor-icon-marker div {
             filter: none !important;
+        }
+
+        .leaflet-tooltip {
+            background: rgba(255, 255, 255, 0.8) !important;
+            backdrop-filter: blur(8px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+            padding: 4px 8px !important;
+        }
+
+        .dark .leaflet-tooltip {
+            background: rgba(15, 23, 42, 0.8) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            color: white !important;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: rgba(255, 255, 255, 0.9) !important;
+            backdrop-filter: blur(12px) !important;
+            border-radius: 12px !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+
+        .dark .leaflet-popup-content-wrapper {
+            background: rgba(30, 41, 59, 0.9) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            color: white !important;
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(255, 255, 255, 0.9) !important;
+            backdrop-filter: blur(12px) !important;
+        }
+
+        .dark .leaflet-popup-tip {
+            background: rgba(30, 41, 59, 0.9) !important;
         }
     </style>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>

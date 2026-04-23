@@ -52,7 +52,7 @@ const AppContent: React.FC = () => {
   });
 
   if (!context) return null;
-  const { user, profile, isLoading } = context;
+  const { user, profile, isLoading, rolePermissions } = context;
   const hasSynced = useRef(false);
 
   useEffect(() => {
@@ -96,7 +96,36 @@ const AppContent: React.FC = () => {
     }
   };
 
+
+
   const renderContent = () => {
+    const role = profile?.role || 'user';
+    const allowedModules = rolePermissions[role] || [];
+    
+    // Mapeamento de sub-páginas para seus módulos principais
+    const subPageMap: Record<string, string> = {
+      'MunicipioDetalhes': 'Municípios',
+      'RecursosRelatorio': 'Recursos',
+      'DemandaMunicipio': 'Demandas',
+      'ApoiadorPerfil': 'Apoiadores'
+    };
+
+    const currentModule = subPageMap[currentPage.page] || currentPage.page;
+
+    // Se o módulo atual não for permitido, tenta ir para o primeiro permitido
+    if (allowedModules.length > 0 && !allowedModules.includes(currentModule)) {
+      const firstAllowed = allowedModules[0];
+      // Para evitar loops infinitos, só navegamos se houver um destino válido
+      if (firstAllowed && firstAllowed !== currentPage.page) {
+        setTimeout(() => navigateTo(firstAllowed), 0);
+        return <div className="h-full flex items-center justify-center"><Loader /></div>;
+      }
+    }
+
+    if (allowedModules.length === 0 && !isLoading) {
+       return <div className="p-8 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">Nenhum módulo disponível para seu perfil</div>;
+    }
+
     switch (currentPage.page) {
       case 'Dashboard':
         return <DashboardPage navigateTo={navigateTo} />;

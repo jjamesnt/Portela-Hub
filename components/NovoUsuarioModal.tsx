@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { profileService } from '../services/profileService';
 
 interface NovoUsuarioModalProps {
     isOpen: boolean;
@@ -25,19 +25,14 @@ export const NovoUsuarioModal: React.FC<NovoUsuarioModalProps> = ({ isOpen, onCl
         setError(null);
 
         try {
-            const { data, error: invokeError } = await supabase.functions.invoke('create-user', {
-                body: {
-                    email,
-                    password,
-                    full_name: fullName,
-                    phone,
-                    role,
-                    status: 'active'
-                }
+            await profileService.createUser({
+                email,
+                password,
+                full_name: fullName,
+                phone,
+                role,
+                status: 'active'
             });
-
-            if (invokeError) throw new Error(invokeError.message || 'Falha ao conectar com o serviço de criação');
-            if (data?.error) throw new Error(data.error);
 
             onSuccess();
             onClose();
