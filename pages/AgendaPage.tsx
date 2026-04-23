@@ -68,7 +68,7 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
             case 'Reunião': return '#3b82f6'; // blue-500
             case 'Visita Técnica': return '#f59e0b'; // amber-500
             case 'Evento Público': return '#10b981'; // emerald-500
-            case 'Sessão Plenária': return '#a855f7'; // purple-500
+            case 'Sessão Plenária': return '#6366f1'; // indigo-500
             case 'Google Calendar': return '#f43f5e'; // rose-500
             default: return '#64748b'; // slate-500
         }

@@ -344,7 +344,7 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                                                         {hasImage ? (
                                                             <img src={a.fotoUrl} alt={a.nome} className="w-full h-full object-cover" />
                                                         ) : (
-                                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] text-white font-black">
+                                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-[10px] text-white font-black">
                                                                 {initials}
                                                             </div>
                                                         )}
@@ -456,7 +456,7 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                                         {hasImage ? (
                                             <img src={a.fotoUrl} alt={a.nome} className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-sm">
+                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-black text-sm">
                                                 {initials}
                                             </div>
                                         )}

@@ -330,7 +330,7 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-sm">
+                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-black text-sm">
                                                 {initials}
                                             </div>
                                         )}
@@ -404,7 +404,7 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-xs md:text-base">
+                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-black text-xs md:text-base">
                                                 {initials}
                                             </div>
                                         )}

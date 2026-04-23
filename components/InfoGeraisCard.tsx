@@ -55,7 +55,7 @@ const InfoGeraisCard: React.FC<InfoGeraisCardProps> = ({ idh, pibPerCapita, codi
                     <>
                         <InfoRow label="População" value={ibge?.populacao ? `${parseInt(ibge.populacao).toLocaleString('pt-BR')} hab` : '—'} icon="groups" color="text-indigo-500" />
                         <InfoRow label="Área Territorial" value={ibge?.area ? `${parseFloat(ibge.area).toLocaleString('pt-BR')} km²` : '—'} icon="map" color="text-amber-500" />
-                        <InfoRow label="Densidade" value={ibge?.densidade ? `${parseFloat(ibge.densidade).toLocaleString('pt-BR')} hab/km²` : '—'} icon="grid_view" color="text-purple-500" />
+                        <InfoRow label="Densidade" value={ibge?.densidade ? `${parseFloat(ibge.densidade).toLocaleString('pt-BR')} hab/km²` : '—'} icon="grid_view" color="text-indigo-500" />
                         <InfoRow label="Taxa de Escolarização" value="98.5%" icon="school" color="text-teal-500" />
                         <InfoRow label="População Ocupada" value="32.8%" icon="work" color="text-cyan-500" />
                         <InfoRow label="Mortalidade Infantil" value="11.2 ‰" icon="medical_services" color="text-rose-500" />

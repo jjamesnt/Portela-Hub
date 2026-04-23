@@ -44,7 +44,7 @@ const EleitoradoCard: React.FC<EleitoradoCardProps> = ({ codigoIBGE }) => {
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="px-4 md:px-5 py-3 md:py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/10">
                 <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-purple-500 text-lg">how_to_vote</span>
+                    <span className="material-symbols-outlined text-indigo-500 text-lg">how_to_vote</span>
                     <h3 className="text-navy-dark dark:text-white text-sm md:text-sm font-black uppercase tracking-widest">Eleitorado (TSE)</h3>
                 </div>
                 {data.isBiometria && (
@@ -55,7 +55,7 @@ const EleitoradoCard: React.FC<EleitoradoCardProps> = ({ codigoIBGE }) => {
             <div className="p-4 md:p-5">
                 <div className="mb-4">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total de Eleitores Aptos</p>
-                    <h3 className="text-2xl font-black text-purple-600 dark:text-purple-400 mt-0.5">
+                    <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
                         {data.eleitores.toLocaleString('pt-BR')}
                     </h3>
                 </div>

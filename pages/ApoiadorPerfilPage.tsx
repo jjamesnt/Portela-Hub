@@ -108,14 +108,14 @@ const ApoiadorPerfilPage: React.FC<ApoiadorPerfilPageProps> = ({ apoiadorId, nav
                 <div className="md:col-span-1 space-y-6">
 
                     <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-xl border border-slate-100 dark:border-slate-700 text-center relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-indigo-500 to-purple-600 -z-0 opacity-10"></div>
+                        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-indigo-500 to-cyan-500 -z-0 opacity-10"></div>
                         
                         <div className="relative z-10 flex flex-col items-center">
                             <div className="size-32 rounded-[2rem] bg-slate-100 dark:bg-slate-900 p-1 mb-4 shadow-2xl">
                                 {apoiador.fotoUrl && !apoiador.fotoUrl.includes('placeholder') && !apoiador.fotoUrl.includes('via.placeholder') ? (
                                     <img src={apoiador.fotoUrl} alt={apoiador.nome} className="w-full h-full object-cover rounded-[1.8rem]" />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-[1.8rem]">
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-500 text-white rounded-[1.8rem]">
                                         <span className="text-4xl font-black">{apoiador.nome.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}</span>
                                     </div>
                                 )}
@@ -212,7 +212,7 @@ const ApoiadorPerfilPage: React.FC<ApoiadorPerfilPageProps> = ({ apoiadorId, nav
                             </div>
                             <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex flex-col justify-between">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Participação IDENE</p>
-                                <span className={`w-fit px-3 py-1 rounded-full text-[11px] font-black ${m?.idene ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-500'}`}>
+                                <span className={`w-fit px-3 py-1 rounded-full text-[11px] font-black ${m?.idene ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
                                     {m?.idene ? 'Sim' : 'Não'}
                                 </span>
                             </div>

@@ -26,7 +26,7 @@ const StatusBadge: React.FC<{ status: Recurso['status'] }> = ({ status }) => {
 
 const TipoBadge: React.FC<{ tipo: string }> = ({ tipo }) => {
     const styles: { [key: string]: string } = {
-        'Emenda': 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400',
+        'Emenda': 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400',
         'Veículo': 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
         'Equipamento': 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400',
         'Obra': 'bg-cyan-50 text-cyan-600 dark:bg-cyan-900/20 dark:text-cyan-400',
@@ -210,7 +210,7 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                     <h2 className="text-base md:text-2xl font-black text-navy-dark dark:text-white truncate">{topMunicipio}</h2>
                 </div>
                 <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group min-h-[100px] md:min-h-0">
-                    <div className="absolute top-0 right-0 w-20 md:w-24 h-20 md:h-24 bg-purple-500/5 rounded-full -mr-10 -mt-10 md:-mr-12 md:-mt-12 transition-transform group-hover:scale-110"></div>
+                    <div className="absolute top-0 right-0 w-20 md:w-24 h-20 md:h-24 bg-indigo-500/5 rounded-full -mr-10 -mt-10 md:-mr-12 md:-mt-12 transition-transform group-hover:scale-110"></div>
                     <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 md:mb-1">TOTAL QTD</p>
                     <h2 className="text-base md:text-2xl font-black text-navy-dark dark:text-white">{recursosFiltrados.length}</h2>
                 </div>

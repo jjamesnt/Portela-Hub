@@ -36,7 +36,7 @@ const IBGEMunicipioStats: React.FC<IBGEMunicipioStatsProps> = ({ codigoIBGE }) =
         { label: 'População', value: data.populacao, unit: 'hab', icon: 'groups', color: 'text-blue-500' },
         { label: 'PIB per capita', value: `R$ ${parseFloat(data.pibPerCapita).toLocaleString('pt-BR')}`, unit: '', icon: 'payments', color: 'text-emerald-500' },
         { label: 'Área Territorial', value: data.area, unit: 'km²', icon: 'map', color: 'text-amber-500' },
-        { label: 'Densidade', value: data.densidade, unit: 'hab/km²', icon: 'grid_view', color: 'text-purple-500' },
+        { label: 'Densidade', value: data.densidade, unit: 'hab/km²', icon: 'grid_view', color: 'text-indigo-500' },
     ];
 
     return (
