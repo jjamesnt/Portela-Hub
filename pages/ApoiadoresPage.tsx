@@ -26,6 +26,9 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
     const [filtroRegiao, setFiltroRegiao] = useState('Todos');
     const [filtroAssessor, setFiltroAssessor] = useState('Todos');
     const [filtroStatusPrefeito, setFiltroStatusPrefeito] = useState('Todos');
+    const [viewMode, setViewMode] = useState<'table' | 'grid'>(() => {
+        return (localStorage.getItem('portela_hub_apoiadores_view') as 'table' | 'grid') || 'table';
+    });
     
     // Modal e Sincronia
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -88,6 +91,10 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
             if (!silent) setIsSyncing(false);
         }
     };
+
+    useEffect(() => {
+        localStorage.setItem('portela_hub_apoiadores_view', viewMode);
+    }, [viewMode]);
 
     useEffect(() => {
         const init = async () => {
@@ -199,29 +206,45 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                         )}
                     </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    {/* Toggle Visualização Premium */}
+                    <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-700/50 h-11 md:h-12 shadow-inner">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`flex items-center justify-center px-4 rounded-xl transition-all duration-300 ${viewMode === 'grid' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-[0_4px_12px_rgba(0,0,0,0.08)] dark:shadow-none' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                        >
+                            <span className="material-symbols-outlined text-[22px]">grid_view</span>
+                        </button>
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={`flex items-center justify-center px-4 rounded-xl transition-all duration-300 ${viewMode === 'table' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-[0_4px_12px_rgba(0,0,0,0.08)] dark:shadow-none' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                        >
+                            <span className="material-symbols-outlined text-[22px]">format_list_bulleted</span>
+                        </button>
+                    </div>
+
                     {profile?.role === 'master' && (
                         <button 
                         onClick={() => handleSync()}
                         disabled={isSyncing}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider hover:border-indigo-500 hover:text-indigo-500 transition-all disabled:opacity-50 shadow-sm"
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider hover:border-indigo-500 hover:text-indigo-500 transition-all disabled:opacity-50 shadow-sm h-10"
                         >
                             <span className={`material-symbols-outlined text-[18px] ${isSyncing ? 'animate-spin' : ''}`}>
                                 {isSyncing ? 'sync' : 'table_chart'}
                             </span>
-                            {isSyncing ? 'Sincronizar' : 'Sincronizar Planilha'}
+                            {isSyncing ? 'Sincronizar' : 'Planilha'}
                         </button>
                     )}
                     <button 
                       onClick={() => setIsReportModalOpen(true)}
-                      className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all shadow-sm group"
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all shadow-sm group h-10"
                     >
                         <span className="material-symbols-outlined text-[18px] group-hover:animate-pulse">description</span>
-                        Gerar Relatório
+                        Relatório
                     </button>
                     <button 
                       onClick={() => setIsModalOpen(true)}
-                      className="flex items-center justify-center gap-2 px-4 py-2 bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md shadow-rose-500/20 hover:bg-rose-600 active:scale-95 transition-all"
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md shadow-rose-500/20 hover:bg-rose-600 active:scale-95 transition-all h-10"
                     >
                         <span className="material-symbols-outlined text-[18px]">add</span>
                         Novo Apoiador
@@ -289,7 +312,7 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                 </div>
             </div>
 
-            {isLoading ? <Loader /> : (
+            {isLoading ? <Loader /> : viewMode === 'table' ? (
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -306,6 +329,9 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                                 {apoiadoresFiltrados.map(a => {
                                     const m = a.municipio!;
+                                    const initials = a.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+                                    const hasImage = a.fotoUrl && !a.fotoUrl.includes('placeholder') && !a.fotoUrl.includes('via.placeholder');
+                                    
                                     return (
                                         <tr 
                                             key={a.id} 
@@ -313,13 +339,24 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                                             className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group"
                                         >
                                             <td className="px-6 py-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
-                                                        {a.nome}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                                        {a.cargo}
-                                                    </span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="size-8 rounded-full overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
+                                                        {hasImage ? (
+                                                            <img src={a.fotoUrl} alt={a.nome} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] text-white font-black">
+                                                                {initials}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                                                            {a.nome}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                            {a.cargo}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -400,6 +437,109 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                             </tbody>
                         </table>
                     </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {apoiadoresFiltrados.map(a => {
+                        const m = a.municipio!;
+                        const initials = a.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+                        const hasImage = a.fotoUrl && !a.fotoUrl.includes('placeholder') && !a.fotoUrl.includes('via.placeholder');
+                        
+                        return (
+                            <div 
+                                key={a.id} 
+                                onClick={() => navigateTo('ApoiadorPerfil', { id: a.id })}
+                                className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 hover:shadow-md transition-all cursor-pointer group"
+                            >
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="size-14 rounded-full overflow-hidden shrink-0 border-2 border-white dark:border-slate-700 shadow-sm bg-slate-100 dark:bg-slate-700">
+                                        {hasImage ? (
+                                            <img src={a.fotoUrl} alt={a.nome} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-sm">
+                                                {initials}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h3 className="text-sm font-black text-navy-dark dark:text-white truncate group-hover:text-indigo-600 transition-colors">{a.nome}</h3>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">{a.cargo}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-[18px] text-slate-400">location_on</span>
+                                                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{m.nome}</span>
+                                            </div>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase ml-6">Região: {m.regiao || '—'}</span>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${getStatusPrefeitoColor(m.statusPrefeito)}`}>
+                                                {m.statusPrefeito || '—'}
+                                            </span>
+                                            {m.lincolnFechado && (
+                                                <span className="px-2 py-0.5 rounded-full text-[8px] font-black bg-emerald-500 text-white flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[10px]">beenhere</span>
+                                                    Lincoln
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl">
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-[8px] font-black text-slate-400 uppercase">Alê</span>
+                                            <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">{m.votacaoAle?.toLocaleString() || '0'}</span>
+                                        </div>
+                                        <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-[8px] font-black text-slate-400 uppercase">Lincoln</span>
+                                            <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">{m.votacaoLincoln?.toLocaleString() || '0'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="size-6 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-[14px] text-slate-400">person</span>
+                                            </div>
+                                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight truncate">
+                                                {a.assessor?.nome || 'Sem Responsável'}
+                                            </span>
+                                        </div>
+
+                                        <div className="p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700 space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase">Atendimento</span>
+                                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                                    m.statusAtendimento === 'Contemplado' 
+                                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800' 
+                                                    : 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/20 dark:border-amber-800'
+                                                }`}>
+                                                    {m.statusAtendimento || "Em Análise"}
+                                                </span>
+                                            </div>
+                                            {m.principalDemanda && (
+                                                <p className="text-[10px] text-slate-600 dark:text-slate-300 font-bold line-clamp-2 leading-relaxed">
+                                                    {m.principalDemanda}
+                                                </p>
+                                            )}
+                                            {m.sugestaoSedese && (
+                                                <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
+                                                    <span className="text-[8px] text-indigo-500 font-black bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-800">
+                                                        SEDESE: {m.sugestaoSedese}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
             {/* Modal de Relatório */}

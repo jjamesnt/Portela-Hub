@@ -112,11 +112,11 @@ const ApoiadorPerfilPage: React.FC<ApoiadorPerfilPageProps> = ({ apoiadorId, nav
                         
                         <div className="relative z-10 flex flex-col items-center">
                             <div className="size-32 rounded-[2rem] bg-slate-100 dark:bg-slate-900 p-1 mb-4 shadow-2xl">
-                                {apoiador.fotoUrl ? (
+                                {apoiador.fotoUrl && !apoiador.fotoUrl.includes('placeholder') && !apoiador.fotoUrl.includes('via.placeholder') ? (
                                     <img src={apoiador.fotoUrl} alt={apoiador.nome} className="w-full h-full object-cover rounded-[1.8rem]" />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-[1.8rem]">
-                                        <span className="material-symbols-outlined text-5xl">person</span>
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-[1.8rem]">
+                                        <span className="text-4xl font-black">{apoiador.nome.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}</span>
                                     </div>
                                 )}
                             </div>

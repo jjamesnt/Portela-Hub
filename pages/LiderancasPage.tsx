@@ -24,6 +24,9 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
     const [filtroMunicipio, setFiltroMunicipio] = useState('Todos');
     const [filtroPartido, setFiltroPartido] = useState('Todos');
     const [filtroCargo, setFiltroCargo] = useState('Todos');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+        return (localStorage.getItem('portela_hub_liderancas_view') as 'grid' | 'list') || 'grid';
+    });
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,6 +35,10 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
     const [itemToDelete, setItemToDelete] = useState<Lideranca | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [errorDetails, setErrorDetails] = useState<{ title: string; message: string; tech?: string } | null>(null);
+
+    useEffect(() => {
+        localStorage.setItem('portela_hub_liderancas_view', viewMode);
+    }, [viewMode]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -206,13 +213,32 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                     <h2 className="text-xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white">Gestão de Lideranças</h2>
                     <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">Acompanhe e gerencie sua base de apoio.</p>
                 </div>
-                <button
-                    onClick={() => { setEditingLideranca({}); setIsModalOpen(true); }}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20 active:scale-95"
-                >
-                    <span className="material-symbols-outlined text-lg md:text-xl">add</span>
-                    Nova Liderança
-                </button>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    {/* Toggle Visualização Premium */}
+                    <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-700/50 h-11 md:h-12 shadow-inner">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`flex items-center justify-center px-4 rounded-xl transition-all duration-300 ${viewMode === 'grid' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-[0_4px_12px_rgba(0,0,0,0.08)] dark:shadow-none' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                        >
+                            <span className="material-symbols-outlined text-[22px]">grid_view</span>
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`flex items-center justify-center px-4 rounded-xl transition-all duration-300 ${viewMode === 'list' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-[0_4px_12px_rgba(0,0,0,0.08)] dark:shadow-none' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                        >
+                            <span className="material-symbols-outlined text-[22px]">format_list_bulleted</span>
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={() => { setEditingLideranca({}); setIsModalOpen(true); }}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20 active:scale-95 h-10 md:h-12"
+                    >
+                        <span className="material-symbols-outlined text-lg md:text-xl">add</span>
+                        <span className="whitespace-nowrap">Nova Liderança</span>
+                    </button>
+                </div>
             </div>
 
             {/* Barra de Filtros Redesenhada (Alto Contraste) */}
@@ -290,57 +316,134 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
             </div>
 
             {isLoading ? <Loader /> : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
-                    {liderancasFiltradas.map(lideranca => (
-                        <div key={lideranca.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 md:p-5 hover:shadow-md transition-all group relative">
-                            <button
-                                onClick={() => { setEditingLideranca(lideranca); setIsModalOpen(true); }}
-                                className="absolute top-3 right-10 md:top-4 md:right-12 text-slate-300 hover:text-turquoise transition-colors"
-                            >
-                                <span className="material-symbols-outlined text-sm md:text-xl">edit</span>
-                            </button>
+                <div className={viewMode === 'grid' 
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6"
+                    : "flex flex-col gap-3"
+                }>
+                    {liderancasFiltradas.map(lideranca => {
+                        const initials = lideranca.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+                        const hasImage = lideranca.avatarUrl && !lideranca.avatarUrl.includes('placeholder') && !lideranca.avatarUrl.includes('via.placeholder');
 
-                            <button
-                                onClick={() => handleDeleteClick(lideranca)}
-                                className="absolute top-3 right-3 md:top-4 md:right-4 text-slate-300 hover:text-rose-500 transition-colors"
-                            >
-                                <span className="material-symbols-outlined text-sm md:text-xl">delete</span>
-                            </button>
-
-                            <div className="flex items-center gap-3 md:gap-4 mb-3 md:mb-4">
-                                <div className="w-10 h-10 md:w-16 md:h-16 rounded-full overflow-hidden border-2 border-white dark:border-slate-700 shadow-sm md:shadow-md shrink-0 bg-slate-100 dark:bg-slate-700">
-                                    <img
-                                        src={lideranca.avatarUrl || 'https://via.placeholder.com/150'}
-                                        alt={lideranca.nome}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                                <div className="min-w-0">
-                                    <h3 className="text-xs md:text-base font-bold text-navy-dark dark:text-white truncate">{lideranca.nome}</h3>
-                                    <div className="flex flex-wrap gap-1 mt-0.5 md:mt-1">
-                                        <span className={`px-1 md:px-2 py-0.5 rounded text-[7px] md:text-[10px] uppercase font-black tracking-wider ${lideranca.origem === 'Lincoln Portela' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
-                                            {lideranca.origem.split(' ')[0]}
-                                        </span>
-                                        <span className={`px-1 md:px-2 py-0.5 rounded text-[7px] md:text-[10px] uppercase font-black tracking-wider ${statusStyle(lideranca.status)}`}>
-                                            {lideranca.status}
-                                        </span>
+                        if (viewMode === 'list') {
+                            return (
+                                <div key={lideranca.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 flex items-center gap-4 hover:shadow-md transition-all group">
+                                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden shrink-0 border border-slate-100 dark:border-slate-700 shadow-sm bg-slate-100 dark:bg-slate-700">
+                                        {hasImage ? (
+                                            <img
+                                                src={lideranca.avatarUrl}
+                                                alt={lideranca.nome}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-sm">
+                                                {initials}
+                                            </div>
+                                        )}
                                     </div>
-                                    <p className="text-[9px] md:text-xs text-slate-400 mt-0.5 md:mt-1 truncate opacity-80">{lideranca.cargo} • {lideranca.partido}</p>
-                                </div>
-                            </div>
+                                    
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-sm md:text-base font-bold text-navy-dark dark:text-white truncate">{lideranca.nome}</h3>
+                                            <span className={`px-2 py-0.5 rounded text-[8px] md:text-[10px] uppercase font-black tracking-wider ${lideranca.origem === 'Lincoln Portela' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                                                {lideranca.origem.split(' ')[0]}
+                                            </span>
+                                            <span className={`px-2 py-0.5 rounded text-[8px] md:text-[10px] uppercase font-black tracking-wider ${statusStyle(lideranca.status)}`}>
+                                                {lideranca.status}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                                            <div className="flex items-center gap-1 text-[10px] md:text-xs text-slate-500">
+                                                <span className="material-symbols-outlined text-[14px]">badge</span>
+                                                {lideranca.cargo} • {lideranca.partido}
+                                            </div>
+                                            <div className="flex items-center gap-1 text-[10px] md:text-xs text-slate-500">
+                                                <span className="material-symbols-outlined text-[14px]">location_on</span>
+                                                {lideranca.municipio}
+                                            </div>
+                                            <div className="flex items-center gap-1 text-[10px] md:text-xs text-slate-500">
+                                                <span className="material-symbols-outlined text-[14px]">call</span>
+                                                {lideranca.contato}
+                                            </div>
+                                        </div>
+                                    </div>
 
-                            <div className="space-y-1 md:space-y-2 border-t border-slate-100 dark:border-slate-700 pt-3 md:pt-4">
-                                <div className="flex items-center gap-2 text-[9px] md:text-xs text-slate-600 dark:text-slate-400">
-                                    <span className="material-symbols-outlined text-[13px] md:text-[16px] text-slate-400">location_on</span>
-                                    <span className="truncate">{lideranca.municipio}</span>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => { setEditingLideranca(lideranca); setIsModalOpen(true); }}
+                                            className="p-2 text-slate-400 hover:text-turquoise transition-colors"
+                                            title="Editar"
+                                        >
+                                            <span className="material-symbols-outlined text-xl">edit</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteClick(lideranca)}
+                                            className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                                            title="Excluir"
+                                        >
+                                            <span className="material-symbols-outlined text-xl">delete</span>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-[9px] md:text-xs text-slate-600 dark:text-slate-400">
-                                    <span className="material-symbols-outlined text-[13px] md:text-[16px] text-slate-400">call</span>
-                                    <span className="truncate">{lideranca.contato}</span>
+                            );
+                        }
+
+                        return (
+                            <div key={lideranca.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 md:p-5 hover:shadow-md transition-all group relative overflow-hidden">
+                                <button
+                                    onClick={() => { setEditingLideranca(lideranca); setIsModalOpen(true); }}
+                                    className="absolute top-3 right-10 md:top-4 md:right-12 text-slate-300 hover:text-turquoise transition-colors z-10"
+                                >
+                                    <span className="material-symbols-outlined text-sm md:text-xl">edit</span>
+                                </button>
+
+                                <button
+                                    onClick={() => handleDeleteClick(lideranca)}
+                                    className="absolute top-3 right-3 md:top-4 md:right-4 text-slate-300 hover:text-rose-500 transition-colors z-10"
+                                >
+                                    <span className="material-symbols-outlined text-sm md:text-xl">delete</span>
+                                </button>
+
+                                <div className="flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-4 mb-3 md:mb-4 text-center md:text-left">
+                                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden border-2 border-white dark:border-slate-700 shadow-sm md:shadow-md shrink-0 bg-slate-100 dark:bg-slate-700">
+                                        {hasImage ? (
+                                            <img
+                                                src={lideranca.avatarUrl}
+                                                alt={lideranca.nome}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-xs md:text-base">
+                                                {initials}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0 w-full">
+                                        <h3 className="text-xs md:text-base font-bold text-navy-dark dark:text-white truncate">{lideranca.nome}</h3>
+                                        <div className="flex flex-wrap justify-center md:justify-start gap-1 mt-0.5 md:mt-1">
+                                            <span className={`px-1 md:px-2 py-0.5 rounded text-[7px] md:text-[10px] uppercase font-black tracking-wider ${lideranca.origem === 'Lincoln Portela' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                                                {lideranca.origem.split(' ')[0]}
+                                            </span>
+                                            <span className={`px-1 md:px-2 py-0.5 rounded text-[7px] md:text-[10px] uppercase font-black tracking-wider ${statusStyle(lideranca.status)}`}>
+                                                {lideranca.status}
+                                            </span>
+                                        </div>
+                                        <p className="text-[9px] md:text-xs text-slate-400 mt-0.5 md:mt-1 truncate opacity-80">{lideranca.cargo} • {lideranca.partido}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1 md:space-y-2 border-t border-slate-100 dark:border-slate-700 pt-3 md:pt-4">
+                                    <div className="flex items-center gap-2 text-[9px] md:text-xs text-slate-600 dark:text-slate-400">
+                                        <span className="material-symbols-outlined text-[13px] md:text-[16px] text-slate-400">location_on</span>
+                                        <span className="truncate">{lideranca.municipio}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[9px] md:text-xs text-slate-600 dark:text-slate-400">
+                                        <span className="material-symbols-outlined text-[13px] md:text-[16px] text-slate-400">call</span>
+                                        <span className="truncate">{lideranca.contato}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
