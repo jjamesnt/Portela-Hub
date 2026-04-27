@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useContext, useCallback, useRef } from 'react';
 import { getMunicipios, createMunicipio, getAssessores } from '../services/api';
 import { Municipio, Assessor } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
@@ -108,6 +108,11 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
         status_atividade: 'Manutenção',
         assessor_id: ''
     });
+
+    const [formErrors, setFormErrors] = useState<string[]>([]);
+    const nomeRef = useRef<HTMLInputElement>(null);
+    const regiaoRef = useRef<HTMLSelectElement>(null);
+    const statusRef = useRef<HTMLSelectElement>(null);
 
     // Debounce search
     useEffect(() => {
@@ -222,6 +227,21 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const errors = [];
+        if (!formData.nome?.trim()) errors.push('nome');
+        if (!formData.regiao) errors.push('regiao');
+        if (!formData.status_atividade) errors.push('status');
+
+        setFormErrors(errors);
+
+        if (errors.length > 0) {
+            if (errors.includes('nome')) nomeRef.current?.focus();
+            else if (errors.includes('regiao')) regiaoRef.current?.focus();
+            else if (errors.includes('status')) statusRef.current?.focus();
+            return;
+        }
+
         setIsSaving(true);
         setError(null);
 
@@ -237,8 +257,7 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                 assessor_id: formData.assessor_id || undefined
             };
 
-            const novoMunicipio = await createMunicipio(municipioData);
-            // Recarregar municípios para garantir dados frescos e tipos corretos
+            await createMunicipio(municipioData);
             const municipiosData = await getMunicipios();
             setMunicipios(municipiosData);
             setSuccessMessage('Município cadastrado com sucesso!');
@@ -253,8 +272,7 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                 status_atividade: 'Manutenção',
                 assessor_id: ''
             });
-
-            setTimeout(() => setSuccessMessage(''), 3000);
+            setFormErrors([]);
         } catch (err: any) {
             setError(err.message || 'Erro ao cadastrar município');
         } finally {
@@ -516,39 +534,47 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
 
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <h3 className="text-2xl font-black text-navy-custom dark:text-white">Novo Município</h3>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
+                <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 bg-navy-dark/70 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 max-h-[90vh] flex flex-col">
+                        <div className="p-8 pb-4 shrink-0 border-b border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-2xl font-black text-navy-custom dark:text-white">Novo Município</h3>
+                                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-6 space-y-6">
                             {/* Nome */}
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nome do Município *</label>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nome do Município <span className="text-rose-500">*</span></label>
                                 <input
+                                    ref={nomeRef}
                                     type="text"
                                     name="nome"
                                     value={formData.nome}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-turquoise/50 dark:bg-slate-700 dark:text-white"
-                                    placeholder="Ex: São Paulo"
+                                    onChange={e => {
+                                        handleInputChange(e);
+                                        if (formErrors.includes('nome')) setFormErrors(prev => prev.filter(f => f !== 'nome'));
+                                    }}
+                                    className={`w-full px-4 py-2 border ${formErrors.includes('nome') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-300 dark:border-slate-600'} rounded-lg focus:ring-2 focus:ring-turquoise/50 dark:bg-slate-700 dark:text-white transition-all`}
+                                    placeholder="Ex: Belo Horizonte"
                                 />
                             </div>
 
                             {/* Região */}
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Região *</label>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Região <span className="text-rose-500">*</span></label>
                                 <select
+                                    ref={regiaoRef}
                                     name="regiao"
                                     value={formData.regiao}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-turquoise/50 dark:bg-slate-700 dark:text-white"
+                                    onChange={e => {
+                                        handleInputChange(e);
+                                        if (formErrors.includes('regiao')) setFormErrors(prev => prev.filter(f => f !== 'regiao'));
+                                    }}
+                                    className={`w-full px-4 py-2 border ${formErrors.includes('regiao') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-300 dark:border-slate-600'} rounded-lg focus:ring-2 focus:ring-turquoise/50 dark:bg-slate-700 dark:text-white transition-all`}
                                 >
                                     <option value="">Selecione uma região</option>
                                     {regioes.map(r => <option key={r} value={r}>{r}</option>)}
@@ -614,13 +640,16 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
 
                             {/* Status */}
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Status de Atividade *</label>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Status de Atividade <span className="text-rose-500">*</span></label>
                                 <select
+                                    ref={statusRef}
                                     name="status_atividade"
                                     value={formData.status_atividade}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-turquoise/50 dark:bg-slate-700 dark:text-white"
+                                    onChange={e => {
+                                        handleInputChange(e);
+                                        if (formErrors.includes('status')) setFormErrors(prev => prev.filter(f => f !== 'status'));
+                                    }}
+                                    className={`w-full px-4 py-2 border ${formErrors.includes('status') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-300 dark:border-slate-600'} rounded-lg focus:ring-2 focus:ring-turquoise/50 dark:bg-slate-700 dark:text-white transition-all`}
                                 >
                                     {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
@@ -643,13 +672,12 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
                             </div>
 
                             {error && (
-                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
+                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm font-bold">
                                     {error}
                                 </div>
                             )}
 
-                            {/* Actions */}
-                            <div className="flex gap-3 pt-4">
+                            <div className="p-8 pt-4 shrink-0 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 bg-white dark:bg-slate-800">
                                 <button
                                     type="button"
                                     onClick={() => setShowModal(false)}

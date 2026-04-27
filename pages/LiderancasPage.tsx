@@ -9,14 +9,30 @@ import ConfirmModal from '../components/ConfirmModal';
 
 interface LiderancasPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
+    params?: { [key: string]: any };
 }
 
 // MOCK_LIDERANCAS removido em favor de dados reais do Supabase via services/api.ts
 
-const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
+const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) => {
     const [liderancas, setLiderancas] = useState<Lideranca[]>([]);
     const [municipios, setMunicipios] = useState<Municipio[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [formErrors, setFormErrors] = useState<string[]>([]);
+    const [showMunSuggestions, setShowMunSuggestions] = useState(false);
+
+    const nomeRef = React.useRef<HTMLInputElement>(null);
+    const municipioRef = React.useRef<HTMLInputElement>(null);
+    const regiaoRef = React.useRef<HTMLInputElement>(null);
+    const cargoRef = React.useRef<HTMLSelectElement>(null);
+    const contatoRef = React.useRef<HTMLInputElement>(null);
+    const emailRef = React.useRef<HTMLInputElement>(null);
+    const mandatoRef = React.useRef<HTMLSelectElement>(null);
+    const logradouroRef = React.useRef<HTMLInputElement>(null);
+    const bairroRef = React.useRef<HTMLInputElement>(null);
+    const cidadeRef = React.useRef<HTMLInputElement>(null);
+    const ufRef = React.useRef<HTMLInputElement>(null);
+    const munSearchRef = React.useRef<HTMLDivElement>(null);
 
     // Filtros
     const [busca, setBusca] = useState('');
@@ -52,13 +68,42 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                 setMunicipios(municipiosData);
                 setLiderancas(liderancasData);
                 setIsLoading(false);
+
+                // Verificar se deve abrir o modal de nova liderança
+                if (params?.action === 'new') {
+                    setEditingLideranca({});
+                    setIsModalOpen(true);
+                }
             } catch (err) {
                 console.error("Erro ao carregar dados", err);
                 setIsLoading(false);
             }
         };
         fetchData();
+    }, [params]);
+    
+    // Close suggestions when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (munSearchRef.current && !munSearchRef.current.contains(event.target as Node)) {
+                setShowMunSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const normalize = (text: string) =>
+        text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+    const filteredMunicipiosSuggestions = useMemo(() => {
+        const term = normalize(editingLideranca.municipio || '');
+        if (!term) return [];
+        return municipios
+            .filter(m => normalize(m.nome).includes(term) || normalize(m.regiao).includes(term))
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+            .slice(0, 10);
+    }, [editingLideranca.municipio, municipios]);
 
     const { selectedMandato } = useAppContext();
 
@@ -94,16 +139,39 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
     };
 
     const handleSaveLideranca = async () => {
-        // Validação de Telefone
+        // Validação de Campos Obrigatórios
+        const errors = [];
+        if (!editingLideranca.nome?.trim()) errors.push("nome");
+        if (!editingLideranca.municipio?.trim()) errors.push("municipio");
+        if (!editingLideranca.regiao?.trim()) errors.push("regiao");
+        if (!editingLideranca.cargo) errors.push("cargo");
+        if (!editingLideranca.email?.trim()) errors.push("email");
+        if (!editingLideranca.origem) errors.push("mandato");
+        if (!editingLideranca.endereco?.logradouro?.trim()) errors.push("logradouro");
+        if (!editingLideranca.endereco?.bairro?.trim()) errors.push("bairro");
+        if (!editingLideranca.endereco?.cidade?.trim()) errors.push("cidade");
+        if (!editingLideranca.endereco?.uf?.trim()) errors.push("uf");
+        
         const fone = (editingLideranca.contato || '').replace(/\D/g, '');
-        if (fone.length !== 11) {
-            setErrorDetails({
-                title: "Telefone Inválido",
-                message: "O telefone deve seguir o padrão (99) 99999-9999 com 11 dígitos (incluindo DDD).",
-                tech: `Pattern mismatch: Expected 11 digits, got ${fone.length}`
-            });
+        if (fone.length !== 11) errors.push("contato");
+
+        setFormErrors(errors);
+
+        if (errors.length > 0) {
+            if (errors.includes("nome")) nomeRef.current?.focus();
+            else if (errors.includes("municipio")) municipioRef.current?.focus();
+            else if (errors.includes("regiao")) regiaoRef.current?.focus();
+            else if (errors.includes("cargo")) cargoRef.current?.focus();
+            else if (errors.includes("contato")) contatoRef.current?.focus();
+            else if (errors.includes("email")) emailRef.current?.focus();
+            else if (errors.includes("logradouro")) logradouroRef.current?.focus();
+            else if (errors.includes("bairro")) bairroRef.current?.focus();
+            else if (errors.includes("cidade")) cidadeRef.current?.focus();
+            else if (errors.includes("uf")) ufRef.current?.focus();
+            else if (errors.includes("mandato")) mandatoRef.current?.focus();
             return;
         }
+
 
         setIsSaving(true);
         try {
@@ -131,8 +199,14 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
 
             setIsModalOpen(false);
             setEditingLideranca({});
-        } catch (error) {
+            setFormErrors([]);
+        } catch (error: any) {
             console.error("Erro ao salvar liderança:", error);
+            setErrorDetails({
+                title: "Erro ao Salvar",
+                message: "Não foi possível salvar a liderança. Verifique sua conexão e tente novamente.",
+                tech: error.message || String(error)
+            });
         } finally {
             setIsSaving(false);
         }
@@ -232,7 +306,16 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                     </div>
 
                     <button
-                        onClick={() => { setEditingLideranca({}); setIsModalOpen(true); }}
+                        onClick={() => { 
+                            setEditingLideranca({ 
+                                cargo: 'Vereador', 
+                                status: 'Ativo', 
+                                origem: 'Alê Portela',
+                                endereco: { logradouro: '', numero: '', bairro: '', cidade: '', uf: '', cep: '' }
+                            }); 
+                            setFormErrors([]);
+                            setIsModalOpen(true); 
+                        }}
                         className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20 active:scale-95 h-10 md:h-12"
                     >
                         <span className="material-symbols-outlined text-lg md:text-xl">add</span>
@@ -449,7 +532,7 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
 
             {/* Modal de Edição Completa */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
+                <div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-2xl shadow-2xl space-y-6 my-8">
                         <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-4">
                             <h3 className="text-xl font-bold text-navy-dark dark:text-white">{editingLideranca.id ? 'Editar Liderança' : 'Nova Liderança'}</h3>
@@ -471,42 +554,87 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Nome Completo</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Nome Completo <span className="text-rose-500">*</span></label>
                                     <input
+                                        ref={nomeRef}
                                         type="text"
                                         value={editingLideranca.nome || ''}
-                                        onChange={e => setEditingLideranca({ ...editingLideranca, nome: e.target.value })}
-                                        className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                        onChange={e => {
+                                            setEditingLideranca({ ...editingLideranca, nome: e.target.value });
+                                            if (formErrors.includes("nome")) setFormErrors(prev => prev.filter(f => f !== "nome"));
+                                        }}
+                                        className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("nome") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Município</label>
+                                    <div className="relative" ref={munSearchRef}>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Município <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={municipioRef}
                                             type="text"
                                             value={editingLideranca.municipio || ''}
-                                            onChange={e => setEditingLideranca({ ...editingLideranca, municipio: e.target.value })}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                setEditingLideranca({ ...editingLideranca, municipio: e.target.value });
+                                                setShowMunSuggestions(true);
+                                                if (formErrors.includes("municipio")) setFormErrors(prev => prev.filter(f => f !== "municipio"));
+                                            }}
+                                            onFocus={() => setShowMunSuggestions(true)}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("municipio") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            placeholder="Buscar cidade..."
                                         />
+                                        {showMunSuggestions && filteredMunicipiosSuggestions.length > 0 && (
+                                            <div className="absolute z-[100] left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 duration-150">
+                                                <div className="max-h-60 overflow-y-auto">
+                                                    {filteredMunicipiosSuggestions.map(m => (
+                                                        <button
+                                                            key={m.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setEditingLideranca({ 
+                                                                    ...editingLideranca, 
+                                                                    municipio: m.nome,
+                                                                    regiao: m.regiao 
+                                                                });
+                                                                setShowMunSuggestions(false);
+                                                                if (formErrors.includes("municipio")) setFormErrors(prev => prev.filter(f => f !== "municipio"));
+                                                                if (formErrors.includes("regiao")) setFormErrors(prev => prev.filter(f => f !== "regiao"));
+                                                            }}
+                                                            className="w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 flex flex-col border-b border-slate-100 dark:border-slate-700 last:border-0 transition-colors"
+                                                        >
+                                                            <span className="text-sm font-bold text-navy-dark dark:text-white">{m.nome}</span>
+                                                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">{m.regiao}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Região</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Região <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={regiaoRef}
                                             type="text"
                                             value={editingLideranca.regiao || ''}
-                                            onChange={e => setEditingLideranca({ ...editingLideranca, regiao: e.target.value })}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                setEditingLideranca({ ...editingLideranca, regiao: e.target.value });
+                                                if (formErrors.includes("regiao")) setFormErrors(prev => prev.filter(f => f !== "regiao"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("regiao") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none`}
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Cargo</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Cargo <span className="text-rose-500">*</span></label>
                                         <select
+                                            ref={cargoRef}
                                             value={editingLideranca.cargo || 'Vereador'}
-                                            onChange={e => setEditingLideranca({ ...editingLideranca, cargo: e.target.value as any })}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                setEditingLideranca({ ...editingLideranca, cargo: e.target.value as any });
+                                                if (formErrors.includes("cargo")) setFormErrors(prev => prev.filter(f => f !== "cargo"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("cargo") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none`}
                                         >
                                             <option>Vereador</option>
                                             <option>Prefeito</option>
@@ -532,8 +660,9 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                                 <h4 className="text-sm font-bold text-turquoise uppercase tracking-wider mb-2">Contato e Endereço</h4>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Telefone</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Telefone <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={contatoRef}
                                             type="text"
                                             value={editingLideranca.contato || ''}
                                             onChange={e => {
@@ -542,29 +671,38 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                                                 if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
                                                 if (v.length > 9) v = `${v.slice(0, 10)}-${v.slice(10)}`;
                                                 setEditingLideranca({ ...editingLideranca, contato: v });
+                                                if (formErrors.includes("contato")) setFormErrors(prev => prev.filter(f => f !== "contato"));
                                             }}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("contato") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none`}
                                             placeholder="(99) 99999-9999"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Email <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={emailRef}
                                             type="email"
                                             value={editingLideranca.email || ''}
-                                            onChange={e => setEditingLideranca({ ...editingLideranca, email: e.target.value })}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                setEditingLideranca({ ...editingLideranca, email: e.target.value });
+                                                if (formErrors.includes("email")) setFormErrors(prev => prev.filter(f => f !== "email"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("email") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none`}
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
                                     <div className="col-span-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Logradouro</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Logradouro <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={logradouroRef}
                                             type="text"
                                             value={editingLideranca.endereco?.logradouro || ''}
-                                            onChange={e => updateEndereco('logradouro', e.target.value)}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                updateEndereco('logradouro', e.target.value);
+                                                if (formErrors.includes("logradouro")) setFormErrors(prev => prev.filter(f => f !== "logradouro"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("logradouro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none`}
                                         />
                                     </div>
                                     <div>
@@ -579,12 +717,16 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Bairro</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Bairro <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={bairroRef}
                                             type="text"
                                             value={editingLideranca.endereco?.bairro || ''}
-                                            onChange={e => updateEndereco('bairro', e.target.value)}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                updateEndereco('bairro', e.target.value);
+                                                if (formErrors.includes("bairro")) setFormErrors(prev => prev.filter(f => f !== "bairro"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("bairro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         />
                                     </div>
                                     <div>
@@ -599,33 +741,46 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
                                     <div className="col-span-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Cidade</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Cidade <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={cidadeRef}
                                             type="text"
                                             value={editingLideranca.endereco?.cidade || ''}
-                                            onChange={e => updateEndereco('cidade', e.target.value)}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                updateEndereco('cidade', e.target.value);
+                                                if (formErrors.includes("cidade")) setFormErrors(prev => prev.filter(f => f !== "cidade"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("cidade") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">UF</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">UF <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={ufRef}
                                             type="text"
                                             value={editingLideranca.endereco?.uf || ''}
-                                            onChange={e => updateEndereco('uf', e.target.value)}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                updateEndereco('uf', e.target.value);
+                                                if (formErrors.includes("uf")) setFormErrors(prev => prev.filter(f => f !== "uf"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("uf") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-700 mt-4">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Mandato</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Mandato <span className="text-rose-500">*</span></label>
                                         <select
-                                            value={editingLideranca.origem || 'Alê Portela'}
-                                            onChange={e => setEditingLideranca({ ...editingLideranca, origem: e.target.value as any })}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            ref={mandatoRef}
+                                            value={editingLideranca.origem || ''}
+                                            onChange={e => {
+                                                setEditingLideranca({ ...editingLideranca, origem: e.target.value as any });
+                                                if (formErrors.includes("mandato")) setFormErrors(prev => prev.filter(f => f !== "mandato"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("mandato") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none`}
                                         >
+                                            <option value="">Selecione...</option>
                                             <option>Alê Portela</option>
                                             <option>Lincoln Portela</option>
                                         </select>
@@ -657,7 +812,7 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo }) => {
                                         <div className="size-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                                         Salvando...
                                     </>
-                                ) : 'Salvar Alterações'}
+                                ) : (editingLideranca.id ? 'Salvar Alterações' : 'Cadastrar Liderança')}
                             </button>
                         </div>
                     </div>

@@ -149,9 +149,28 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
         }
     };
 
+    const [formErrors, setFormErrors] = useState<string[]>([]);
+    const municipioRef = React.useRef<HTMLSelectElement>(null);
+    const tituloRef = React.useRef<HTMLInputElement>(null);
+    const descricaoRef = React.useRef<HTMLTextAreaElement>(null);
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!novaForm.municipio_id || !novaForm.titulo) return;
+        
+        const errors = [];
+        if (!novaForm.municipio_id) errors.push('municipio');
+        if (!novaForm.titulo?.trim()) errors.push('titulo');
+        if (!novaForm.descricao?.trim()) errors.push('descricao');
+
+        setFormErrors(errors);
+
+        if (errors.length > 0) {
+            if (errors.includes('municipio')) municipioRef.current?.focus();
+            else if (errors.includes('titulo')) tituloRef.current?.focus();
+            else if (errors.includes('descricao')) descricaoRef.current?.focus();
+            return;
+        }
+
         setSaving(true);
         try {
             await createDemanda({
@@ -166,6 +185,7 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
             });
             setShowNovaModal(false);
             setNovaForm({ municipio_id: '', titulo: '', descricao: '', tipo: 'Infraestrutura', status: 'Em Análise', prioridade: 'Média', origem: 'Alê Portela', prazo: '' });
+            setFormErrors([]);
             await fetchData();
         } catch (err) {
             console.error(err);
@@ -454,48 +474,60 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
 
             {/* Modal Nova Demanda */}
             {showNovaModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowNovaModal(false)}>
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-extrabold text-navy-dark dark:text-white">Nova Demanda</h3>
-                                <p className="text-sm text-slate-400">Registre uma nova demanda no sistema.</p>
+                <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 bg-navy-dark/70 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowNovaModal(false)}>
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="p-8 pb-4 shrink-0 border-b border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-extrabold text-navy-dark dark:text-white">Nova Demanda</h3>
+                                    <p className="text-sm text-slate-400">Registre uma nova demanda no sistema.</p>
+                                </div>
+                                <button onClick={() => setShowNovaModal(false)} className="size-9 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                                    <span className="material-symbols-outlined text-slate-500">close</span>
+                                </button>
                             </div>
-                            <button onClick={() => setShowNovaModal(false)} className="size-9 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                                <span className="material-symbols-outlined text-slate-500">close</span>
-                            </button>
                         </div>
 
-                        <form onSubmit={handleCreate} className="p-6 space-y-4">
+                        <form onSubmit={handleCreate} className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-6 space-y-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-2">
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Município *</label>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Município <span className="text-rose-500">*</span></label>
                                     <select
-                                        required
+                                        ref={municipioRef}
                                         value={novaForm.municipio_id}
-                                        onChange={e => setNovaForm({ ...novaForm, municipio_id: e.target.value })}
-                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30 font-medium"
+                                        onChange={e => {
+                                            setNovaForm({ ...novaForm, municipio_id: e.target.value });
+                                            if (formErrors.includes('municipio')) setFormErrors(prev => prev.filter(f => f !== 'municipio'));
+                                        }}
+                                        className={`w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('municipio') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30 font-medium`}
                                     >
                                         <option value="">Selecione um município...</option>
                                         {municipios.sort((a, b) => a.nome.localeCompare(b.nome)).map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
                                     </select>
                                 </div>
                                 <div className="col-span-2">
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Título *</label>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Título <span className="text-rose-500">*</span></label>
                                     <input
-                                        required
+                                        ref={tituloRef}
                                         value={novaForm.titulo}
-                                        onChange={e => setNovaForm({ ...novaForm, titulo: e.target.value })}
-                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                        onChange={e => {
+                                            setNovaForm({ ...novaForm, titulo: e.target.value });
+                                            if (formErrors.includes('titulo')) setFormErrors(prev => prev.filter(f => f !== 'titulo'));
+                                        }}
+                                        className={`w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('titulo') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30`}
                                         placeholder="Ex: Reforma da UBS Central"
                                     />
                                 </div>
                                 <div className="col-span-2">
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Descrição</label>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Descrição <span className="text-rose-500">*</span></label>
                                     <textarea
+                                        ref={descricaoRef}
                                         value={novaForm.descricao}
-                                        onChange={e => setNovaForm({ ...novaForm, descricao: e.target.value })}
-                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30 resize-none h-20"
+                                        onChange={e => {
+                                            setNovaForm({ ...novaForm, descricao: e.target.value });
+                                            if (formErrors.includes('descricao')) setFormErrors(prev => prev.filter(f => f !== 'descricao'));
+                                        }}
+                                        className={`w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('descricao') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30 resize-none h-20`}
                                         placeholder="Detalhes da demanda..."
                                     />
                                 </div>
@@ -529,7 +561,7 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
                                 </div>
                             </div>
 
-                            <div className="flex justify-end gap-3 pt-2">
+                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700 mt-2">
                                 <button
                                     type="button"
                                     onClick={() => setShowNovaModal(false)}

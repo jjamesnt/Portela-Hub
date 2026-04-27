@@ -124,8 +124,9 @@ const BroadcastModal: React.FC<BroadcastModalProps> = ({ isOpen, onClose, event 
 
     return (
         <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 bg-navy-dark/70 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10">
-                <div className="p-8 space-y-6">
+            <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 max-h-[90vh] flex flex-col">
+                {/* Header fixo */}
+                <div className="p-8 pb-0 shrink-0">
                     <div className="flex justify-between items-start">
                         <div>
                             <h2 className="text-2xl font-black text-navy-dark dark:text-white tracking-tight">Divulgar Evento</h2>
@@ -135,7 +136,9 @@ const BroadcastModal: React.FC<BroadcastModalProps> = ({ isOpen, onClose, event 
                             <span className="material-symbols-outlined text-slate-400">close</span>
                         </button>
                     </div>
+                </div>
 
+                <div className="p-8 pt-6 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
                     {success ? (
                         <div className="py-12 flex flex-col items-center justify-center space-y-4 animate-in zoom-in duration-300">
                             <div className="size-20 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
@@ -229,27 +232,32 @@ const BroadcastModal: React.FC<BroadcastModalProps> = ({ isOpen, onClose, event 
                                     })()}
                                 </div>
                             </div>
-
-                            <button
-                                onClick={handleSend}
-                                disabled={isSending || isLoading}
-                                className="w-full py-4 bg-turquoise text-white rounded-2xl font-black text-sm hover:brightness-110 transition-all shadow-xl shadow-turquoise/20 disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                {isSending ? (
-                                    <>
-                                        <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        <span>Enviando...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="material-symbols-outlined">send</span>
-                                        <span>Confirmar Disparo</span>
-                                    </>
-                                )}
-                            </button>
                         </>
                     )}
                 </div>
+
+                {/* Footer fixo */}
+                {!success && (
+                    <div className="p-8 pt-0 shrink-0">
+                        <button
+                            onClick={handleSend}
+                            disabled={isSending || isLoading}
+                            className="w-full py-4 bg-turquoise text-white rounded-2xl font-black text-sm hover:brightness-110 transition-all shadow-xl shadow-turquoise/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {isSending ? (
+                                <>
+                                    <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <span>Enviando...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="material-symbols-outlined">send</span>
+                                    <span>Confirmar Disparo</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
             </div>
 
             <ErrorModal 

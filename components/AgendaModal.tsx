@@ -60,8 +60,28 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const [formErrors, setFormErrors] = useState<string[]>([]);
+    const tituloRef = React.useRef<HTMLInputElement>(null);
+    const dataRef = React.useRef<HTMLInputElement>(null);
+    const horaRef = React.useRef<HTMLInputElement>(null);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const errors = [];
+        if (!formData.titulo?.trim()) errors.push('titulo');
+        if (!formData.data) errors.push('data');
+        if (!formData.hora) errors.push('hora');
+
+        setFormErrors(errors);
+
+        if (errors.length > 0) {
+            if (errors.includes('titulo')) tituloRef.current?.focus();
+            else if (errors.includes('data')) dataRef.current?.focus();
+            else if (errors.includes('hora')) horaRef.current?.focus();
+            return;
+        }
+
         setIsSaving(true);
         setError(null);
 
@@ -94,6 +114,7 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                 local: '',
                 descricao: ''
             });
+            setFormErrors([]);
         } catch (err: any) {
             setError(err.message || 'Erro ao criar evento');
         } finally {
@@ -131,39 +152,48 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Título do Evento *</label>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Título do Evento <span className="text-rose-500">*</span></label>
                         <input
+                            ref={tituloRef}
                             type="text"
                             name="titulo"
                             value={formData.titulo}
-                            onChange={handleInputChange}
+                            onChange={e => {
+                                handleInputChange(e);
+                                if (formErrors.includes('titulo')) setFormErrors(prev => prev.filter(f => f !== 'titulo'));
+                            }}
                             placeholder="Ex: Reunião com Prefeito"
-                            required
-                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
+                            className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('titulo') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white`}
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Data *</label>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Data <span className="text-rose-500">*</span></label>
                             <input
+                                ref={dataRef}
                                 type="date"
                                 name="data"
                                 value={formData.data}
-                                onChange={handleInputChange}
-                                required
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
+                                onChange={e => {
+                                    handleInputChange(e);
+                                    if (formErrors.includes('data')) setFormErrors(prev => prev.filter(f => f !== 'data'));
+                                }}
+                                className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('data') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white`}
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Hora *</label>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Hora <span className="text-rose-500">*</span></label>
                             <input
+                                ref={horaRef}
                                 type="time"
                                 name="hora"
                                 value={formData.hora}
-                                onChange={handleInputChange}
-                                required
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
+                                onChange={e => {
+                                    handleInputChange(e);
+                                    if (formErrors.includes('hora')) setFormErrors(prev => prev.filter(f => f !== 'hora'));
+                                }}
+                                className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('hora') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white`}
                             />
                         </div>
                     </div>

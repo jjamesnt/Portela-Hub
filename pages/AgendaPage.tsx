@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useContext } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -8,11 +8,13 @@ import ptBrLocale from '@fullcalendar/core/locales/pt-br';
 import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents } from '../services/api';
 import { getElectoralEvents } from '../services/electoralCalendarService'; // Novo serviço
 import { EventoAgenda, SolicitacaoAgenda } from '../types';
+import { AppContext } from '../context/AppContext';
 import Loader from '../components/Loader';
 import AgendaModal from '../components/AgendaModal';
 import AgendaSolicitacaoModal from '../components/AgendaSolicitacaoModal';
 import BroadcastModal from '../components/BroadcastModal';
 import BroadcastHistory from '../components/BroadcastHistory';
+import SolicitacoesReportModal from '../components/SolicitacoesReportModal';
 
 interface AgendaPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
@@ -20,6 +22,8 @@ interface AgendaPageProps {
 }
 
 const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
+    const context = useContext(AppContext);
+    const profile = context?.profile;
     const [eventos, setEventos] = useState<EventoAgenda[]>([]);
     const [solicitacoes, setSolicitacoes] = useState<SolicitacaoAgenda[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -31,6 +35,15 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+
+    // Filtros
+    const [filtroTipo, setFiltroTipo] = useState('Todos');
+    const [filtroStatus, setFiltroStatus] = useState('Todos');
+    const [filtroOrigem, setFiltroOrigem] = useState('Todos');
+    const [filtroPeriodo, setFiltroPeriodo] = useState('Todos');
+    const [filtroSolicitante, setFiltroSolicitante] = useState('Todos');
+    const [buscaSolicitacao, setBuscaSolicitacao] = useState('');
 
     const calendarRef = useRef<FullCalendar>(null);
 
@@ -124,6 +137,56 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
         return [...officialEvents, ...approvedSol];
     }, [eventos, solicitacoes]);
 
+    const metrics = useMemo(() => {
+        const total = eventos.length + solicitacoes.filter(s => s.status === 'Aprovado').length;
+        const reuniao = eventos.filter(e => e.tipo === 'Reunião').length;
+        const visita = eventos.filter(e => e.tipo === 'Visita Técnica').length;
+        const eventoPublico = eventos.filter(e => e.tipo === 'Evento Público').length;
+        const sessaoPlenaria = eventos.filter(e => e.tipo === 'Sessão Plenária').length;
+        return { total, reuniao, visita, eventoPublico, sessaoPlenaria };
+    }, [eventos, solicitacoes]);
+
+    const filteredCalendarEvents = useMemo(() => {
+        if (filtroTipo === 'Todos') return calendarEvents;
+        return calendarEvents.filter(e => {
+            const props = e.extendedProps as any;
+            const tipo = props.tipo || (props.tipo_evento === 'Reunião' ? 'Reunião' : undefined);
+            return tipo === filtroTipo;
+        });
+    }, [calendarEvents, filtroTipo]);
+
+    const filteredSolicitacoes = useMemo(() => {
+        return solicitacoes.filter(s => {
+            const matchesBusca = s.solicitante.toLowerCase().includes(buscaSolicitacao.toLowerCase()) || 
+                                 s.titulo.toLowerCase().includes(buscaSolicitacao.toLowerCase()) ||
+                                 (s.local && s.local.toLowerCase().includes(buscaSolicitacao.toLowerCase()));
+            const matchesTipo = filtroTipo === 'Todos' || s.tipo_evento === filtroTipo || (filtroTipo === 'Reunião' && s.tipo_evento === 'Reunião');
+            const matchesStatus = filtroStatus === 'Todos' || s.status === filtroStatus;
+            const matchesOrigem = filtroOrigem === 'Todos' || s.origem.includes(filtroOrigem);
+            const matchesSolicitante = filtroSolicitante === 'Todos' || s.solicitante === filtroSolicitante;
+            
+            // Lógica de Período
+            let matchesPeriodo = true;
+            if (filtroPeriodo !== 'Todos') {
+                const dataS = new Date(s.data);
+                const hoje = new Date();
+                hoje.setHours(0, 0, 0, 0);
+                
+                const diffTime = dataS.getTime() - hoje.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (filtroPeriodo === 'Próximos 7 dias') matchesPeriodo = diffDays >= 0 && diffDays <= 7;
+                else if (filtroPeriodo === 'Próximos 30 dias') matchesPeriodo = diffDays >= 0 && diffDays <= 30;
+                else if (filtroPeriodo === 'Passados') matchesPeriodo = diffDays < 0;
+                else if (filtroPeriodo === 'Este Mês') {
+                    matchesPeriodo = dataS.getMonth() === hoje.getMonth() && dataS.getFullYear() === hoje.getFullYear();
+                }
+            }
+            
+            return matchesBusca && matchesTipo && matchesStatus && matchesOrigem && matchesPeriodo && matchesSolicitante;
+        });
+    }, [solicitacoes, buscaSolicitacao, filtroTipo, filtroStatus, filtroOrigem, filtroPeriodo, filtroSolicitante]);
+
     // Efeito para tratar abertura automática de detalhes via Deep Link (params.eventId)
     useEffect(() => {
         if (!isLoading && params?.eventId && calendarEvents.length > 0) {
@@ -157,6 +220,22 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
         setSelectedEvent(arg.event);
         setIsDetailsModalOpen(true);
     };
+
+    const FilterSelect = ({ value, onChange, options, placeholder }: { value: string, onChange: (val: string) => void, options: string[], placeholder: string }) => (
+        <div className="relative group flex-1 min-w-[120px]">
+            <select
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                className={`w-full pl-3 pr-9 py-2 border rounded-xl text-xs outline-none font-bold transition-all cursor-pointer ${value !== 'Todos' ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}
+            >
+                <option value="Todos">{placeholder}</option>
+                {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center">
+                <span className={`material-symbols-outlined text-[18px] transition-all ${value !== 'Todos' ? 'text-white' : 'text-slate-400'}`}>keyboard_arrow_down</span>
+            </div>
+        </div>
+    );
 
     return (
         <div className="p-4 md:p-8 pb-24 md:pb-8 animate-in fade-in duration-500">
@@ -210,6 +289,30 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                 </div>
             </div>
 
+            {/* Summary Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4 mb-6 md:mb-8 text-left">
+                {[
+                    { label: 'Total Eventos', val: metrics.total, type: 'Todos', color: 'text-navy-custom', icon: 'calendar_month' },
+                    { label: 'Reuniões', val: metrics.reuniao, type: 'Reunião', color: 'text-blue-500', icon: 'groups' },
+                    { label: 'Visitas Técnicas', val: metrics.visita, type: 'Visita Técnica', color: 'text-amber-500', icon: 'engineering' },
+                    { label: 'Eventos Públicos', val: metrics.eventoPublico, type: 'Evento Público', color: 'text-emerald-500', icon: 'campaign' },
+                    { label: 'Sessões Plenárias', val: metrics.sessaoPlenaria, type: 'Sessão Plenária', color: 'text-indigo-500', icon: 'gavel' }
+                ].map(card => (
+                    <button
+                        key={card.type}
+                        onClick={() => setFiltroTipo(card.type)}
+                        className={`bg-white dark:bg-slate-800 rounded-2xl p-4 border transition-all text-left group hover:shadow-lg active:scale-95 ${filtroTipo === card.type ? 'border-turquoise ring-2 ring-turquoise/20 shadow-lg' : 'border-slate-200 dark:border-slate-700 hover:border-turquoise/50'}`}
+                    >
+                        <div className="flex justify-between items-start mb-2">
+                            <span className={`material-symbols-outlined text-[20px] ${card.color}`}>{card.icon}</span>
+                            {filtroTipo === card.type && <span className="size-2 rounded-full bg-turquoise animate-pulse" />}
+                        </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">{card.label}</p>
+                        <p className={`text-xl font-black ${card.color}`}>{card.val}</p>
+                    </button>
+                ))}
+            </div>
+
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 md:p-6 mb-8 overflow-hidden fc-theme-hub">
                 {isLoading ? (
                     <div className="h-[600px] flex items-center justify-center">
@@ -232,7 +335,7 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                             right: 'dayGridMonth,timeGridWeek,listWeek'
                         }}
                         locale={ptBrLocale}
-                        events={calendarEvents}
+                        events={filteredCalendarEvents}
                         dateClick={handleDateClick}
                         eventClick={handleEventClick}
                         height="auto"
@@ -393,12 +496,80 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                 )
             }
 
-            {/* Histórico de Solicitações - RESTAURADO */}
+            {/* Histórico de Solicitações */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-8">
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-navy-dark dark:text-white">history</span>
-                        <h3 className="font-black text-sm text-navy-dark dark:text-white uppercase tracking-wider">Histórico de Solicitações</h3>
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-navy-dark dark:text-white">history</span>
+                            <h3 className="font-black text-sm text-navy-dark dark:text-white uppercase tracking-wider">Histórico de Solicitações</h3>
+                        </div>
+                        <button 
+                            onClick={() => setIsReportModalOpen(true)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all group"
+                        >
+                            <span className="material-symbols-outlined text-[16px] group-hover:animate-pulse">description</span>
+                            Relatório
+                        </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                        <div className="relative flex-1 md:w-48">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-[18px]">search</span>
+                            <input
+                                type="text"
+                                placeholder="Busca..."
+                                value={buscaSolicitacao}
+                                onChange={e => setBuscaSolicitacao(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border-none rounded-xl text-xs outline-none focus:ring-2 focus:ring-turquoise transition-all"
+                            />
+                        </div>
+                        <FilterSelect 
+                            value={filtroTipo}
+                            onChange={setFiltroTipo}
+                            options={['Reunião', 'Visita Técnica', 'Evento Público', 'Sessão Plenária']}
+                            placeholder="Compromisso"
+                        />
+                        <FilterSelect 
+                            value={filtroStatus}
+                            onChange={setFiltroStatus}
+                            options={['Pendente', 'Aprovado', 'Recusado']}
+                            placeholder="Status"
+                        />
+                        <FilterSelect 
+                            value={filtroSolicitante}
+                            onChange={setFiltroSolicitante}
+                            options={Array.from(new Set(solicitacoes.map(s => s.solicitante))).sort()}
+                            placeholder="Solicitante"
+                        />
+                        <FilterSelect 
+                            value={filtroOrigem}
+                            onChange={setFiltroOrigem}
+                            options={['Alê Portela', 'Lincoln Portela', 'Marilda Portela']}
+                            placeholder="Origem"
+                        />
+                        <FilterSelect 
+                            value={filtroPeriodo}
+                            onChange={setFiltroPeriodo}
+                            options={['Próximos 7 dias', 'Próximos 30 dias', 'Este Mês', 'Passados']}
+                            placeholder="Período"
+                        />
+                        {(buscaSolicitacao || filtroStatus !== 'Todos' || filtroTipo !== 'Todos' || filtroOrigem !== 'Todos' || filtroPeriodo !== 'Todos' || filtroSolicitante !== 'Todos') && (
+                            <button
+                                onClick={() => {
+                                    setBuscaSolicitacao('');
+                                    setFiltroStatus('Todos');
+                                    setFiltroTipo('Todos');
+                                    setFiltroOrigem('Todos');
+                                    setFiltroPeriodo('Todos');
+                                    setFiltroSolicitante('Todos');
+                                }}
+                                className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                title="Limpar Filtros"
+                            >
+                                <span className="material-symbols-outlined">filter_alt_off</span>
+                            </button>
+                        )}
                     </div>
                 </div>
                 <div className="overflow-x-auto scrollbar-hide">
@@ -413,12 +584,12 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                            {solicitacoes.length === 0 ? (
+                            {filteredSolicitacoes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-slate-400 text-sm italic">Nenhuma solicitação encontrada.</td>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-slate-400 text-sm italic">Nenhuma solicitação encontrada para os filtros aplicados.</td>
                                 </tr>
                             ) : (
-                                solicitacoes.map(s => (
+                                filteredSolicitacoes.map(s => (
                                     <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-colors">
                                         <td className="px-4 md:px-6 py-2.5 md:py-4">
                                             <div className="flex items-center gap-2 md:gap-3">
@@ -495,6 +666,21 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
             <BroadcastHistory
                 isOpen={isHistoryModalOpen}
                 onClose={() => setIsHistoryModalOpen(false)}
+            />
+
+            <SolicitacoesReportModal
+                isOpen={isReportModalOpen}
+                onClose={() => setIsReportModalOpen(false)}
+                solicitacoes={filteredSolicitacoes}
+                filtrosativos={{
+                    busca: buscaSolicitacao,
+                    tipo: filtroTipo,
+                    status: filtroStatus,
+                    origem: filtroOrigem,
+                    periodo: filtroPeriodo,
+                    solicitante: filtroSolicitante
+                }}
+                usuarioNome={profile?.full_name}
             />
         </div >
     );

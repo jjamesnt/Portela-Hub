@@ -134,7 +134,7 @@ const AppContent: React.FC = () => {
       case 'MunicipioDetalhes':
         return <MunicipioDetalhesPage municipioId={currentPage.params?.id} navigateTo={navigateTo} />;
       case 'Lideranças':
-        return <LiderancasPage navigateTo={navigateTo} />;
+        return <LiderancasPage navigateTo={navigateTo} params={currentPage.params} />;
       case 'Assessores':
         return <AssessoresPage navigateTo={navigateTo} />;
       case 'Agenda':
@@ -241,7 +241,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex h-screen-dynamic w-full overflow-hidden">
-      <Sidebar activePage={currentPage.page} setActivePage={(page) => navigateTo(page)} />
+      <Sidebar activePage={currentPage.page} setActivePage={(page, params) => navigateTo(page, params)} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-full">
         <Header />
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark w-full px-safe-left px-safe-right">

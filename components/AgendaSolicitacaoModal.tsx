@@ -10,8 +10,10 @@ interface AgendaSolicitacaoModalProps {
 }
 
 const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen, onClose, onSuccess, navigateTo }) => {
+    // Hooks MUST be declared at the top level
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [formErrors, setFormErrors] = useState<string[]>([]);
 
     const [liderancas, setLiderancas] = useState<Lideranca[]>([]);
     const [assessores, setAssessores] = useState<Assessor[]>([]);
@@ -39,6 +41,13 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
         tempo_participacao: '',
         descricao: ''
     });
+
+    const assessorRef = useRef<HTMLSelectElement>(null);
+    const solicitanteRef = useRef<HTMLInputElement>(null);
+    const tituloRef = useRef<HTMLInputElement>(null);
+    const dataRef = useRef<HTMLInputElement>(null);
+    const horaInicioRef = useRef<HTMLInputElement>(null);
+    const horaFimRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -88,11 +97,17 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Conditional return AFTER all hooks
     if (!isOpen) return null;
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        
+        // Clear error when typing
+        if (formErrors.includes(name)) {
+            setFormErrors(prev => prev.filter(f => f !== name));
+        }
     };
 
     const handleOrigemToggle = (origem: string) => {
@@ -107,13 +122,36 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
         setFormData(prev => ({ ...prev, solicitante: l.nome }));
         setSearchTerm(l.nome);
         setShowSuggestions(false);
+        if (formErrors.includes('solicitante')) {
+            setFormErrors(prev => prev.filter(f => f !== 'solicitante'));
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        const errors = [];
+        if (!formData.assessor_responsavel) errors.push('assessor');
+        if (!formData.solicitante?.trim()) errors.push('solicitante');
+        if (!formData.titulo?.trim()) errors.push('titulo');
+        if (!formData.data) errors.push('data');
+        if (!formData.hora_inicio) errors.push('hora_inicio');
+        if (!formData.hora_fim) errors.push('hora_fim');
+
         if (selectedOrigens.length === 0) {
             setError('Selecione pelo menos uma pessoa para a agenda (Alê ou Lincoln).');
+            return;
+        }
+
+        setFormErrors(errors);
+
+        if (errors.length > 0) {
+            if (errors.includes('assessor')) assessorRef.current?.focus();
+            else if (errors.includes('solicitante')) solicitanteRef.current?.focus();
+            else if (errors.includes('titulo')) tituloRef.current?.focus();
+            else if (errors.includes('data')) dataRef.current?.focus();
+            else if (errors.includes('hora_inicio')) horaInicioRef.current?.focus();
+            else if (errors.includes('hora_fim')) horaFimRef.current?.focus();
             return;
         }
 
@@ -157,6 +195,7 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
             });
             setSearchTerm('');
             setSelectedOrigens(['Alê Portela']);
+            setFormErrors([]);
         } catch (err: any) {
             setError(err.message || 'Erro ao enviar solicitação');
         } finally {
@@ -165,8 +204,8 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg my-8 overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10002] flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200">
                 <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
                     <div className="flex items-center gap-2">
                         <div className="size-8 rounded-lg bg-turquoise/10 flex items-center justify-center">
@@ -179,91 +218,57 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[14px]">person_check</span>
-                                Assessor Responsável *
-                            </label>
-                            <select
-                                name="assessor_responsavel"
-                                value={formData.assessor_responsavel}
-                                onChange={handleInputChange}
-                                required
-                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
-                            >
-                                <option value="">Selecione o assessor...</option>
-                                {assessores.map(a => (
-                                    <option key={a.id} value={a.nome}>{a.nome}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[14px]">groups</span>
-                                Estimativa de Público
-                            </label>
-                            <input
-                                type="number"
-                                name="estimativa_publico"
-                                value={formData.estimativa_publico}
-                                onChange={handleInputChange}
-                                step="50"
-                                min="0"
-                                placeholder="Escala de 50 em 50"
-                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
-                            />
-                        </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
+                    {/* Assessor Responsável */}
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Assessor Responsável <span className="text-rose-500">*</span></label>
+                        <select
+                            ref={assessorRef}
+                            name="assessor_responsavel"
+                            value={formData.assessor_responsavel}
+                            onChange={handleInputChange}
+                            className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('assessor') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white`}
+                        >
+                            <option value="">Selecione o assessor...</option>
+                            {assessores.map(a => (
+                                <option key={a.id} value={a.nome}>{a.nome} ({a.regiaoAtuacao})</option>
+                            ))}
+                        </select>
                     </div>
 
-                    <div ref={searchRef} className="relative">
+                    {/* Solicitante */}
+                    <div className="relative" ref={searchRef}>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[14px]">search</span>
-                            Nome do Solicitante (Liderança) *
+                            <span className="material-symbols-outlined text-[14px]">person_search</span>
+                            Quem está solicitando? <span className="text-rose-500">*</span>
                         </label>
                         <input
+                            ref={solicitanteRef}
                             type="text"
                             value={searchTerm}
-                            onChange={(e) => {
+                            onChange={e => {
                                 setSearchTerm(e.target.value);
                                 setFormData(prev => ({ ...prev, solicitante: e.target.value }));
                                 setShowSuggestions(true);
+                                if (formErrors.includes('solicitante')) setFormErrors(prev => prev.filter(f => f !== 'solicitante'));
                             }}
                             onFocus={() => setShowSuggestions(true)}
-                            placeholder="Busque por nome ou cidade..."
-                            required
-                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
+                            placeholder="Buscar liderança ou digitar nome..."
+                            className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('solicitante') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white`}
                         />
-
-                        {showSuggestions && (searchTerm.length >= 2 || filteredLiderancas.length > 0) && (
-                            <div className="absolute z-[110] left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+                        {showSuggestions && filteredLiderancas.length > 0 && (
+                            <div className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-top-2 duration-150">
                                 {filteredLiderancas.map(l => (
                                     <button
                                         key={l.id}
                                         type="button"
                                         onClick={() => handleSelectLideranca(l)}
-                                        className="w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 flex flex-col border-b border-slate-100 dark:border-slate-700 last:border-0 transition-colors"
+                                        className="w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-none"
                                     >
-                                        <span className="text-sm font-bold text-navy-dark dark:text-white">{l.nome}</span>
-                                        <span className="text-[10px] text-slate-400 font-medium">{l.municipio} • {l.cargo} • {l.partido}</span>
+                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{l.nome}</p>
+                                        <p className="text-[10px] text-slate-400">{l.municipio} - {l.regiao}</p>
                                     </button>
                                 ))}
-
-                                {filteredLiderancas.length === 0 && searchTerm.length >= 2 && (
-                                    <div className="p-4 text-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => { onClose(); navigateTo('Lideranças'); }}
-                                            className="w-full py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-black hover:bg-indigo-100 transition-all border border-indigo-100 flex items-center justify-center gap-2"
-                                        >
-                                            <span className="material-symbols-outlined text-sm">person_add</span>
-                                            CADASTRAR NOVA LIDERANÇA
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
@@ -299,15 +304,15 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Título do Compromisso *</label>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Título do Compromisso <span className="text-rose-500">*</span></label>
                         <input
+                            ref={tituloRef}
                             type="text"
                             name="titulo"
                             value={formData.titulo}
                             onChange={handleInputChange}
                             placeholder="Ex: Reunião de Alinhamento Político"
-                            required
-                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white"
+                            className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('titulo') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white`}
                         />
                     </div>
 
@@ -353,15 +358,15 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                         <div>
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                                 <span className="material-symbols-outlined text-[14px]">event</span>
-                                Data *
+                                Data <span className="text-rose-500">*</span>
                             </label>
                             <input
+                                ref={dataRef}
                                 type="date"
                                 name="data"
                                 value={formData.data}
                                 onChange={handleInputChange}
-                                required
-                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
+                                className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('data') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm dark:text-white`}
                             />
                         </div>
                         <div>
@@ -386,43 +391,23 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                         </label>
                         <div className="flex items-center gap-2">
                             <input
+                                ref={horaInicioRef}
                                 type="time"
                                 name="hora_inicio"
                                 value={formData.hora_inicio}
                                 onChange={handleInputChange}
-                                required
-                                className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs dark:text-white"
+                                className={`flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('hora_inicio') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-xs dark:text-white`}
                             />
                             <span className="text-slate-400">-</span>
                             <input
+                                ref={horaFimRef}
                                 type="time"
                                 name="hora_fim"
                                 value={formData.hora_fim}
                                 onChange={handleInputChange}
-                                required
-                                className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs dark:text-white"
+                                className={`flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('hora_fim') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-xs dark:text-white`}
                             />
                         </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[14px]">timer</span>
-                            Tempo de Permanência do Convidado
-                        </label>
-                        <select
-                            name="tempo_participacao"
-                            value={formData.tempo_participacao}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-turquoise/20 dark:text-white"
-                        >
-                            <option value="">Selecione o tempo...</option>
-                            <option value="15 minutos">15 minutos</option>
-                            <option value="30 minutos">30 minutos</option>
-                            <option value="45 minutos">45 minutos</option>
-                            <option value="1 hora">1 hora</option>
-                        </select>
-                        <p className="text-[9px] text-slate-400 mt-1 italic">Escala de 15 em 15 minutos (máximo de 1 hora).</p>
                     </div>
 
                     <div>
@@ -456,7 +441,7 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                         </div>
                     )}
 
-                    <div className="pt-4 flex gap-3">
+                    <div className="pt-4 flex gap-3 sticky bottom-0 bg-white dark:bg-slate-800 pb-2 z-10">
                         <button
                             type="button"
                             onClick={onClose}

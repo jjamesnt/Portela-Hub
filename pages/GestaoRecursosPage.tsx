@@ -55,6 +55,12 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
     const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<ExtendedRecurso | null>(null);
 
+    const [formErrors, setFormErrors] = useState<string[]>([]);
+    const municipioRef = React.useRef<HTMLSelectElement>(null);
+    const descricaoRef = React.useRef<HTMLInputElement>(null);
+    const valorRef = React.useRef<HTMLInputElement>(null);
+    const tipoRef = React.useRef<HTMLInputElement>(null);
+
     const [novaForm, setNovaForm] = useState({
         municipio_id: '',
         tipo: 'Emenda',
@@ -402,11 +408,40 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
 
                         <form onSubmit={async (e) => {
                             e.preventDefault();
+                            
+                            const errors = [];
+                            if (!novaForm.municipio_id) errors.push('municipio');
+                            if (!novaForm.descricao?.trim()) errors.push('descricao');
+                            if (!novaForm.valor || novaForm.valor <= 0) errors.push('valor');
+                            if (!novaForm.tipo?.trim()) errors.push('tipo');
+
+                            setFormErrors(errors);
+
+                            if (errors.length > 0) {
+                                if (errors.includes('municipio')) municipioRef.current?.focus();
+                                else if (errors.includes('descricao')) descricaoRef.current?.focus();
+                                else if (errors.includes('valor')) valorRef.current?.focus();
+                                else if (errors.includes('tipo')) tipoRef.current?.focus();
+                                return;
+                            }
+
                             setSaving(true);
                             try {
                                 await createRecurso(novaForm);
                                 fetchData();
                                 setShowNovaModal(false);
+                                setNovaForm({
+                                    municipio_id: '',
+                                    tipo: 'Emenda',
+                                    descricao: '',
+                                    valor: 0,
+                                    origem: 'Alê Portela',
+                                    responsavel: '',
+                                    status: 'Aprovado',
+                                    data_aprovacao: new Date().toISOString().split('T')[0],
+                                    observacoes: ''
+                                });
+                                setFormErrors([]);
                             } catch (err) {
                                 console.error(err);
                             } finally {
@@ -415,12 +450,15 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                         }} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-2">
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Município *</label>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Município <span className="text-rose-500">*</span></label>
                                     <select
-                                        required
+                                        ref={municipioRef}
                                         value={novaForm.municipio_id}
-                                        onChange={e => setNovaForm({...novaForm, municipio_id: e.target.value})}
-                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                        onChange={e => {
+                                            setNovaForm({...novaForm, municipio_id: e.target.value});
+                                            if (formErrors.includes('municipio')) setFormErrors(prev => prev.filter(f => f !== 'municipio'));
+                                        }}
+                                        className={`w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('municipio') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30`}
                                     >
                                         <option value="">Selecione o município beneficiado...</option>
                                         {municipios.sort((a,b) => a.nome.localeCompare(b.nome)).map(m => (
@@ -430,39 +468,48 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                                 </div>
 
                                 <div className="col-span-2">
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Descrição do Recurso *</label>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Descrição do Recurso <span className="text-rose-500">*</span></label>
                                     <input
-                                        required
+                                        ref={descricaoRef}
                                         type="text"
                                         placeholder="Ex: Emenda para custeio de saúde"
                                         value={novaForm.descricao}
-                                        onChange={e => setNovaForm({...novaForm, descricao: e.target.value})}
-                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                        onChange={e => {
+                                            setNovaForm({...novaForm, descricao: e.target.value});
+                                            if (formErrors.includes('descricao')) setFormErrors(prev => prev.filter(f => f !== 'descricao'));
+                                        }}
+                                        className={`w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('descricao') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30`}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Valor (R$) *</label>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Valor (R$) <span className="text-rose-500">*</span></label>
                                     <input
-                                        required
+                                        ref={valorRef}
                                         type="number"
                                         placeholder="0.00"
                                         step="0.01"
                                         value={novaForm.valor || ''}
-                                        onChange={e => setNovaForm({...novaForm, valor: parseFloat(e.target.value) || 0})}
-                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30 font-bold"
+                                        onChange={e => {
+                                            setNovaForm({...novaForm, valor: parseFloat(e.target.value) || 0});
+                                            if (formErrors.includes('valor')) setFormErrors(prev => prev.filter(f => f !== 'valor'));
+                                        }}
+                                        className={`w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('valor') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30 font-bold`}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Tipo/Destinação *</label>
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Tipo/Destinação <span className="text-rose-500">*</span></label>
                                     <input
-                                        required
+                                        ref={tipoRef}
                                         type="text"
                                         placeholder="Ex: Emenda, Veículo..."
                                         value={novaForm.tipo}
-                                        onChange={e => setNovaForm({...novaForm, tipo: e.target.value})}
-                                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30"
+                                        onChange={e => {
+                                            setNovaForm({...novaForm, tipo: e.target.value});
+                                            if (formErrors.includes('tipo')) setFormErrors(prev => prev.filter(f => f !== 'tipo'));
+                                        }}
+                                        className={`w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border ${formErrors.includes('tipo') ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} rounded-xl text-sm outline-none focus:ring-2 focus:ring-turquoise/30`}
                                     />
                                 </div>
 
@@ -523,7 +570,7 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={saving || !novaForm.municipio_id || !novaForm.descricao || !novaForm.valor}
+                                    disabled={saving}
                                     className="px-6 py-2.5 text-sm font-bold bg-turquoise text-white rounded-xl hover:brightness-110 shadow-lg shadow-turquoise/20 transition-all active:scale-95 disabled:opacity-50"
                                 >
                                     {saving ? 'Gravando...' : 'Salvar Recurso'}

@@ -165,9 +165,9 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
     };
 
     return (
-        <div className="fixed inset-0 z-[2000] flex justify-center items-start bg-black/60 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-xl shadow-2xl space-y-6 mt-4 mb-10 md:mt-12 md:mb-20 max-h-fit overflow-x-hidden scrollbar-hide">
-                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-4">
+        <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 bg-navy-dark/70 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-slate-800 w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 max-h-[90vh] flex flex-col">
+                <div className="p-8 pb-4 shrink-0 border-b border-slate-100 dark:border-slate-700">
                     <div>
                         <h3 className="text-xl font-black text-navy-dark dark:text-white">
                             {editingApoiador ? 'Editar Apoiador' : 'Novo Apoiador'}
@@ -195,8 +195,10 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
+            </div>
 
-                {(!municipio || isChangingMunicipio) && allMunicipios && (
+            <div className="p-8 pt-6 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
+                    {(!municipio || isChangingMunicipio) && allMunicipios && (
                     <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl flex flex-col gap-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             {isCreatingMunicipio ? 'Cadastrando Novas Informações de Município' : 'Selecione o Município para o Apoiador'}
@@ -597,7 +599,7 @@ const ApoiadorModal: React.FC<ApoiadorModalProps> = ({ isOpen, onClose, onSucces
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                <div className="p-8 pt-4 shrink-0 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 bg-white dark:bg-slate-800">
                     <button 
                         onClick={onClose}
                         className="px-6 py-2.5 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"

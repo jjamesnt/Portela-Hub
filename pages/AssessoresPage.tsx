@@ -19,7 +19,20 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
     const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<Assessor | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [formErrors, setFormErrors] = useState<string[]>([]);
     const [errorDetails, setErrorDetails] = useState<{ title: string; message: string; tech?: string } | null>(null);
+
+    // Refs para Foco em Erros
+    const nomeRef = React.useRef<HTMLInputElement>(null);
+    const cargoRef = React.useRef<HTMLSelectElement>(null);
+    const regiaoRef = React.useRef<HTMLInputElement>(null);
+    const emailRef = React.useRef<HTMLInputElement>(null);
+    const telefoneRef = React.useRef<HTMLInputElement>(null);
+    const mandatoRef = React.useRef<HTMLSelectElement>(null);
+    const logradouroRef = React.useRef<HTMLInputElement>(null);
+    const bairroRef = React.useRef<HTMLInputElement>(null);
+    const cidadeRef = React.useRef<HTMLInputElement>(null);
+    const ufRef = React.useRef<HTMLInputElement>(null);
 
     // Filtros
     const [busca, setBusca] = useState('');
@@ -70,14 +83,34 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
     };
 
     const handleSaveAssessor = async () => {
-        // Validação de Telefone
+        // Validação de Campos Obrigatórios
+        const errors = [];
+        if (!editingAssessor.nome?.trim()) errors.push("nome");
+        if (!editingAssessor.cargo) errors.push("cargo");
+        if (!editingAssessor.regiaoAtuacao?.trim()) errors.push("regiao");
+        if (!editingAssessor.email?.trim()) errors.push("email");
+        if (!editingAssessor.origem) errors.push("mandato");
+        if (!editingAssessor.endereco?.logradouro?.trim()) errors.push("logradouro");
+        if (!editingAssessor.endereco?.bairro?.trim()) errors.push("bairro");
+        if (!editingAssessor.endereco?.cidade?.trim()) errors.push("cidade");
+        if (!editingAssessor.endereco?.uf?.trim()) errors.push("uf");
+
         const fone = (editingAssessor.telefone || '').replace(/\D/g, '');
-        if (fone.length !== 11) {
-            setErrorDetails({
-                title: "Telefone Inválido",
-                message: "O telefone deve seguir o padrão (99) 99999-9999 com 11 dígitos (incluindo DDD).",
-                tech: `Pattern mismatch: Expected 11 digits, got ${fone.length}`
-            });
+        if (fone.length !== 11) errors.push("telefone");
+
+        setFormErrors(errors);
+
+        if (errors.length > 0) {
+            if (errors.includes("nome")) nomeRef.current?.focus();
+            else if (errors.includes("cargo")) cargoRef.current?.focus();
+            else if (errors.includes("regiao")) regiaoRef.current?.focus();
+            else if (errors.includes("email")) emailRef.current?.focus();
+            else if (errors.includes("telefone")) telefoneRef.current?.focus();
+            else if (errors.includes("logradouro")) logradouroRef.current?.focus();
+            else if (errors.includes("bairro")) bairroRef.current?.focus();
+            else if (errors.includes("cidade")) cidadeRef.current?.focus();
+            else if (errors.includes("uf")) ufRef.current?.focus();
+            else if (errors.includes("mandato")) mandatoRef.current?.focus();
             return;
         }
 
@@ -110,8 +143,14 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
             
             setIsModalOpen(false);
             setEditingAssessor({});
-        } catch (error) {
+            setFormErrors([]);
+        } catch (error: any) {
             console.error("Erro ao salvar assessor:", error);
+            setErrorDetails({
+                title: "Erro ao Salvar",
+                message: "Não foi possível salvar os dados do assessor. Verifique sua conexão e tente novamente.",
+                tech: error.message || String(error)
+            });
         } finally {
             setIsSaving(false);
         }
@@ -243,7 +282,15 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                     </div>
 
                     <button
-                        onClick={() => { setEditingAssessor({}); setIsModalOpen(true); }}
+                        onClick={() => { 
+                            setEditingAssessor({
+                                cargo: 'Assessor Regional',
+                                origem: 'Alê Portela',
+                                endereco: { logradouro: '', numero: '', bairro: '', cidade: '', uf: '', cep: '' }
+                            }); 
+                            setFormErrors([]);
+                            setIsModalOpen(true); 
+                        }}
                         className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20 active:scale-95 h-10 md:h-12"
                     >
                         <span className="material-symbols-outlined text-lg md:text-xl">add</span>
@@ -460,22 +507,31 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Nome Completo</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Nome Completo <span className="text-rose-500">*</span></label>
                                     <input
+                                        ref={nomeRef}
                                         type="text"
                                         value={editingAssessor.nome || ''}
-                                        onChange={e => setEditingAssessor({ ...editingAssessor, nome: e.target.value })}
-                                        className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                        onChange={e => {
+                                            setEditingAssessor({ ...editingAssessor, nome: e.target.value });
+                                            if (formErrors.includes("nome")) setFormErrors(prev => prev.filter(f => f !== "nome"));
+                                        }}
+                                        className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("nome") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Cargo</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Cargo <span className="text-rose-500">*</span></label>
                                         <select
-                                            value={editingAssessor.cargo || 'Assessor'}
-                                            onChange={e => setEditingAssessor({ ...editingAssessor, cargo: e.target.value as any })}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            ref={cargoRef}
+                                            value={editingAssessor.cargo || ''}
+                                            onChange={e => {
+                                                setEditingAssessor({ ...editingAssessor, cargo: e.target.value as any });
+                                                if (formErrors.includes("cargo")) setFormErrors(prev => prev.filter(f => f !== "cargo"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("cargo") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         >
+                                            <option value="">Selecione...</option>
                                             <option>Assessor</option>
                                             <option>Assessor Regional</option>
                                             <option>Coordenador Político</option>
@@ -483,40 +539,54 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Região</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Região <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={regiaoRef}
                                             type="text"
                                             value={editingAssessor.regiaoAtuacao || ''}
-                                            onChange={e => setEditingAssessor({ ...editingAssessor, regiaoAtuacao: e.target.value })}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                setEditingAssessor({ ...editingAssessor, regiaoAtuacao: e.target.value });
+                                                if (formErrors.includes("regiao")) setFormErrors(prev => prev.filter(f => f !== "regiao"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("regiao") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Mandato</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Mandato <span className="text-rose-500">*</span></label>
                                         <select
-                                            value={editingAssessor.origem || 'Alê Portela'}
-                                            onChange={e => setEditingAssessor({ ...editingAssessor, origem: e.target.value as any })}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            ref={mandatoRef}
+                                            value={editingAssessor.origem || ''}
+                                            onChange={e => {
+                                                setEditingAssessor({ ...editingAssessor, origem: e.target.value as any });
+                                                if (formErrors.includes("mandato")) setFormErrors(prev => prev.filter(f => f !== "mandato"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("mandato") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         >
+                                            <option value="">Selecione...</option>
                                             <option>Alê Portela</option>
                                             <option>Lincoln Portela</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Email <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={emailRef}
                                             type="email"
                                             value={editingAssessor.email || ''}
-                                            onChange={e => setEditingAssessor({ ...editingAssessor, email: e.target.value })}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                setEditingAssessor({ ...editingAssessor, email: e.target.value });
+                                                if (formErrors.includes("email")) setFormErrors(prev => prev.filter(f => f !== "email"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("email") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Telefone</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Telefone <span className="text-rose-500">*</span></label>
                                     <input
+                                        ref={telefoneRef}
                                         type="tel"
                                         value={editingAssessor.telefone || ''}
                                         onChange={e => {
@@ -525,8 +595,9 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                             if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
                                             if (v.length > 9) v = `${v.slice(0, 10)}-${v.slice(10)}`;
                                             setEditingAssessor({ ...editingAssessor, telefone: v });
+                                            if (formErrors.includes("telefone")) setFormErrors(prev => prev.filter(f => f !== "telefone"));
                                         }}
-                                        className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                        className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("telefone") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         placeholder="(99) 99999-9999"
                                     />
                                 </div>
@@ -548,12 +619,16 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                         />
                                     </div>
                                     <div className="col-span-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Logradouro</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Logradouro <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={logradouroRef}
                                             type="text"
                                             value={editingAssessor.endereco?.logradouro || ''}
-                                            onChange={e => updateEndereco('logradouro', e.target.value)}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                updateEndereco('logradouro', e.target.value);
+                                                if (formErrors.includes("logradouro")) setFormErrors(prev => prev.filter(f => f !== "logradouro"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("logradouro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         />
                                     </div>
                                 </div>
@@ -568,32 +643,44 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Bairro</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Bairro <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={bairroRef}
                                             type="text"
                                             value={editingAssessor.endereco?.bairro || ''}
-                                            onChange={e => updateEndereco('bairro', e.target.value)}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                updateEndereco('bairro', e.target.value);
+                                                if (formErrors.includes("bairro")) setFormErrors(prev => prev.filter(f => f !== "bairro"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("bairro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
                                     <div className="col-span-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Cidade</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Cidade <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={cidadeRef}
                                             type="text"
                                             value={editingAssessor.endereco?.cidade || ''}
-                                            onChange={e => updateEndereco('cidade', e.target.value)}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                updateEndereco('cidade', e.target.value);
+                                                if (formErrors.includes("cidade")) setFormErrors(prev => prev.filter(f => f !== "cidade"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("cidade") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">UF</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">UF <span className="text-rose-500">*</span></label>
                                         <input
+                                            ref={ufRef}
                                             type="text"
                                             value={editingAssessor.endereco?.uf || ''}
-                                            onChange={e => updateEndereco('uf', e.target.value)}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            onChange={e => {
+                                                updateEndereco('uf', e.target.value);
+                                                if (formErrors.includes("uf")) setFormErrors(prev => prev.filter(f => f !== "uf"));
+                                            }}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("uf") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
                                         />
                                     </div>
                                 </div>

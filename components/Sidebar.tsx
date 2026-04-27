@@ -4,7 +4,7 @@ import { useAppContext } from '../hooks/useAppContext';
 
 interface SidebarProps {
     activePage: string;
-    setActivePage: (page: string) => void;
+    setActivePage: (page: string, params?: any) => void;
 }
 
 export const navItems = [
@@ -121,73 +121,77 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                     ))}
                 </nav>
 
-                <div className="p-4 border-t border-white/10 bg-[#001a38]">
-                    <div className="p-4 border-t border-white/10 bg-[#001a38]">
-                        <div className="flex items-center gap-2 mb-4 px-1">
-                            <span className="material-symbols-outlined text-turquoise text-xl">bolt</span>
+                <div className="p-4 border-t border-white/10 bg-[#001a38] group/quickactions">
+                    <div className="flex items-center justify-between mb-0 group-hover/quickactions:mb-4 px-1 transition-all duration-300">
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-turquoise text-xl group-hover/quickactions:animate-pulse">bolt</span>
                             <h3 className="text-sm font-bold text-white">Ações Rápidas</h3>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            {allowedItems.includes('Apoiadores') && (
-                                <button
-                                    onClick={() => setActivePage('Apoiadores')}
-                                    className="flex flex-col items-center justify-center p-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 transition-all border border-rose-500/30 group"
-                                >
-                                    <span className="material-symbols-outlined text-rose-400 mb-1 text-xl group-hover:scale-110 transition-transform">person_add</span>
-                                    <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider text-center leading-tight">Novo Apoiador</span>
-                                </button>
-                            )}
-                            {allowedItems.includes('Lideranças') && (
-                                <button
-                                    onClick={() => setActivePage('Lideranças')}
-                                    className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group"
-                                >
-                                    <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">person_add</span>
-                                    <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Nova Liderança</span>
-                                </button>
-                            )}
-                            {allowedItems.includes('Municípios') && (
-                                <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
-                                    <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">upload_file</span>
-                                    <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Importar CSV</span>
-                                </button>
-                            )}
-                            {(allowedItems.includes('Recursos') || allowedItems.includes('Demandas')) && (
-                                <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
-                                    <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">print</span>
-                                    <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Gerar PDF</span>
-                                </button>
-                            )}
-                        </div>
+                        <span className="material-symbols-outlined text-white/20 text-sm group-hover/quickactions:rotate-180 transition-transform duration-500">expand_more</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 max-h-0 opacity-0 overflow-hidden transition-all duration-500 ease-in-out group-hover/quickactions:max-h-80 group-hover/quickactions:opacity-100">
+                        {allowedItems.includes('Apoiadores') && (
+                            <button
+                                onClick={() => setActivePage('Apoiadores')}
+                                className="flex flex-col items-center justify-center p-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 transition-all border border-rose-500/30 group"
+                            >
+                                <span className="material-symbols-outlined text-rose-400 mb-1 text-xl group-hover:scale-110 transition-transform">person_add</span>
+                                <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider text-center leading-tight">Novo Apoiador</span>
+                            </button>
+                        )}
+                        {allowedItems.includes('Lideranças') && (
+                            <button
+                                onClick={() => setActivePage('Lideranças', { action: 'new' })}
+                                className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group"
+                            >
+                                <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">person_add</span>
+                                <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Nova Liderança</span>
+                            </button>
+                        )}
+                        {allowedItems.includes('Municípios') && (
+                            <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
+                                <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">upload_file</span>
+                                <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Importar CSV</span>
+                            </button>
+                        )}
+                        {(allowedItems.includes('Recursos') || allowedItems.includes('Demandas')) && (
+                            <button className="flex flex-col items-center justify-center p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
+                                <span className="material-symbols-outlined text-turquoise mb-1 text-xl group-hover:scale-110 transition-transform">print</span>
+                                <span className="text-[9px] font-bold text-turquoise uppercase tracking-wider text-center leading-tight">Gerar PDF</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                <div className="p-4 border-t border-white/10 bg-[#001a38]">
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                            <div className="size-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                                <span className="material-symbols-outlined text-white text-sm">support_agent</span>
+                <div className="p-4 border-t border-white/10 bg-[#001a38] group/support">
+                    <div className="flex flex-col gap-0 group-hover/support:gap-3 transition-all duration-500">
+                        <div className="flex items-center justify-between px-1">
+                            <div className="flex items-center gap-2">
+                                <div className="size-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 group-hover/support:bg-emerald-500/20 transition-colors duration-500">
+                                    <span className="material-symbols-outlined text-white text-sm group-hover/support:text-emerald-400 transition-colors">support_agent</span>
+                                </div>
+                                <span className="text-xs font-bold text-white">Suporte Técnico</span>
                             </div>
-                            <div className="flex flex-col overflow-hidden">
-                                <span className="text-xs font-bold text-white truncate">Suporte Técnico</span>
-                                <span className="text-[10px] text-slate-400 truncate">James Rizo - (31) 98421-1900</span>
-                            </div>
+                            <span className="material-symbols-outlined text-white/20 text-sm group-hover/support:rotate-180 transition-transform duration-500">expand_more</span>
                         </div>
 
-                        <a
-                            href="https://wa.me/5531984211900?text=Preciso%20de%20suporte%20no%20Portela%20hub."
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 p-2 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] transition-colors group"
-                        >
-                            <span className="text-lg">
+                        <div className="max-h-0 opacity-0 overflow-hidden transition-all duration-500 ease-in-out group-hover/support:max-h-32 group-hover/support:opacity-100 flex flex-col gap-3">
+                            <div className="flex flex-col px-1">
+                                <span className="text-[10px] text-slate-400 truncate font-medium">James Rizo - (31) 98421-1900</span>
+                            </div>
+                            <a
+                                href="https://wa.me/5531984211900?text=Preciso%20de%20suporte%20no%20Portela%20hub."
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 p-2.5 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/20 transition-all active:scale-95"
+                            >
                                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                                     <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.592 2.654-.698c1.005.572 1.903.87 3.05.87 3.183 0 5.768-2.586 5.768-5.766.001-3.182-2.585-5.769-5.767-5.769c.001 0-.001 0-.001 0zm0 13.891c-1.372 0-2.618-.328-3.794-.954l-4.223 1.109 1.129-4.103c-.705-1.226-1.077-2.636-1.077-4.177 0-4.478 3.644-8.122 8.122-8.122 4.479 0 8.123 3.644 8.123 8.122s-3.645 8.125-8.122 8.127l-.158-.002z" />
                                     <path d="M15.424 12.864c-.182-.091-1.078-.532-1.244-.593-.166-.06-.288-.091-.409.091-.122.182-.471.593-.578.714-.106.121-.212.136-.394.045-.182-.09-0.77-.284-1.467-0.905-.544-.485-.911-1.084-1.017-1.266-.106-.182-.011-.28.08-.37.081-.081.182-.213.273-.319.091-.106.121-.182.182-.303.06-.121.03-.227-.015-.318-.046-.091-.409-.985-.561-1.349-.148-.354-.298-.306-.409-.312l-.348-.009c-.121 0-.318.046-.485.227-.167.182-.636.621-.636 1.516s.651 1.758.742 1.88c.091.121 1.281 1.956 3.104 2.743 1.823.787 1.823.525 2.157.495.333-.03 1.078-.44 1.229-.864.152-.424.152-.788.106-.864-.045-.076-.167-.121-.348-.212z" />
                                 </svg>
-                            </span>
-                            <span className="text-xs font-bold">WhatsApp</span>
-                        </a>
+                                <span className="text-xs font-bold uppercase tracking-wider">WhatsApp</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
 
