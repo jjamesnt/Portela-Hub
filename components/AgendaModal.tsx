@@ -67,17 +67,12 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
         }
     }, [isOpen, initialDate, eventToEdit, solicitacaoToApprove]);
 
-    if (!isOpen) return null;
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
     const [formErrors, setFormErrors] = useState<string[]>([]);
     const tituloRef = React.useRef<HTMLInputElement>(null);
     const dataRef = React.useRef<HTMLInputElement>(null);
     const horaRef = React.useRef<HTMLInputElement>(null);
+
+    if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

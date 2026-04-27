@@ -584,7 +584,16 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                 </tr>
                             ) : (
                                 filteredSolicitacoes.map(s => (
-                                    <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-colors">
+                                    <tr 
+                                        key={s.id} 
+                                        onClick={() => {
+                                            if (s.status === 'Pendente') {
+                                                setSolicitacaoToReview(s);
+                                                setIsEventModalOpen(true);
+                                            }
+                                        }}
+                                        className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-colors cursor-pointer"
+                                    >
                                         <td className="px-4 md:px-6 py-2.5 md:py-4">
                                             <div className="flex items-center gap-2 md:gap-3">
                                                 <div className="size-6 md:size-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0">
@@ -625,7 +634,8 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                                 {s.status === 'Pendente' ? (
                                                     <>
                                                         <button 
-                                                            onClick={() => {
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
                                                                 setSolicitacaoToReview(s);
                                                                 setIsEventModalOpen(true);
                                                             }}
@@ -635,7 +645,10 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                                             <span className="material-symbols-outlined text-[18px]">rule</span>
                                                         </button>
                                                         <button 
-                                                            onClick={() => handleUpdateStatus(s.id, 'Recusado')}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleUpdateStatus(s.id, 'Recusado');
+                                                            }}
                                                             className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition-all"
                                                             title="Recusar"
                                                         >
