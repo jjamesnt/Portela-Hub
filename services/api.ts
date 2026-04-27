@@ -466,6 +466,24 @@ export const updateSolicitacaoStatus = async (id: string, status: 'Aprovado' | '
     return data as SolicitacaoAgenda;
 };
 
+export const approveSolicitacao = async (solicitacaoId: string, eventData: Omit<EventoAgenda, 'id'>) => {
+    // 1. Cria o evento oficial na agenda
+    const newEvent = await createEvento(eventData);
+
+    // 2. Atualiza o status da solicitação para 'Aprovado'
+    const { error: updateError } = await supabase
+        .from('solicitacoes_agenda')
+        .update({ status: 'Aprovado' })
+        .eq('id', solicitacaoId);
+
+    if (updateError) {
+        console.error('Erro ao atualizar status após aprovação:', updateError);
+        throw updateError;
+    }
+
+    return newEvent;
+};
+
 // --- Recursos ---
 export const getRecursosTotais = async (): Promise<number> => {
     const { data, error } = await supabase

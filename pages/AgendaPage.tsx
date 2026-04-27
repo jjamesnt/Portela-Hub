@@ -36,6 +36,7 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [solicitacaoToReview, setSolicitacaoToReview] = useState<SolicitacaoAgenda | null>(null);
 
     // Filtros
     const [filtroTipo, setFiltroTipo] = useState('Todos');
@@ -126,29 +127,11 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
             };
         });
 
-        const approvedSol = solicitacoes
-            .filter(s => s.status === 'Aprovado')
-            .map(s => ({
-                id: s.id,
-                title: `[REQ] ${s.titulo}`,
-                start: s.hora_inicio ? `${s.data}T${s.hora_inicio}` : s.data,
-                end: s.hora_fim ? `${s.data}T${s.hora_fim}` : undefined,
-                allDay: !s.hora_inicio,
-                backgroundColor: '#0ea5e9', // sky-500
-                borderColor: 'transparent',
-                className: 'cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md hover:brightness-110',
-                extendedProps: {
-                    ...s,
-                    source: 'solicitation'
-                }
-            }));
-
-
-        return [...officialEvents, ...approvedSol];
-    }, [eventos, solicitacoes]);
+        return [...officialEvents];
+    }, [eventos]);
 
     const metrics = useMemo(() => {
-        const total = eventos.length + solicitacoes.filter(s => s.status === 'Aprovado').length;
+        const total = eventos.length;
         const reuniao = eventos.filter(e => e.tipo === 'Reunião').length;
         const visita = eventos.filter(e => e.tipo === 'Visita Técnica').length;
         const eventoPublico = eventos.filter(e => e.tipo === 'Evento Público').length;
@@ -642,11 +625,14 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                                 {s.status === 'Pendente' ? (
                                                     <>
                                                         <button 
-                                                            onClick={() => handleUpdateStatus(s.id, 'Aprovado')}
+                                                            onClick={() => {
+                                                                setSolicitacaoToReview(s);
+                                                                setIsEventModalOpen(true);
+                                                            }}
                                                             className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
-                                                            title="Aprovar"
+                                                            title="Revisar e Aprovar"
                                                         >
-                                                            <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                                                            <span className="material-symbols-outlined text-[18px]">rule</span>
                                                         </button>
                                                         <button 
                                                             onClick={() => handleUpdateStatus(s.id, 'Recusado')}
@@ -683,10 +669,12 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                     local: selectedEvent.extendedProps.local,
                     descricao: selectedEvent.extendedProps.descricao
                 } : undefined}
+                solicitacaoToApprove={solicitacaoToReview || undefined}
                 onClose={() => {
                     setIsEventModalOpen(false);
                     setSelectedDate(null);
                     setSelectedEvent(null);
+                    setSolicitacaoToReview(null);
                 }}
                 onSuccess={fetchData}
             />

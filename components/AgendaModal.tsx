@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { createEvento, updateEvento, deleteEvento } from '../services/api';
-import { EventoAgenda } from '../types';
+import { createEvento, updateEvento, deleteEvento, approveSolicitacao } from '../services/api';
+import { EventoAgenda, SolicitacaoAgenda } from '../types';
 
 interface AgendaModalProps {
     isOpen: boolean;
     initialDate?: string;
     eventToEdit?: EventoAgenda;
+    solicitacaoToApprove?: SolicitacaoAgenda;
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -38,6 +39,19 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                     local: eventToEdit.local || '',
                     descricao: eventToEdit.descricao || ''
                 });
+            } else if (solicitacaoToApprove) {
+                setFormData({
+                    titulo: solicitacaoToApprove.titulo,
+                    data: solicitacaoToApprove.data,
+                    hora: solicitacaoToApprove.hora_inicio || '',
+                    tipo: (solicitacaoToApprove.tipo_evento?.includes('Evento') ? 'Evento Público' : 
+                          solicitacaoToApprove.tipo_evento?.includes('Reunião') ? 'Reunião' : 'Reunião') as any,
+                    origem: (solicitacaoToApprove.origem.includes('Alê') ? 'Alê Portela' : 
+                            solicitacaoToApprove.origem.includes('Lincoln') ? 'Lincoln Portela' : 'Marilda Portela') as any,
+                    privacidade: 'Público',
+                    local: solicitacaoToApprove.local || '',
+                    descricao: solicitacaoToApprove.descricao || ''
+                });
             } else {
                 setFormData({
                     titulo: '',
@@ -51,7 +65,7 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                 });
             }
         }
-    }, [isOpen, initialDate, eventToEdit]);
+    }, [isOpen, initialDate, eventToEdit, solicitacaoToApprove]);
 
     if (!isOpen) return null;
 
@@ -99,6 +113,8 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
 
             if (eventToEdit?.id) {
                 await updateEvento(eventToEdit.id, payload);
+            } else if (solicitacaoToApprove) {
+                await approveSolicitacao(solicitacaoToApprove.id, payload);
             } else {
                 await createEvento(payload);
             }
@@ -142,8 +158,12 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
             <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200 border border-white/20">
                 <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
                     <div>
-                        <h3 className="font-black text-xl text-navy-dark dark:text-white">{eventToEdit ? 'Editar Evento' : 'Novo Evento'}</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{eventToEdit ? 'Atualizar agenda oficial' : 'Adicionar à agenda oficial'}</p>
+                        <h3 className="font-black text-xl text-navy-dark dark:text-white">
+                            {eventToEdit ? 'Editar Evento' : solicitacaoToApprove ? 'Revisar e Aprovar' : 'Novo Evento'}
+                        </h3>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                            {eventToEdit ? 'Atualizar agenda oficial' : solicitacaoToApprove ? 'Validar solicitação externa' : 'Adicionar à agenda oficial'}
+                        </p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                         <span className="material-symbols-outlined">close</span>
@@ -321,7 +341,7 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                                 ) : (
                                     <span className="material-symbols-outlined text-[20px]">check</span>
                                 )}
-                                {eventToEdit ? 'Salvar Alterações' : 'Salvar Evento'}
+                                {eventToEdit ? 'Salvar Alterações' : solicitacaoToApprove ? 'Aprovar Solicitação' : 'Salvar Evento'}
                             </button>
                         </div>
                         
