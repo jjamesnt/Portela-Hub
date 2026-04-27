@@ -5,7 +5,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import ptBrLocale from '@fullcalendar/core/locales/pt-br';
-import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents } from '../services/api';
+import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents, updateSolicitacaoStatus } from '../services/api';
 import { getElectoralEvents } from '../services/electoralCalendarService'; // Novo serviço
 import { EventoAgenda, SolicitacaoAgenda } from '../types';
 import { AppContext } from '../context/AppContext';
@@ -69,6 +69,16 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
         }
     };
 
+
+    const handleUpdateStatus = async (id: string, newStatus: 'Aprovado' | 'Recusado') => {
+        try {
+            await updateSolicitacaoStatus(id, newStatus);
+            fetchData();
+        } catch (err) {
+            console.error('Erro ao atualizar status:', err);
+            alert('Falha ao atualizar status da solicitação.');
+        }
+    };
 
     useEffect(() => {
         fetchData();
@@ -581,6 +591,7 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                 <th className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">Data/Hora</th>
                                 <th className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">Status</th>
                                 <th className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">Origem</th>
+                                <th className="px-4 md:px-6 py-3 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -624,6 +635,30 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                                         {o.split(' ')[0]}
                                                     </span>
                                                 ))}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 md:px-6 py-2.5 md:py-4">
+                                            <div className="flex justify-center gap-2">
+                                                {s.status === 'Pendente' ? (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(s.id, 'Aprovado')}
+                                                            className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
+                                                            title="Aprovar"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(s.id, 'Recusado')}
+                                                            className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition-all"
+                                                            title="Recusar"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">cancel</span>
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-[10px] font-black text-slate-300 uppercase italic">Concluído</span>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

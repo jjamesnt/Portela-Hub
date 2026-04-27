@@ -451,6 +451,21 @@ export const createSolicitacaoAgenda = async (solicitacao: Omit<SolicitacaoAgend
     return data as SolicitacaoAgenda;
 };
 
+export const updateSolicitacaoStatus = async (id: string, status: 'Aprovado' | 'Recusado') => {
+    const { data, error } = await supabase
+        .from('solicitacoes_agenda')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Erro ao atualizar status da solicitação:', error);
+        throw error;
+    }
+    return data as SolicitacaoAgenda;
+};
+
 // --- Recursos ---
 export const getRecursosTotais = async (): Promise<number> => {
     const { data, error } = await supabase
