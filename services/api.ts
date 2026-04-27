@@ -467,8 +467,11 @@ export const updateSolicitacaoStatus = async (id: string, status: 'Aprovado' | '
 };
 
 export const approveSolicitacao = async (solicitacaoId: string, eventData: Omit<EventoAgenda, 'id'>) => {
-    // 1. Cria o evento oficial na agenda
-    const newEvent = await createEvento(eventData);
+    // 1. Cria o evento oficial na agenda com o vínculo
+    const newEvent = await createEvento({
+        ...eventData,
+        solicitacao_id: solicitacaoId
+    });
 
     // 2. Atualiza o status da solicitação para 'Aprovado'
     const { error: updateError } = await supabase
@@ -482,6 +485,34 @@ export const approveSolicitacao = async (solicitacaoId: string, eventData: Omit<
     }
 
     return newEvent;
+};
+
+export const undoApproveSolicitacao = async (solicitacaoId: string) => {
+    // 1. Remove o evento associado da agenda
+    const { error: deleteError } = await supabase
+        .from('agenda')
+        .delete()
+        .eq('solicitacao_id', solicitacaoId);
+
+    if (deleteError) {
+        console.error('Erro ao remover evento vinculado:', deleteError);
+        // Continuamos mesmo se o evento não existir (pode ter sido deletado manualmente)
+    }
+
+    // 2. Retorna o status da solicitação para 'Pendente'
+    const { data, error: updateError } = await supabase
+        .from('solicitacoes_agenda')
+        .update({ status: 'Pendente' })
+        .eq('id', solicitacaoId)
+        .select()
+        .single();
+
+    if (updateError) {
+        console.error('Erro ao restaurar status da solicitação:', updateError);
+        throw updateError;
+    }
+
+    return data as SolicitacaoAgenda;
 };
 
 // --- Recursos ---

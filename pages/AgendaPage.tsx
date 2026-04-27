@@ -5,7 +5,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import ptBrLocale from '@fullcalendar/core/locales/pt-br';
-import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents, updateSolicitacaoStatus } from '../services/api';
+import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents, updateSolicitacaoStatus, undoApproveSolicitacao } from '../services/api';
 import { getElectoralEvents } from '../services/electoralCalendarService'; // Novo serviço
 import { EventoAgenda, SolicitacaoAgenda } from '../types';
 import { AppContext } from '../context/AppContext';
@@ -74,11 +74,41 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
     const handleUpdateStatus = async (id: string, newStatus: 'Aprovado' | 'Recusado') => {
         try {
             await updateSolicitacaoStatus(id, newStatus);
-            fetchData();
-        } catch (err) {
-            console.error('Erro ao atualizar status:', err);
-            alert('Falha ao atualizar status da solicitação.');
+            const data = await getSolicitacoesAgenda();
+            setSolicitacoes(data);
+        } catch (err: any) {
+            setError(err.message || 'Erro ao atualizar status');
         }
+    };
+
+    const handleUndoApprove = async (id: string) => {
+        if (!window.confirm('Deseja desaprovar esta solicitação? O evento será removido da agenda e o pedido voltará para a fila de pendentes.')) return;
+        try {
+            await undoApproveSolicitacao(id);
+            const [solicData, eventData] = await Promise.all([
+                getSolicitacoesAgenda(),
+                getAgendaEventos()
+            ]);
+            setSolicitacoes(solicData);
+            setEventos(eventData);
+        } catch (err: any) {
+            setError(err.message || 'Erro ao desaprovar solicitação');
+        }
+    };
+
+    const getTimeAgo = (dateStr?: string) => {
+        if (!dateStr) return '';
+        const created = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now.getTime() - created.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+        if (diffDays > 0) return `Há ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`;
+        if (diffHours > 0) return `Há ${diffHours} ${diffHours === 1 ? 'hora' : 'horas'}`;
+        if (diffMinutes > 0) return `Há ${diffMinutes} ${diffMinutes === 1 ? 'minuto' : 'minutos'}`;
+        return 'Agora mesmo';
     };
 
     useEffect(() => {
@@ -614,6 +644,11 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                                 {s.data ? s.data.split('T')[0].split(' ')[0].split('-').reverse().join('/') : ''}
                                             </p>
                                             <p className="text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">{s.hora_inicio} - {s.hora_fim}</p>
+                                            {s.status === 'Pendente' && (
+                                                <p className="text-[8px] font-black text-amber-500 mt-1 uppercase tracking-tighter bg-amber-50 dark:bg-amber-900/20 px-1 py-0.5 rounded inline-block">
+                                                    {getTimeAgo(s.created_at)}
+                                                </p>
+                                            )}
                                         </td>
                                         <td className="px-4 md:px-6 py-2.5 md:py-4">
                                             <div className="flex flex-col items-center">
@@ -661,7 +696,19 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                                         </button>
                                                     </>
                                                 ) : (
-                                                    <span className="text-[10px] font-black text-slate-300 uppercase italic">Concluído</span>
+                                                    <div className="flex gap-2">
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleUndoApprove(s.id);
+                                                            }}
+                                                            className="p-1.5 bg-slate-100 text-slate-500 hover:bg-slate-600 hover:text-white rounded-lg transition-all"
+                                                            title="Desaprovar e retornar para fila"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">undo</span>
+                                                        </button>
+                                                        <span className="text-[10px] font-black text-slate-300 uppercase italic self-center">Concluído</span>
+                                                    </div>
                                                 )}
                                             </div>
                                         </td>

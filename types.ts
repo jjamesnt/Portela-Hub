@@ -163,6 +163,7 @@ export interface EventoAgenda {
     local: string;
     descricao?: string;
     privacidade?: 'Público' | 'Particular';
+    solicitacao_id?: string;
 }
 
 export interface Recurso {
