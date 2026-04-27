@@ -11,7 +11,7 @@ interface AgendaModalProps {
     onSuccess: () => void;
 }
 
-const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToEdit, onClose, onSuccess }) => {
+const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToEdit, solicitacaoToApprove, onClose, onSuccess }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
