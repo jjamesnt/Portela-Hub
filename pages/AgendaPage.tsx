@@ -98,6 +98,8 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
         }
     };
 
+    const formatarData = (d: string) => d ? d.split('T')[0].split(' ')[0] : '';
+
     const calendarEvents = useMemo(() => {
         const officialEvents = eventos.map(e => {
             // Heurística de privacidade redundante para segurança absoluta
@@ -106,8 +108,9 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
             const isPrivate = e.privacidade === 'Particular' || hasPrivateKeyword;
 
             // Validação de horário para FullCalendar
-            const isTimeFormat = /^([01]\d|2[0-3]):([0-5]\d)$/.test(e.hora || '');
-            const startTime = isTimeFormat ? `${e.data}T${e.hora}` : e.data;
+            const datePart = formatarData(e.data);
+            const isTimeFormat = e.hora && e.hora !== '';
+            const startTime = isTimeFormat ? `${datePart}T${e.hora}` : datePart;
 
             return {
                 id: e.id,
@@ -607,7 +610,9 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                             <p className="text-[8px] md:text-[10px] text-slate-400 truncate max-w-[120px] md:max-w-[200px]">{s.descricao || s.local}</p>
                                         </td>
                                         <td className="px-4 md:px-6 py-2.5 md:py-4 text-center">
-                                            <p className="text-[9px] md:text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">{new Date(s.data).toLocaleDateString('pt-BR')}</p>
+                                            <p className="text-[9px] md:text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                                {s.data ? s.data.split('T')[0].split(' ')[0].split('-').reverse().join('/') : ''}
+                                            </p>
                                             <p className="text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">{s.hora_inicio} - {s.hora_fim}</p>
                                         </td>
                                         <td className="px-4 md:px-6 py-2.5 md:py-4">

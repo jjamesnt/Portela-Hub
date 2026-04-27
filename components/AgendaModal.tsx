@@ -42,7 +42,7 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
             } else if (solicitacaoToApprove) {
                 setFormData({
                     titulo: solicitacaoToApprove.titulo,
-                    data: solicitacaoToApprove.data,
+                    data: solicitacaoToApprove.data ? solicitacaoToApprove.data.split('T')[0].split(' ')[0] : '',
                     hora: solicitacaoToApprove.hora_inicio || '',
                     tipo: (solicitacaoToApprove.tipo_evento?.includes('Evento') ? 'Evento Público' : 
                           solicitacaoToApprove.tipo_evento?.includes('Reunião') ? 'Reunião' : 'Reunião') as any,
