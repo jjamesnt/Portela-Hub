@@ -91,7 +91,7 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
 
     const handleRefuseConfirm = async (id: string, motivo: string) => {
         try {
-            await updateSolicitacaoStatus(id, 'Recusado', motivo);
+            await updateSolicitacaoStatus(id, 'Recusado', motivo, user?.id);
             
             // Criar notificação para o usuário
             const s = refuseModalConfig.solicitacao;
@@ -711,6 +711,11 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                                     }`}>
                                                     {s.status}
                                                 </span>
+                                                {s.status === 'Pendente' && s.resubmissoes && s.resubmissoes > 0 ? (
+                                                    <span className="mt-1 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider whitespace-nowrap bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+                                                        Revisão {s.resubmissoes}
+                                                    </span>
+                                                ) : null}
                                             </div>
                                         </td>
                                         <td className="px-4 md:px-6 py-2.5 md:py-4">

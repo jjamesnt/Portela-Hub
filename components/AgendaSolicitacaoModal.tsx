@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createSolicitacaoAgenda, getLiderancas, getAssessores } from '../services/api';
+import { createSolicitacaoAgenda, updateSolicitacaoAgenda, getLiderancas, getAssessores, createNotificacao } from '../services/api';
 import { SolicitacaoAgenda, Lideranca, Assessor } from '../types';
+import { useAppContext } from '../hooks/useAppContext';
 
 interface AgendaSolicitacaoModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
+    solicitacaoToEdit?: SolicitacaoAgenda;
 }
 
-const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen, onClose, onSuccess, navigateTo }) => {
+const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen, onClose, onSuccess, navigateTo, solicitacaoToEdit }) => {
     // Hooks MUST be declared at the top level
+    const { user } = useAppContext();
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -41,6 +44,50 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
         tempo_participacao: '',
         descricao: ''
     });
+
+    useEffect(() => {
+        if (solicitacaoToEdit) {
+            setFormData({
+                solicitante: solicitacaoToEdit.solicitante || '',
+                assessor_responsavel: solicitacaoToEdit.assessor_responsavel || '',
+                estimativa_publico: solicitacaoToEdit.estimativa_publico?.toString() || '',
+                titulo: solicitacaoToEdit.titulo || '',
+                data: solicitacaoToEdit.data || '',
+                hora_inicio: solicitacaoToEdit.hora_inicio ? solicitacaoToEdit.hora_inicio.slice(0, 5) : '',
+                hora_fim: solicitacaoToEdit.hora_fim ? solicitacaoToEdit.hora_fim.slice(0, 5) : '',
+                horario_chegada: solicitacaoToEdit.horario_chegada ? solicitacaoToEdit.horario_chegada.slice(0, 5) : '',
+                local: solicitacaoToEdit.local || '',
+                tipo_evento: solicitacaoToEdit.tipo_evento || '',
+                tipo_local: solicitacaoToEdit.tipo_local || '',
+                tempo_participacao: solicitacaoToEdit.tempo_participacao || '',
+                descricao: solicitacaoToEdit.descricao || ''
+            });
+            if (solicitacaoToEdit.solicitante) {
+                setSearchTerm(solicitacaoToEdit.solicitante);
+            }
+            if (solicitacaoToEdit.origem) {
+                setSelectedOrigens(solicitacaoToEdit.origem.split(',').map(s => s.trim()));
+            }
+        } else {
+            setFormData({
+                solicitante: '',
+                assessor_responsavel: '',
+                estimativa_publico: '',
+                titulo: '',
+                data: '',
+                hora_inicio: '',
+                hora_fim: '',
+                horario_chegada: '',
+                local: '',
+                tipo_evento: '',
+                tipo_local: '',
+                tempo_participacao: '',
+                descricao: ''
+            });
+            setSearchTerm('');
+            setSelectedOrigens(['Alê Portela']);
+        }
+    }, [solicitacaoToEdit, isOpen]);
 
     const assessorRef = useRef<HTMLSelectElement>(null);
     const solicitanteRef = useRef<HTMLInputElement>(null);
@@ -159,7 +206,7 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
         setError(null);
 
         try {
-            await createSolicitacaoAgenda({
+            const payload = {
                 solicitante: formData.solicitante,
                 titulo: formData.titulo,
                 data: formData.data,
@@ -174,7 +221,27 @@ const AgendaSolicitacaoModal: React.FC<AgendaSolicitacaoModalProps> = ({ isOpen,
                 tipo_evento: formData.tipo_evento || undefined,
                 tipo_local: formData.tipo_local || undefined,
                 tempo_participacao: formData.tempo_participacao || undefined
-            } as any);
+            } as any;
+
+            if (solicitacaoToEdit?.id) {
+                if (solicitacaoToEdit.status === 'Recusado') {
+                    payload.resubmissoes = (solicitacaoToEdit.resubmissoes || 0) + 1;
+                }
+                await updateSolicitacaoAgenda(solicitacaoToEdit.id, payload);
+                
+                // Disparar notificação para quem recusou a solicitação originalmente, indicando nova revisão
+                if (solicitacaoToEdit.status === 'Recusado' && solicitacaoToEdit.recusado_por) {
+                    await createNotificacao(
+                        solicitacaoToEdit.recusado_por,
+                        'Solicitação Reenviada',
+                        `A solicitação "${solicitacaoToEdit.titulo}" foi editada e reenviada.`,
+                        `/agenda?solicitacao_id=${solicitacaoToEdit.id}`
+                    );
+                }
+            } else {
+                await createSolicitacaoAgenda({ ...payload, criado_por: user?.id });
+            }
+            
             onSuccess();
             onClose();
             // Reset form

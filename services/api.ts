@@ -451,10 +451,33 @@ export const createSolicitacaoAgenda = async (solicitacao: Omit<SolicitacaoAgend
     return data as SolicitacaoAgenda;
 };
 
-export const updateSolicitacaoStatus = async (id: string, status: 'Aprovado' | 'Recusado') => {
+export const updateSolicitacaoAgenda = async (id: string, solicitacao: Partial<SolicitacaoAgenda>) => {
     const { data, error } = await supabase
         .from('solicitacoes_agenda')
-        .update({ status })
+        .update({
+            ...solicitacao,
+            status: 'Pendente', // Volta para Pendente ao ser editada
+            observacoes_recusa: null // Limpa as observações antigas
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Erro ao atualizar solicitação de agenda:', error);
+        throw error;
+    }
+    return data as SolicitacaoAgenda;
+};
+
+export const updateSolicitacaoStatus = async (id: string, status: 'Aprovado' | 'Recusado', observacoes?: string, recusadoPor?: string) => {
+    const { data, error } = await supabase
+        .from('solicitacoes_agenda')
+        .update({ 
+            status,
+            observacoes_recusa: status === 'Recusado' ? observacoes : null,
+            recusado_por: status === 'Recusado' ? recusadoPor : null
+        })
         .eq('id', id)
         .select()
         .single();
@@ -805,6 +828,51 @@ export const broadcastEvent = async (params: {
     }
 
     return data;
+};
+
+export const getNotificacoes = async (usuarioId: string) => {
+    const { data, error } = await supabase
+        .from('notificacoes')
+        .select('*')
+        .eq('usuario_id', usuarioId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Erro ao buscar notificações:', error);
+        return [];
+    }
+    return data;
+};
+
+export const marcarNotificacaoComoLida = async (id: string) => {
+    const { error } = await supabase
+        .from('notificacoes')
+        .update({ lida: true })
+        .eq('id', id);
+
+    if (error) {
+        console.error('Erro ao marcar notificação como lida:', error);
+        throw error;
+    }
+};
+
+export const createNotificacao = async (usuarioId: string, titulo: string, mensagem: string, link?: string) => {
+    if (!usuarioId) return;
+    
+    const { error } = await supabase
+        .from('notificacoes')
+        .insert([{
+            usuario_id: usuarioId,
+            titulo,
+            mensagem,
+            link,
+            lida: false
+        }]);
+
+    if (error) {
+        console.error('Erro ao criar notificação:', error);
+        throw error;
+    }
 };
 
 export const getNotificationLogs = async (eventId?: string): Promise<NotificationLog[]> => {

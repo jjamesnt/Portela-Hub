@@ -213,6 +213,22 @@ export interface SolicitacaoAgenda {
     origem: string;
     municipio_id?: string;
     created_at?: string;
+    observacoes_recusa?: string;
+    solicitante_telefone?: string;
+    solicitante_email?: string;
+    criado_por?: string;
+    recusado_por?: string;
+    resubmissoes?: number;
+}
+
+export interface NotificacaoSistema {
+    id: string;
+    usuario_id: string;
+    titulo: string;
+    mensagem: string;
+    link?: string;
+    lida: boolean;
+    created_at: string;
 }
 
 export interface NotificationLog {
