@@ -31,6 +31,7 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
     const [eventos, setEventos] = useState<EventoAgenda[]>([]);
     const [solicitacoes, setSolicitacoes] = useState<SolicitacaoAgenda[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingEvents, setIsLoadingEvents] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
@@ -60,22 +61,27 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [eventosData, solicitacoesData, googleEventsData] = await Promise.all([
+            setIsLoadingEvents(true);
+            
+            // 1. Carrega solicitações primeiro (Supabase é muito rápido)
+            const solicitacoesData = await getSolicitacoesAgenda();
+            setSolicitacoes(solicitacoesData);
+            
+            // 2. Carrega eventos em paralelo. Google Events costuma ser o gargalo.
+            const [eventosData, googleEventsData] = await Promise.all([
                 getAgendaEventos(),
-                getSolicitacoesAgenda(),
                 getGoogleEvents()
             ]);
 
-            // Integrar os eventos do Calendário Eleitoral 2026
             const electoralEvents = getElectoralEvents();
-
             setEventos([...eventosData, ...googleEventsData, ...electoralEvents]);
-            setSolicitacoes(solicitacoesData);
             setError(null);
         } catch (err) {
-            setError("Falha ao carregar dados da agenda.");
+            console.error("Erro no fetchData:", err);
+            setError("Alguns dados da agenda podem não ter sido carregados.");
         } finally {
             setIsLoading(false);
+            setIsLoadingEvents(false);
         }
     };
 
@@ -251,25 +257,22 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
 
     // Efeito para tratar abertura automática via Deep Link (params.solicitacao_id)
     useEffect(() => {
-        if (!isLoading && params?.solicitacao_id && solicitacoes.length > 0 && !hasHandledDeepLink.current) {
+        // Não esperamos mais pelo isLoading total (que inclui Google Events) para abrir o modal de solicitação
+        if (params?.solicitacao_id && solicitacoes.length > 0 && !hasHandledDeepLink.current) {
             const sol = solicitacoes.find(s => s.id === params.solicitacao_id);
             if (sol) {
                 if (sol.status === 'Pendente') {
-                    // Se estiver pendente, abre o modal de revisão para o Master
                     setSolicitacaoToReview(sol);
                     setIsEventModalOpen(true);
                 } else {
-                    // Se estiver recusado (ou outro), abre o modal de edição para o Solicitante
                     setSolicitacaoToEdit(sol);
                     setIsRequestModalOpen(true);
                 }
                 hasHandledDeepLink.current = true;
-                
-                // Limpar a URL para evitar reaberturas acidentais em caso de reload
                 window.history.replaceState({}, '', '/agenda');
             }
         }
-    }, [isLoading, params?.solicitacao_id, solicitacoes]);
+    }, [params?.solicitacao_id, solicitacoes]);
 
     // Efeito para tratar abertura automática de detalhes via Deep Link (params.eventId)
     useEffect(() => {
@@ -398,7 +401,7 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 md:p-6 mb-8 overflow-hidden fc-theme-hub">
-                {isLoading ? (
+                {isLoadingEvents ? (
                     <div className="h-[600px] flex items-center justify-center">
                         <Loader />
                     </div>
