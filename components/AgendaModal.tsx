@@ -158,8 +158,8 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10002] flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200 border border-white/20">
-                <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+            <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200 border border-white/20">
+                <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 shrink-0">
                     <div>
                         <h3 className="font-black text-xl text-navy-dark dark:text-white">
                             {eventToEdit ? 'Editar Evento' : solicitacaoToApprove ? 'Revisar e Aprovar' : 'Novo Evento'}
@@ -173,7 +173,7 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Título do Evento <span className="text-rose-500">*</span></label>
                         <input

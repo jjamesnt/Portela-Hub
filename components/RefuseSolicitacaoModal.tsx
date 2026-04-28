@@ -34,8 +34,8 @@ const RefuseSolicitacaoModal: React.FC<RefuseSolicitacaoModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-[10005] flex items-center justify-center p-4 bg-navy-dark/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-rose-500/10">
-                <div className="p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-rose-500/10">
+                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
                     <div className="w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-500 flex items-center justify-center mb-4">
                         <span className="material-symbols-outlined text-4xl">block</span>
                     </div>
