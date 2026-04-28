@@ -54,6 +54,7 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
     const [buscaSolicitacao, setBuscaSolicitacao] = useState('');
 
     const calendarRef = useRef<FullCalendar>(null);
+    const hasHandledDeepLink = useRef(false);
 
     const fetchData = async () => {
         try {
@@ -249,11 +250,15 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
 
     // Efeito para tratar abertura automática via Deep Link (params.solicitacao_id)
     useEffect(() => {
-        if (!isLoading && params?.solicitacao_id && solicitacoes.length > 0) {
+        if (!isLoading && params?.solicitacao_id && solicitacoes.length > 0 && !hasHandledDeepLink.current) {
             const sol = solicitacoes.find(s => s.id === params.solicitacao_id);
             if (sol) {
                 setSolicitacaoToEdit(sol);
                 setIsRequestModalOpen(true);
+                hasHandledDeepLink.current = true;
+                
+                // Limpar a URL para evitar reaberturas acidentais em caso de reload
+                window.history.replaceState({}, '', '/agenda');
             }
         }
     }, [isLoading, params?.solicitacao_id, solicitacoes]);
