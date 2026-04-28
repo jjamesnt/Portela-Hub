@@ -38,15 +38,17 @@ const AppContent: React.FC = () => {
       return { page: 'RecursosRelatorio' };
     }
 
-    if (path.includes('/municipios')) return { page: 'Municípios' };
-    if (path.includes('/liderancas')) return { page: 'Lideranças' };
-    if (path.includes('/assessores')) return { page: 'Assessores' };
-    if (path.includes('/agenda')) return { page: 'Agenda' };
-    if (path.includes('/recursos')) return { page: 'Recursos' };
-    if (path.includes('/demandas')) return { page: 'Demandas' };
-    if (path.includes('/configuracoes')) return { page: 'Configurações' };
-    if (path.includes('/apoiador/')) return { page: 'ApoiadorPerfil', params: { id: path.split('/apoiador/')[1] } };
-    if (path.includes('/apoiadores')) return { page: 'Apoiadores' };
+    const urlParams = Object.fromEntries(params.entries());
+
+    if (path.includes('/municipios')) return { page: 'Municípios', params: urlParams };
+    if (path.includes('/liderancas')) return { page: 'Lideranças', params: urlParams };
+    if (path.includes('/assessores')) return { page: 'Assessores', params: urlParams };
+    if (path.includes('/agenda')) return { page: 'Agenda', params: urlParams };
+    if (path.includes('/recursos')) return { page: 'Recursos', params: urlParams };
+    if (path.includes('/demandas')) return { page: 'Demandas', params: urlParams };
+    if (path.includes('/configuracoes')) return { page: 'Configurações', params: urlParams };
+    if (path.includes('/apoiador/')) return { page: 'ApoiadorPerfil', params: { id: path.split('/apoiador/')[1], ...urlParams } };
+    if (path.includes('/apoiadores')) return { page: 'Apoiadores', params: urlParams };
 
     return { page: 'Dashboard' };
   });
