@@ -746,51 +746,67 @@ export const updateDemanda = async (id: string, updates: {
 
 // --- Integração Google Agenda (Edge Function) ---
 export const getGoogleEvents = async (): Promise<EventoAgenda[]> => {
-    try {
-        console.log("[API] Iniciando busca da Google Agenda...");
+    const CACHE_KEY = 'google_calendar_cache';
+    const CACHE_TTL = 15 * 60 * 1000; // 15 minutos de cache
 
-        // Timeout de 8 segundos para evitar travamento do Dashboard
+    try {
+        // 1. Tentar ler do cache para retorno imediato
+        const cachedData = localStorage.getItem(CACHE_KEY);
+        if (cachedData) {
+            const { timestamp, events } = JSON.parse(cachedData);
+            const isFresh = Date.now() - timestamp < CACHE_TTL;
+            
+            if (isFresh) {
+                console.log("[API] Google Agenda carregada do cache (Fresh)");
+                return events;
+            } else {
+                console.log("[API] Cache expirado, buscando novos dados em background...");
+                // Retorna o cache agora, mas dispara a busca em background para a próxima visita
+                setTimeout(() => fetchAndCacheGoogleEvents(), 1000);
+                return events;
+            }
+        }
+        
+        // 2. Se não houver cache, faz a busca normal
+        return await fetchAndCacheGoogleEvents();
+    } catch (err) {
+        console.error('Erro na lógica de cache da Google Agenda:', err);
+        return await fetchAndCacheGoogleEvents();
+    }
+};
+
+const fetchAndCacheGoogleEvents = async (): Promise<EventoAgenda[]> => {
+    const CACHE_KEY = 'google_calendar_cache';
+    try {
+        console.log("[API] Buscando dados reais da Google Agenda...");
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Timeout na busca da Google Agenda')), 8000)
         );
 
         const fetchPromise = supabase.functions.invoke('get-calendar');
-
         const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
-        if (error) {
-            console.error('Erro ao invocar Edge Function get-calendar:', error);
-            return []; // Retorna lista vazia em vez de travar o app
-        }
+        if (error) throw error;
 
         const rawItems = Array.isArray(data) ? data : (data as any)?.items || [];
-
-        return rawItems.map((e: any) => {
-            // Parsing robusto e sensível ao fuso horário local
+        const events = rawItems.map((e: any) => {
             let dataIso = '';
             let hora = '';
-
-            // Prioriza o objeto estruturado 'start' vindo da nova versão da Edge Function (v6+)
             const startNode = e.start;
 
             if (startNode?.dateTime) {
-                // Evento com horário (ISO String UTC)
                 const dateObj = new Date(startNode.dateTime);
                 if (!isNaN(dateObj.getTime())) {
-                    // Convertemos para os componentes locais do navegador do usuário (Brasília -03:00)
                     dataIso = dateObj.getFullYear() + '-' +
                         String(dateObj.getMonth() + 1).padStart(2, '0') + '-' +
                         String(dateObj.getDate()).padStart(2, '0');
-
                     hora = String(dateObj.getHours()).padStart(2, '0') + ':' +
                         String(dateObj.getMinutes()).padStart(2, '0');
                 }
             } else if (startNode?.date) {
-                // Evento de dia inteiro
                 dataIso = startNode.date;
                 hora = 'Dia Inteiro';
             } else {
-                // Fallback para campos legados ou outros formatos
                 const fallbackStart = e.data || '';
                 dataIso = typeof fallbackStart === 'string' ? fallbackStart.split('T')[0] : '';
                 hora = e.hora || 'Dia Inteiro';
@@ -803,11 +819,18 @@ export const getGoogleEvents = async (): Promise<EventoAgenda[]> => {
                 hora: hora,
                 origem: 'Google Calendar'
             };
-
             return applyPrivacy(baseEvent);
         });
+
+        // Salva no cache para a próxima vez
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            timestamp: Date.now(),
+            events
+        }));
+
+        return events;
     } catch (err) {
-        console.error('Erro na chamada da agenda Google:', err);
+        console.error('Erro ao buscar Google Agenda no background:', err);
         return [];
     }
 };
