@@ -489,22 +489,44 @@ export const updateSolicitacaoStatus = async (id: string, status: 'Aprovado' | '
     return data as SolicitacaoAgenda;
 };
 
-export const approveSolicitacao = async (solicitacaoId: string, eventData: Omit<EventoAgenda, 'id'>) => {
-    // 1. Cria o evento oficial na agenda com o vínculo
+export const approveSolicitacao = async (solicitacaoId: string, eventData: Omit<EventoAgenda, 'id'>, observacoes?: string) => {
+    // 1. Busca a solicitação original para saber quem notificar
+    const { data: solData } = await supabase
+        .from('solicitacoes_agenda')
+        .select('criado_por, titulo')
+        .eq('id', solicitacaoId)
+        .single();
+
+    // 2. Cria o evento oficial na agenda com o vínculo
     const newEvent = await createEvento({
         ...eventData,
         solicitacao_id: solicitacaoId
     });
 
-    // 2. Atualiza o status da solicitação para 'Aprovado'
+    // 3. Atualiza o status da solicitação para 'Aprovado' e salva observações
     const { error: updateError } = await supabase
         .from('solicitacoes_agenda')
-        .update({ status: 'Aprovado' })
+        .update({ 
+            status: 'Aprovado',
+            observacoes_aprovacao: observacoes || null,
+            data_aprovacao: new Date().toISOString().split('T')[0]
+        })
         .eq('id', solicitacaoId);
 
     if (updateError) {
         console.error('Erro ao atualizar status após aprovação:', updateError);
         throw updateError;
+    }
+
+    // 4. Notifica o solicitante (se houver um criado_por)
+    if (solData?.criado_por) {
+        const msg = `Sua solicitação "${solData.titulo}" foi APROVADA e inserida na agenda oficial.${observacoes ? `\n\nObs: ${observacoes}` : ''}`;
+        await createNotificacao(
+            solData.criado_por,
+            'Solicitação Aprovada',
+            msg,
+            `/agenda?solicitacao_id=${solicitacaoId}`
+        );
     }
 
     return newEvent;

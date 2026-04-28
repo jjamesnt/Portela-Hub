@@ -219,6 +219,7 @@ export interface SolicitacaoAgenda {
     criado_por?: string;
     recusado_por?: string;
     resubmissoes?: number;
+    observacoes_aprovacao?: string;
 }
 
 export interface NotificacaoSistema {

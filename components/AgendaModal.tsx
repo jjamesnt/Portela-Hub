@@ -9,9 +9,10 @@ interface AgendaModalProps {
     solicitacaoToApprove?: SolicitacaoAgenda;
     onClose: () => void;
     onSuccess: () => void;
+    onRefuse?: (s: SolicitacaoAgenda) => void;
 }
 
-const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToEdit, solicitacaoToApprove, onClose, onSuccess }) => {
+const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToEdit, solicitacaoToApprove, onClose, onSuccess, onRefuse }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +24,8 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
         origem: 'Alê Portela',
         privacidade: 'Público',
         local: '',
-        descricao: ''
+        descricao: '',
+        observacoes_aprovacao: ''
     });
 
     useEffect(() => {
@@ -114,7 +116,7 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
             if (eventToEdit?.id) {
                 await updateEvento(eventToEdit.id, payload);
             } else if (solicitacaoToApprove) {
-                await approveSolicitacao(solicitacaoToApprove.id, payload);
+                await approveSolicitacao(solicitacaoToApprove.id, payload, formData.observacoes_aprovacao);
             } else {
                 await createEvento(payload);
             }
@@ -128,7 +130,8 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                 origem: 'Alê Portela',
                 privacidade: 'Público',
                 local: '',
-                descricao: ''
+                descricao: '',
+                observacoes_aprovacao: ''
             });
             setFormErrors([]);
         } catch (err: any) {
@@ -315,6 +318,21 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                         />
                     </div>
 
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                            {solicitacaoToApprove ? "Observações para o Solicitante" : "Descrição / Detalhes"}
+                            {solicitacaoToApprove && <span className="text-turquoise text-[8px] font-bold ml-1">(Opcional)</span>}
+                        </label>
+                        <textarea
+                            name={solicitacaoToApprove ? "observacoes_aprovacao" : "descricao"}
+                            value={solicitacaoToApprove ? formData.observacoes_aprovacao : formData.descricao}
+                            onChange={handleInputChange}
+                            placeholder={solicitacaoToApprove ? "Mensagem que o solicitante receberá na notificação..." : "Detalhes adicionais..."}
+                            rows={3}
+                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise transition-all dark:text-white resize-none"
+                        />
+                    </div>
+
                     {error && (
                         <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-bold flex items-center gap-2">
                             <span className="material-symbols-outlined text-[18px]">error</span>
@@ -344,6 +362,24 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                                 {eventToEdit ? 'Salvar Alterações' : solicitacaoToApprove ? 'Aprovar Solicitação' : 'Salvar Evento'}
                             </button>
                         </div>
+                        
+                        {solicitacaoToApprove && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // Emitiremos um evento customizado ou passaremos via prop para abrir o modal de recusa
+                                    // Para simplificar, vamos disparar o onClose com um flag ou apenas deixar para o pai gerenciar
+                                    // Mas aqui no AgendaModal, o pai é o AgendaPage.
+                                    // Vou adicionar uma nova prop opcional 'onRefuse'
+                                    if (onRefuse) onRefuse(solicitacaoToApprove);
+                                }}
+                                disabled={isSaving}
+                                className="w-full px-4 py-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
+                            >
+                                <span className="material-symbols-outlined text-sm">block</span>
+                                Recusar esta Solicitação
+                            </button>
+                        )}
                         
                         {eventToEdit && (
                             <button

@@ -85,6 +85,34 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
         }
     };
 
+    const handleInstantApprove = async (s: SolicitacaoAgenda) => {
+        if (!confirm(`Deseja aprovar instantaneamente a solicitação "${s.titulo}"?`)) return;
+
+        try {
+            setIsLoading(true);
+            const payload = {
+                titulo: s.titulo,
+                data: s.data ? s.data.split('T')[0].split(' ')[0] : '',
+                hora: s.hora_inicio || '',
+                tipo: (s.tipo_evento?.includes('Evento') ? 'Evento Público' : 
+                      s.tipo_evento?.includes('Reunião') ? 'Reunião' : 'Reunião') as any,
+                origem: (s.origem.includes('Alê') ? 'Alê Portela' : 
+                        s.origem.includes('Lincoln') ? 'Lincoln Portela' : 'Marilda Portela') as any,
+                privacidade: 'Público' as any,
+                local: s.local || '',
+                descricao: s.descricao || ''
+            };
+
+            await approveSolicitacao(s.id, payload);
+            await fetchData();
+            alert('Solicitação aprovada com sucesso!');
+        } catch (err) {
+            console.error('Erro na aprovação instantânea:', err);
+            alert('Falha ao aprovar solicitação.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleUpdateStatus = async (id: string, newStatus: 'Aprovado' | 'Recusado') => {
         try {
@@ -752,6 +780,16 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                                             title="Revisar e Aprovar"
                                                         >
                                                             <span className="material-symbols-outlined text-[18px]">rule</span>
+                                                        </button>
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleInstantApprove(s);
+                                                            }}
+                                                            className="p-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg transition-all shadow-sm"
+                                                            title="Aprovação Instantânea"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">check_circle</span>
                                                         </button>
                                                         <button 
                                                             onClick={(e) => {
