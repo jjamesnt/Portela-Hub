@@ -26,6 +26,7 @@ interface AgendaPageProps {
 
 const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
     const context = useContext(AppContext);
+    const user = context?.user;
     const profile = context?.profile;
     const [eventos, setEventos] = useState<EventoAgenda[]>([]);
     const [solicitacoes, setSolicitacoes] = useState<SolicitacaoAgenda[]>([]);
