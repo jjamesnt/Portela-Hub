@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useAppContext } from '../hooks/useAppContext';
+import { NotificationsMenu } from './NotificationsMenu';
 
 const Header: React.FC = () => {
     const { theme, toggleTheme, selectedMandato, setSelectedMandato, toggleSidebar, impersonatedProfile, stopImpersonating } = useAppContext();
@@ -85,6 +86,7 @@ const Header: React.FC = () => {
                 <button className="md:hidden p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 rounded-full">
                     <span className="material-symbols-outlined">search</span>
                 </button>
+                <NotificationsMenu />
                 <button onClick={toggleTheme} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
                     <span className="material-symbols-outlined">{theme === 'dark' ? 'dark_mode' : 'light_mode'}</span>
                 </button>
