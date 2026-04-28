@@ -254,8 +254,15 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
         if (!isLoading && params?.solicitacao_id && solicitacoes.length > 0 && !hasHandledDeepLink.current) {
             const sol = solicitacoes.find(s => s.id === params.solicitacao_id);
             if (sol) {
-                setSolicitacaoToEdit(sol);
-                setIsRequestModalOpen(true);
+                if (sol.status === 'Pendente') {
+                    // Se estiver pendente, abre o modal de revisão para o Master
+                    setSolicitacaoToReview(sol);
+                    setIsEventModalOpen(true);
+                } else {
+                    // Se estiver recusado (ou outro), abre o modal de edição para o Solicitante
+                    setSolicitacaoToEdit(sol);
+                    setIsRequestModalOpen(true);
+                }
                 hasHandledDeepLink.current = true;
                 
                 // Limpar a URL para evitar reaberturas acidentais em caso de reload
