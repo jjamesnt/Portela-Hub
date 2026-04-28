@@ -5,7 +5,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import ptBrLocale from '@fullcalendar/core/locales/pt-br';
-import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents, updateSolicitacaoStatus, undoApproveSolicitacao } from '../services/api';
+import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents, updateSolicitacaoStatus, undoApproveSolicitacao, createNotificacao } from '../services/api';
 import { getElectoralEvents } from '../services/electoralCalendarService'; // Novo serviço
 import { EventoAgenda, SolicitacaoAgenda } from '../types';
 import { AppContext } from '../context/AppContext';
@@ -15,6 +15,9 @@ import AgendaSolicitacaoModal from '../components/AgendaSolicitacaoModal';
 import BroadcastModal from '../components/BroadcastModal';
 import BroadcastHistory from '../components/BroadcastHistory';
 import SolicitacoesReportModal from '../components/SolicitacoesReportModal';
+import RefuseSolicitacaoModal from '../components/RefuseSolicitacaoModal';
+import ConfirmModal from '../components/ConfirmModal';
+import ErrorModal from '../components/ErrorModal';
 
 interface AgendaPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
@@ -37,6 +40,10 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [solicitacaoToReview, setSolicitacaoToReview] = useState<SolicitacaoAgenda | null>(null);
+    const [solicitacaoToEdit, setSolicitacaoToEdit] = useState<SolicitacaoAgenda | null>(null);
+    const [refuseModalConfig, setRefuseModalConfig] = useState<{isOpen: boolean, solicitacao: SolicitacaoAgenda | null}>({isOpen: false, solicitacao: null});
+    const [errorModalConfig, setErrorModalConfig] = useState<{isOpen: boolean, title: string, message: string}>({isOpen: false, title: '', message: ''});
+    const [confirmConfig, setConfirmConfig] = useState<{isOpen: boolean, title: string, message: string, isDanger?: boolean, onConfirm: () => void}>({isOpen: false, title: '', message: '', onConfirm: () => {}});
 
     // Filtros
     const [filtroTipo, setFiltroTipo] = useState('Todos');
@@ -78,6 +85,33 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
             setSolicitacoes(data);
         } catch (err: any) {
             setError(err.message || 'Erro ao atualizar status');
+        }
+    };
+
+    const handleRefuseConfirm = async (id: string, motivo: string) => {
+        try {
+            await updateSolicitacaoStatus(id, 'Recusado', motivo);
+            
+            // Criar notificação para o usuário
+            const s = refuseModalConfig.solicitacao;
+            if (s && s.criado_por) {
+                await createNotificacao(
+                    s.criado_por,
+                    'Solicitação de Agenda Recusada',
+                    `Sua solicitação "${s.titulo}" foi recusada. Motivo: ${motivo}`,
+                    `/agenda?solicitacao_id=${s.id}`
+                );
+            }
+
+            const data = await getSolicitacoesAgenda();
+            setSolicitacoes(data);
+            setRefuseModalConfig({ isOpen: false, solicitacao: null });
+        } catch (err: any) {
+            setErrorModalConfig({
+                isOpen: true,
+                title: 'Erro ao recusar',
+                message: err.message || 'Ocorreu um erro.'
+            });
         }
     };
 
@@ -212,6 +246,17 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
             return matchesBusca && matchesTipo && matchesStatus && matchesOrigem && matchesPeriodo && matchesSolicitante;
         });
     }, [solicitacoes, buscaSolicitacao, filtroTipo, filtroStatus, filtroOrigem, filtroPeriodo, filtroSolicitante]);
+
+    // Efeito para tratar abertura automática via Deep Link (params.solicitacao_id)
+    useEffect(() => {
+        if (!isLoading && params?.solicitacao_id && solicitacoes.length > 0) {
+            const sol = solicitacoes.find(s => s.id === params.solicitacao_id);
+            if (sol) {
+                setSolicitacaoToEdit(sol);
+                setIsRequestModalOpen(true);
+            }
+        }
+    }, [isLoading, params?.solicitacao_id, solicitacoes]);
 
     // Efeito para tratar abertura automática de detalhes via Deep Link (params.eventId)
     useEffect(() => {
@@ -620,9 +665,12 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                     <tr 
                                         key={s.id} 
                                         onClick={() => {
-                                            if (s.status === 'Pendente') {
+                                            if (s.status === 'Pendente' || s.status === 'Aprovado') {
                                                 setSolicitacaoToReview(s);
                                                 setIsEventModalOpen(true);
+                                            } else if (s.status === 'Recusado') {
+                                                setSolicitacaoToEdit(s);
+                                                setIsRequestModalOpen(true);
                                             }
                                         }}
                                         className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-colors cursor-pointer"
@@ -687,7 +735,7 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                                                         <button 
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleUpdateStatus(s.id, 'Recusado');
+                                                                setRefuseModalConfig({ isOpen: true, solicitacao: s });
                                                             }}
                                                             className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition-all"
                                                             title="Recusar"
@@ -742,13 +790,18 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                     setSolicitacaoToReview(null);
                 }}
                 onSuccess={fetchData}
+                onRefuse={(s) => setRefuseModalConfig({ isOpen: true, solicitacao: s })}
             />
 
             <AgendaSolicitacaoModal
                 isOpen={isRequestModalOpen}
-                onClose={() => setIsRequestModalOpen(false)}
+                onClose={() => {
+                    setIsRequestModalOpen(false);
+                    setSolicitacaoToEdit(null);
+                }}
                 onSuccess={fetchData}
                 navigateTo={navigateTo}
+                solicitacaoToEdit={solicitacaoToEdit || undefined}
             />
 
             <BroadcastHistory
@@ -769,6 +822,29 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                     solicitante: filtroSolicitante
                 }}
                 usuarioNome={profile?.full_name}
+            />
+            
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                isDanger={confirmConfig.isDanger}
+                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmConfig.onConfirm}
+            />
+
+            <ErrorModal
+                isOpen={errorModalConfig.isOpen}
+                title={errorModalConfig.title}
+                message={errorModalConfig.message}
+                onClose={() => setErrorModalConfig(prev => ({ ...prev, isOpen: false }))}
+            />
+
+            <RefuseSolicitacaoModal
+                isOpen={refuseModalConfig.isOpen}
+                solicitacao={refuseModalConfig.solicitacao}
+                onClose={() => setRefuseModalConfig({ isOpen: false, solicitacao: null })}
+                onConfirm={handleRefuseConfirm}
             />
         </div >
     );
