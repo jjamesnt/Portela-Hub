@@ -9,8 +9,15 @@ export const useSettingsProfiles = () => {
     const loadProfiles = useCallback(async () => {
         setLoadingProfiles(true);
         try {
-            const data = await profileService.getProfiles();
-            setProfiles(data);
+            const response: any = await profileService.getProfiles();
+            const rawList = response.users || response.profiles || response.data || (Array.isArray(response) ? response : []);
+            
+            const flattenedList = rawList.map((item: any) => ({
+                ...(item.user || item),
+                role: item.role || item.user?.role || (item.user || item).role
+            }));
+            
+            setProfiles(flattenedList);
         } catch (err) {
             console.error('Erro ao carregar perfis:', err);
         } finally {
@@ -38,11 +45,22 @@ export const useSettingsProfiles = () => {
         }
     };
 
+    const handleUpdatePermissions = async (userId: string, newPermissions: string[]) => {
+        try {
+            await profileService.updateProfile(userId, { permissions: newPermissions });
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, permissions: newPermissions } : p));
+        } catch (err) {
+            console.error('Erro ao atualizar permissões:', err);
+            throw err;
+        }
+    };
+
     return {
         profiles,
         loadingProfiles,
         loadProfiles,
         handleUpdateStatus,
-        handleUpdateRole
+        handleUpdateRole,
+        handleUpdatePermissions
     };
 };

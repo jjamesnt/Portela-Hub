@@ -87,8 +87,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const me = await profileService.getMe();
         
         if (isMounted.current && me) {
-          setUser(me); // O objeto retornado de /me serve como usuário logado
-          setProfile(me);
+          const userData = (me as any).user || me;
+          setProfile(userData);
+          setUser(userData);
           setProfileError(null);
         }
       } catch (err: any) {

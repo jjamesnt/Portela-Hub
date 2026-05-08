@@ -45,6 +45,7 @@ export interface Profile {
     phone: string;
     email: string;
     role: string;
+    permissions: string[];
     status: 'pending' | 'active' | 'blocked';
     created_at: string;
 }

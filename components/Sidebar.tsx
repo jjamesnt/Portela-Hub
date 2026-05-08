@@ -23,7 +23,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
     const { selectedMandato, isSidebarOpen, toggleSidebar, profile, signOut, rolePermissions } = useAppContext();
 
     const role = profile?.role || 'user';
-    const allowedItems = rolePermissions[role] || rolePermissions.user || [];
+    
+    // Granular Permissions: 
+    // 1. Master vê TUDO (todas as labels do navItems)
+    // 2. Outros usam permissões granulares se existirem
+    // 3. Fallback para permissões da Role
+    const allowedItems = role === 'master'
+        ? navItems.map(item => item.label)
+        : (profile?.permissions && profile.permissions.length > 0)
+            ? profile.permissions
+            : (rolePermissions[role] || rolePermissions.user || []);
 
     const isActive = (itemLabel: string) => {
         if (itemLabel === 'Municípios' && activePage === 'MunicipioDetalhes') {
@@ -227,6 +236,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
             </aside>
         </>
     );
-}
+};
 
 export default Sidebar;

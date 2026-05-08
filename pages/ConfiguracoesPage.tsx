@@ -17,7 +17,7 @@ const ConfiguracoesPage: React.FC<ConfiguracoesPageProps> = ({ navigateTo }) => 
     } = useAppContext();
     const { 
         profiles, loadingProfiles, loadProfiles, 
-        handleUpdateStatus, handleUpdateRole 
+        handleUpdateStatus, handleUpdateRole, handleUpdatePermissions
     } = useSettingsProfiles();
     const {
         rolePermissions, roleDisplayNames, updateRolePermission, bulkUpdateRolePermissions,
@@ -53,6 +53,7 @@ const ConfiguracoesPage: React.FC<ConfiguracoesPageProps> = ({ navigateTo }) => 
                         impersonateUser={impersonateUser}
                         handleUpdateStatus={handleUpdateStatus}
                         handleUpdateRole={handleUpdateRole}
+                        handleUpdatePermissions={handleUpdatePermissions}
                         roleDisplayNames={roleDisplayNames}
                         rolePermissions={rolePermissions}
                         isNovoUsuarioModalOpen={isNovoUsuarioModalOpen}

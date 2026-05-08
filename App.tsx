@@ -102,7 +102,11 @@ const AppContent: React.FC = () => {
 
   const renderContent = () => {
     const role = profile?.role || 'user';
-    const allowedModules = rolePermissions[role] || [];
+    const allowedModules = role === 'master'
+        ? ['Dashboard', 'Municípios', 'Lideranças', 'Apoiadores', 'Assessores', 'Agenda', 'Recursos', 'Demandas', 'Configurações']
+        : (profile?.permissions && profile.permissions.length > 0)
+            ? profile.permissions
+            : (rolePermissions[role] || []);
     
     // Mapeamento de sub-páginas para seus módulos principais
     const subPageMap: Record<string, string> = {

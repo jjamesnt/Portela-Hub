@@ -14,6 +14,7 @@ interface AccessManagementTabProps {
     impersonateUser: (user: Profile) => void;
     handleUpdateStatus: (userId: string, newStatus: 'active' | 'blocked') => Promise<void>;
     handleUpdateRole: (userId: string, newRole: string) => Promise<void>;
+    handleUpdatePermissions: (userId: string, newPermissions: string[]) => Promise<void>;
     roleDisplayNames: Record<string, string>;
     rolePermissions: Record<string, string[]>;
     isNovoUsuarioModalOpen: boolean;
@@ -29,6 +30,7 @@ export const AccessManagementTab: React.FC<AccessManagementTabProps> = ({
     impersonateUser,
     handleUpdateStatus,
     handleUpdateRole,
+    handleUpdatePermissions,
     roleDisplayNames,
     rolePermissions,
     isNovoUsuarioModalOpen,
@@ -36,6 +38,19 @@ export const AccessManagementTab: React.FC<AccessManagementTabProps> = ({
 }) => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+    const [editingPermissionsId, setEditingPermissionsId] = useState<string | null>(null);
+
+    const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+        { id: 'municipios', label: 'Municípios', icon: 'location_city' },
+        { id: 'liderancas', label: 'Lideranças', icon: 'groups' },
+        { id: 'apoiadores', label: 'Apoiadores', icon: 'volunteer_activism' },
+        { id: 'assessores', label: 'Assessores', icon: 'badge' },
+        { id: 'agenda', label: 'Agenda', icon: 'calendar_today' },
+        { id: 'recursos', label: 'Recursos', icon: 'payments' },
+        { id: 'demandas', label: 'Demandas', icon: 'assignment' },
+        { id: 'configuracoes', label: 'Configurações', icon: 'settings' },
+    ];
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -66,7 +81,8 @@ export const AccessManagementTab: React.FC<AccessManagementTabProps> = ({
                         </thead>
                         <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                             {profiles.map(p => (
-                                <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                                <React.Fragment key={p.id}>
+                                    <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
                                     <td className="px-5 py-4">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
@@ -121,6 +137,20 @@ export const AccessManagementTab: React.FC<AccessManagementTabProps> = ({
                                                                 <span className="material-symbols-outlined text-sm md:text-base">visibility</span>
                                                             </button>
                                                         )}
+
+                                                        <button
+                                                            onClick={() => setEditingPermissionsId(editingPermissionsId === p.id ? null : p.id)}
+                                                            className={`p-2 rounded-xl transition-all shadow-sm ${
+                                                                editingPermissionsId === p.id 
+                                                                ? 'bg-turquoise text-white' 
+                                                                : 'bg-slate-100 text-slate-400 hover:bg-turquoise/10 hover:text-turquoise'
+                                                            }`}
+                                                            title="Gerenciar Abas de Acesso"
+                                                        >
+                                                            <span className="material-symbols-outlined text-sm md:text-base">
+                                                                {editingPermissionsId === p.id ? 'expand_less' : 'lock_open'}
+                                                            </span>
+                                                        </button>
 
                                                         <button
                                                             onClick={() => handleUpdateStatus(p.id, p.status === 'active' ? 'blocked' : 'active')}
@@ -183,6 +213,62 @@ export const AccessManagementTab: React.FC<AccessManagementTabProps> = ({
                                         </div>
                                     </td>
                                 </tr>
+                                {editingPermissionsId === p.id && (
+                                    <tr className="bg-slate-50/80 dark:bg-slate-900/80">
+                                        <td colSpan={3} className="px-5 py-6">
+                                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <span className="material-symbols-outlined text-turquoise text-sm">lock_open</span>
+                                                    <h5 className="text-[10px] font-black uppercase tracking-widest text-navy-dark dark:text-white">Permissões de Abas: <span className="text-turquoise">{p.full_name}</span></h5>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                                    {navItems.map(item => {
+                                                        const isSelected = p.permissions?.includes(item.label);
+                                                        const isBaseForRole = rolePermissions[p.role]?.includes(item.label);
+                                                        
+                                                        return (
+                                                            <button
+                                                                key={item.id}
+                                                                onClick={() => {
+                                                                    const current = p.permissions || (rolePermissions[p.role] || []);
+                                                                    const next = current.includes(item.label)
+                                                                        ? current.filter(l => l !== item.label)
+                                                                        : [...current, item.label];
+                                                                    handleUpdatePermissions(p.id, next);
+                                                                }}
+                                                                className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                                                                    isSelected 
+                                                                    ? 'bg-turquoise/10 border-turquoise/30 text-turquoise' 
+                                                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-turquoise/30 hover:text-turquoise'
+                                                                }`}
+                                                            >
+                                                                <span className={`material-symbols-outlined text-sm ${isSelected ? 'text-turquoise' : 'text-slate-300'}`}>
+                                                                    {isSelected ? 'check_circle' : 'circle'}
+                                                                </span>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[11px] font-bold truncate">{item.label}</span>
+                                                                    {!isSelected && isBaseForRole && (
+                                                                        <span className="text-[8px] uppercase tracking-tighter opacity-50">Padrão da Role</span>
+                                                                    )}
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                
+                                                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-start gap-3">
+                                                    <span className="material-symbols-outlined text-blue-500 text-sm mt-0.5">info</span>
+                                                    <p className="text-[10px] text-blue-600 dark:text-blue-400 leading-relaxed font-medium">
+                                                        <strong>Atenção:</strong> Ao selecionar permissões manuais, as regras globais da "Role" ({p.role}) serão ignoradas para este usuário específico. 
+                                                        Se o usuário for <strong>Master</strong>, ele continuará vendo tudo independentemente destas marcações.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                                </React.Fragment>
                             ))}
                         </tbody>
                     </table>
