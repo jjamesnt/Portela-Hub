@@ -101,7 +101,7 @@ const RecursosRelatorioPage: React.FC = () => {
                 <div className="border-b-2 border-slate-900 pb-10 mb-12">
                     <div className="flex justify-between items-start mb-6">
                         <div className="space-y-1">
-                            <h1 className="text-2xl font-black text-navy-dark tracking-tight leading-none uppercase">Portela Hub</h1>
+                            <h1 className="text-2xl font-black text-navy-dark tracking-tight leading-none uppercase">Portela App</h1>
                             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Relatório Consolidado de Gestão de Recursos</p>
                         </div>
                         <div className="text-right flex flex-col items-end">
@@ -190,7 +190,7 @@ const RecursosRelatorioPage: React.FC = () => {
 
                 {/* Rodapé de Página com Margem de Segurança */}
                 <div className="mt-16 pt-10 border-t border-slate-100 flex justify-between items-center text-[8px] font-black text-slate-300 uppercase tracking-[0.2em] print:fixed print:bottom-12 print:w-[calc(100%-40mm)] print:left-10">
-                    <p>Relatório de Auditoria • Portela Hub</p>
+                    <p>Relatório de Auditoria • Portela App</p>
                     <p>Documento Gerado Eletronicamente</p>
                 </div>
             </div>

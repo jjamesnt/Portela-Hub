@@ -1,6 +1,6 @@
 import React, { createContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { AppContextType, AppFilters, Theme, Profile } from '../types';
-import { supabase } from '../services/supabaseClient';
+import { apiClient } from '../services/apiClient';
 import { profileService } from '../services/profileService';
 import { roleService } from '../services/roleService';
 
@@ -72,69 +72,47 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   useEffect(() => {
     isMounted.current = true;
-    console.log("[AppContext] Monitorando autenticação...");
+    console.log("[AppContext] Monitorando autenticação via JWT...");
 
-    const fetchProfileData = async (userId: string, retryCount = 0) => {
-      const maxRetries = 3;
-      console.log(`[AppContext] Buscando perfil para ${userId} (Tentativa ${retryCount + 1})...`);
+    const checkAuth = async () => {
+      const token = localStorage.getItem('portela_hub_token');
+      
+      if (!token) {
+        setIsLoadingAuth(false);
+        return;
+      }
 
       try {
-        const data = await profileService.getProfile(userId);
-
-        if (!isMounted.current) return;
-
-        if (data) {
-          console.log("[AppContext] Perfil encontrado:", data.email, "Status:", data.status);
-          setProfile(data);
+        console.log("[AppContext] Token encontrado, validando...");
+        const me = await profileService.getMe();
+        
+        if (isMounted.current && me) {
+          setUser(me); // O objeto retornado de /me serve como usuário logado
+          setProfile(me);
           setProfileError(null);
-          setIsLoadingAuth(false);
-          return true;
-        } else {
-          console.warn("[AppContext] Perfil não encontrado na tabela.");
-          setProfileError('Perfil não encontrado na tabela.');
-          if (retryCount < maxRetries) {
-            console.log(`[AppContext] Agendando nova tentativa em 2s...`);
-            setTimeout(() => fetchProfileData(userId, retryCount + 1), 2000);
-            return false;
-          }
         }
       } catch (err: any) {
-        console.error("[AppContext] Erro crítico na busca de perfil:", err);
-        setProfileError(err.message || 'Erro ao buscar perfil.');
+        console.error("[AppContext] Erro ao validar token:", err);
+        setProfileError(err.message || 'Sessão expirada.');
+        apiClient.clearToken();
+      } finally {
+        if (isMounted.current) {
+          setIsLoadingAuth(false);
+        }
       }
-
-      if (isMounted.current) {
-        setIsLoadingAuth(false);
-      }
-      return false;
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user ?? null;
-      console.log(`[AppContext] Evento Auth: ${event}`, currentUser?.email || "Nenhum usuário");
-
-      if (!isMounted.current) return;
-
-      setUser(currentUser);
-
-      if (currentUser) {
-        fetchProfileData(currentUser.id);
-      } else {
-        setProfile(null);
-        setIsLoadingAuth(false);
-      }
-    });
+    checkAuth();
 
     const safetyTimeout = setTimeout(() => {
       if (isMounted.current && isLoadingAuth) {
         console.warn("[AppContext] Safety Timeout acionado. Forçando fim do carregamento.");
         setIsLoadingAuth(false);
       }
-    }, 30000);
+    }, 15000);
 
     return () => {
       isMounted.current = false;
-      subscription.unsubscribe();
       clearTimeout(safetyTimeout);
     };
   }, []);
@@ -202,9 +180,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     console.log("[AppContext] Fazendo logout...");
-    await supabase.auth.signOut();
+    apiClient.clearToken();
     setUser(null);
     setProfile(null);
+    window.location.href = '/login';
   };
 
   return (

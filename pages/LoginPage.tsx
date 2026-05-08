@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { apiClient } from '../services/apiClient';
 import { AppContext } from '../context/AppContext';
 import Loader from '../components/Loader';
 
@@ -19,54 +19,33 @@ const LoginPage: React.FC = () => {
 
         try {
             if (isSignUp) {
-                // Cadastro
-                const { data: authData, error: authError } = await supabase.auth.signUp({
+                // Cadastro - Assumindo /api/auth/signup conforme padrão
+                const response = await apiClient.post<any>('/api/auth/signup', {
                     email,
                     password,
-                    options: {
-                        data: {
-                            full_name: fullName,
-                            phone: phone,
-                        }
-                    }
+                    full_name: fullName,
+                    phone: phone,
                 });
 
-                if (authError) throw authError;
-
-                if (authData.user) {
-                    // Criar perfil na tabela profiles
-                    const { error: profileError } = await supabase
-                        .from('profiles')
-                        .insert([
-                            {
-                                id: authData.user.id,
-                                full_name: fullName,
-                                phone: phone,
-                                email: email,
-                                status: 'pending',
-                                role: 'user'
-                            }
-                        ]);
-
-                    if (profileError) throw profileError;
-
-                    setMessage({ type: 'success', text: 'Solicitação enviada! Aguarde a aprovação do administrador.' });
-                    // Limpar campos
-                    setFullName('');
-                    setPhone('');
-                    setPassword('');
-                }
+                setMessage({ type: 'success', text: 'Solicitação enviada! Aguarde a aprovação do administrador.' });
+                setFullName('');
+                setPhone('');
+                setPassword('');
             } else {
                 // Login
-                const { error } = await supabase.auth.signInWithPassword({
+                const response = await apiClient.post<{ token: string, user: any }>('/api/auth/login', {
                     email,
                     password
                 });
 
-                if (error) throw error;
+                if (response.token) {
+                    apiClient.setToken(response.token);
+                    // Forçar recarregamento ou atualizar contexto
+                    window.location.reload();
+                }
             }
         } catch (err: any) {
-            setMessage({ type: 'error', text: err.message || 'Ocorreu um erro.' });
+            setMessage({ type: 'error', text: err.message || 'Ocorreu um erro no acesso.' });
         } finally {
             setLoading(false);
         }
@@ -79,7 +58,7 @@ const LoginPage: React.FC = () => {
                     <div className="inline-flex items-center justify-center size-16 bg-turquoise/10 rounded-2xl mb-6">
                         <span className="material-symbols-outlined text-4xl text-turquoise">shield_person</span>
                     </div>
-                    <h1 className="text-3xl font-black text-navy-dark dark:text-white tracking-tight">Portela Hub</h1>
+                    <h1 className="text-3xl font-black text-navy-dark dark:text-white tracking-tight">Portela App</h1>
                     <p className="text-slate-500 dark:text-slate-400 font-medium mt-2">
                         {isSignUp ? 'Solicite seu acesso ao portal' : 'Bem-vindo de volta'}
                     </p>

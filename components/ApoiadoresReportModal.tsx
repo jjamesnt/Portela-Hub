@@ -137,7 +137,7 @@ const ApoiadoresReportModal: React.FC<ApoiadoresReportModalProps> = ({ isOpen, o
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="material-symbols-outlined text-[28px] text-indigo-600">hub</span>
-                                    <h1 className="text-2xl font-black tracking-tighter text-navy-dark">PORTELA<span className="text-indigo-600">HUB</span></h1>
+                                    <h1 className="text-2xl font-black tracking-tighter text-navy-dark">PORTELA<span className="text-indigo-600">APP</span></h1>
                                 </div>
                                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Gestão Política e Estratégica</p>
                             </div>
@@ -234,7 +234,7 @@ const ApoiadoresReportModal: React.FC<ApoiadoresReportModalProps> = ({ isOpen, o
 
                         {/* Footer da Página */}
                         <div className="mt-auto pt-4 border-t border-slate-200 flex justify-between items-center opacity-50">
-                            <p className="text-[8px] font-bold uppercase tracking-widest text-slate-500">Documento Gerado via Portela Hub - Sistema de Gestão Estratégica</p>
+                            <p className="text-[8px] font-bold uppercase tracking-widest text-slate-500">Documento Gerado via Portela App - Sistema de Gestão Estratégica</p>
                             <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">
                                 Página {pageIdx + 1} de {pages.length}
                             </p>

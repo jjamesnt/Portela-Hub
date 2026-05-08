@@ -1,75 +1,78 @@
-import { supabase } from './supabaseClient';
+import { apiClient } from './apiClient';
 import { geocodeMunicipio, geocodeAddress } from './geocodingService';
 
 /**
- * Automation logic to sync coordinates from Nominatim to Supabase
+ * Automation logic to sync coordinates from Nominatim to VPS PostgreSQL via API
  */
 
 export const syncAllCoordinates = async () => {
     console.log('Starting coordinates sync...');
 
     // 1. Sync Municípios
-    const { data: municipios } = await supabase
-        .from('municipios')
-        .select('id, nome')
-        .is('latitude', null);
+    try {
+        const municipios = await apiClient.get<any[]>('/api/municipios?latitude=null');
 
-    if (municipios) {
-        for (const m of municipios) {
-            console.log(`Geocoding municipio: ${m.nome}`);
-            const coords = await geocodeMunicipio(m.nome);
-            if (coords) {
-                await supabase.from('municipios').update({
-                    latitude: coords.lat,
-                    longitude: coords.lon
-                }).eq('id', m.id);
+        if (municipios && Array.isArray(municipios)) {
+            for (const m of municipios) {
+                console.log(`Geocoding municipio: ${m.nome}`);
+                const coords = await geocodeMunicipio(m.nome);
+                if (coords) {
+                    await apiClient.put(`/api/municipios/${m.id}`, {
+                        latitude: coords.lat,
+                        longitude: coords.lon
+                    });
+                }
+                await new Promise(r => setTimeout(r, 1100)); // Respect Nominatim rate limit
             }
-            await new Promise(r => setTimeout(r, 1100)); // Respect Nominatim rate limit
         }
+    } catch (err) {
+        console.error('Error syncing municipios coordinates:', err);
     }
 
     // 2. Sync Lideranças
-    const { data: liderancas } = await supabase
-        .from('liderancas')
-        .select('id, endereco')
-        .is('latitude', null);
+    try {
+        const liderancas = await apiClient.get<any[]>('/api/liderancas?latitude=null');
 
-    if (liderancas) {
-        for (const l of liderancas) {
-            if (l.endereco && l.endereco.logradouro) {
-                console.log(`Geocoding lideranca ID: ${l.id}`);
-                const coords = await geocodeAddress(l.endereco);
-                if (coords) {
-                    await supabase.from('liderancas').update({
-                        latitude: coords.lat,
-                        longitude: coords.lon
-                    }).eq('id', l.id);
+        if (liderancas && Array.isArray(liderancas)) {
+            for (const l of liderancas) {
+                if (l.endereco && l.endereco.logradouro) {
+                    console.log(`Geocoding lideranca ID: ${l.id}`);
+                    const coords = await geocodeAddress(l.endereco);
+                    if (coords) {
+                        await apiClient.put(`/api/liderancas/${l.id}`, {
+                            latitude: coords.lat,
+                            longitude: coords.lon
+                        });
+                    }
+                    await new Promise(r => setTimeout(r, 1100));
                 }
-                await new Promise(r => setTimeout(r, 1100));
             }
         }
+    } catch (err) {
+        console.error('Error syncing liderancas coordinates:', err);
     }
 
     // 3. Sync Assessores
-    const { data: assessores } = await supabase
-        .from('assessores')
-        .select('id, endereco')
-        .is('latitude', null);
+    try {
+        const assessores = await apiClient.get<any[]>('/api/assessores?latitude=null');
 
-    if (assessores) {
-        for (const a of assessores) {
-            if (a.endereco && a.endereco.logradouro) {
-                console.log(`Geocoding assessor ID: ${a.id}`);
-                const coords = await geocodeAddress(a.endereco);
-                if (coords) {
-                    await supabase.from('assessores').update({
-                        latitude: coords.lat,
-                        longitude: coords.lon
-                    }).eq('id', a.id);
+        if (assessores && Array.isArray(assessores)) {
+            for (const a of assessores) {
+                if (a.endereco && a.endereco.logradouro) {
+                    console.log(`Geocoding assessor ID: ${a.id}`);
+                    const coords = await geocodeAddress(a.endereco);
+                    if (coords) {
+                        await apiClient.put(`/api/assessores/${a.id}`, {
+                            latitude: coords.lat,
+                            longitude: coords.lon
+                        });
+                    }
+                    await new Promise(r => setTimeout(r, 1100));
                 }
-                await new Promise(r => setTimeout(r, 1100));
             }
         }
+    } catch (err) {
+        console.error('Error syncing assessores coordinates:', err);
     }
 
     console.log('Coordinates sync completed.');
