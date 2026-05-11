@@ -161,27 +161,12 @@ export const getMunicipioById = async (id: string): Promise<MunicipioDetalhado |
 // --- Lideranças ---
 export const getLiderancas = async (): Promise<Lideranca[]> => {
     try {
-        const data = await apiClient.get<any>('/api/liderancas');
-        const list = Array.isArray(data) ? data : (data.liderancas || []);
-        
-        return list.map((l: any) => ({
-            id: l.id,
-            nome: l.nome,
-            municipio: l.municipio_nome,
-            regiao: l.regiao,
-            partido: l.partido,
-            cargo: l.cargo,
-            contato: l.telefone,
-            email: l.email,
-            status: l.status,
-            origem: l.origem,
-            avatarUrl: l.avatar_url,
-            endereco: l.endereco,
-            latitude: l.latitude,
-            longitude: l.longitude
-        })) as Lideranca[];
+        const response = await apiClient.post<any>('/api/admin/sql', {
+            sql: `SELECT id, nome, municipio_nome as municipio, regiao, partido, cargo, telefone as contato, email, status, origem, avatar_url as "avatarUrl", endereco, latitude, longitude FROM hub.liderancas`
+        });
+        return (response?.rows || []) as Lideranca[];
     } catch (error) {
-        console.error('Erro ao buscar lideranças do banco:', error);
+        console.error('Erro ao buscar lideranças do banco via SQL:', error);
         return [];
     }
 };
@@ -223,26 +208,12 @@ export const upsertLideranca = async (lideranca: Partial<Lideranca>) => {
 // --- Assessores ---
 export const getAssessores = async (): Promise<Assessor[]> => {
     try {
-        const data = await apiClient.get<any>('/api/assessores');
-        const list = Array.isArray(data) ? data : (data.assessores || []);
-        
-        return list.map((a: any) => ({
-            id: a.id,
-            nome: a.nome,
-            avatarUrl: a.avatar_url,
-            cargo: a.cargo as any,
-            regiaoAtuacao: a.regiao_atuacao,
-            municipiosCobertos: a.municipios_cobertos || 0,
-            liderancasGerenciadas: a.liderancas_gerenciadas || 0,
-            latitude: a.latitude,
-            longitude: a.longitude,
-            origem: a.origem,
-            telefone: a.telefone,
-            email: a.email,
-            endereco: a.endereco
-        })) as Assessor[];
+        const response = await apiClient.post<any>('/api/admin/sql', {
+            sql: `SELECT id, nome, avatar_url as "avatarUrl", cargo, regiao_atuacao as "regiaoAtuacao", municipios_cobertos as "municipiosCobertos", liderancas_gerenciadas as "liderancasGerenciadas", latitude, longitude, origem, telefone, email, endereco FROM hub.assessores`
+        });
+        return (response?.rows || []) as Assessor[];
     } catch (error) {
-        console.error('Erro ao buscar assessores do banco:', error);
+        console.error('Erro ao buscar assessores do banco via SQL:', error);
         return [];
     }
 };
@@ -500,27 +471,31 @@ export const createDemanda = async (demanda: any) => {
 
 export const getAllDemandas = async (): Promise<any[]> => {
     try {
-        const data = await apiClient.get<any>('/api/demandas?include=municipios');
-        const list = Array.isArray(data) ? data : (data.demandas || []);
-
-        return list.map((d: any) => ({
+        const response = await apiClient.post<any>('/api/admin/sql', {
+            sql: `
+                SELECT 
+                    d.*,
+                    m.nome as "municipioNome",
+                    m.regiao as "municipioRegiao"
+                FROM hub.demandas d
+                LEFT JOIN hub.municipios m ON d.municipio_id = m.id
+            `
+        });
+        
+        const rows = response?.rows || [];
+        return rows.map((d: any) => ({
+            ...d,
             id: d.id,
             municipioId: d.municipio_id,
             titulo: d.titulo || d.descricao,
-            descricao: d.descricao,
-            tipo: d.tipo,
-            status: d.status || 'Em Análise',
-            prioridade: d.prioridade || 'Média',
-            origem: d.origem,
-            prazo: d.prazo,
-            solicitante: d.solicitante || '',
-            recebido_por: d.recebido_por || '',
-            created_at: d.created_at,
-            municipio_nome: d.municipios?.nome || 'Desconhecido',
-            regiao: d.municipios?.regiao || '-',
+            municipio_nome: d.municipioNome || 'Desconhecido',
+            regiao: d.municipioRegiao || '-',
+            // Mapear campos snake_case para camelCase se necessário
+            dataPedido: d.data_pedido,
+            createdAt: d.created_at
         }));
     } catch (error) {
-        console.error('Erro ao buscar todas as demandas:', error);
+        console.error('Erro ao buscar todas as demandas via SQL:', error);
         return [];
     }
 };
@@ -653,24 +628,25 @@ export const getNotificationLogs = async (eventId?: string): Promise<Notificatio
 // --- Apoiadores ---
 export const getApoiadores = async (): Promise<Apoiador[]> => {
     try {
-        const data = await apiClient.get<any>('/api/apoiadores?include=municipios');
-        const list = Array.isArray(data) ? data : (data.apoiadores || []);
-
-        return list.map((a: any) => ({
-            id: a.id,
-            municipioId: a.municipio_id,
-            municipioNome: a.municipios?.nome,
-            municipio: a.municipios ? mapMunicipio(a.municipios) : undefined,
-            nome: a.nome,
-            cargo: a.cargo,
-            telefone: a.telefone,
-            endereco: a.endereco,
-            email: a.email,
-            fotoUrl: a.foto_url,
-            createdAt: a.created_at
+        const response = await apiClient.post<any>('/api/admin/sql', {
+            sql: `
+                SELECT 
+                    a.id, a.nome, a.cargo, a.telefone, a.endereco, a.email, a.foto_url as "fotoUrl", a.created_at as "createdAt",
+                    a.municipio_id as "municipioId",
+                    m.nome as "municipioNome",
+                    m.regiao as "municipioRegiao"
+                FROM hub.apoiadores a
+                LEFT JOIN hub.municipios m ON a.municipio_id = m.id
+            `
+        });
+        
+        const rows = response?.rows || [];
+        return rows.map((r: any) => ({
+            ...r,
+            municipio: r.municipioNome ? { nome: r.municipioNome, regiao: r.municipioRegiao } : undefined
         })) as any[];
     } catch (error) {
-        console.error('Erro ao buscar apoiadores:', error);
+        console.error('Erro ao buscar apoiadores via SQL:', error);
         return [];
     }
 };
