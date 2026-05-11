@@ -5,7 +5,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import ptBrLocale from '@fullcalendar/core/locales/pt-br';
-import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents, updateSolicitacaoStatus, undoApproveSolicitacao, createNotificacao } from '../services/api';
+import { getAgendaEventos, getSolicitacoesAgenda, getGoogleEvents, updateSolicitacaoStatus, approveSolicitacao, undoApproveSolicitacao, createNotificacao } from '../services/api';
 import { getElectoralEvents } from '../services/electoralCalendarService'; // Novo serviço
 import { EventoAgenda, SolicitacaoAgenda } from '../types';
 import { AppContext } from '../context/AppContext';
@@ -59,29 +59,43 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
     const hasHandledDeepLink = useRef(false);
 
     const fetchData = async () => {
+        let isMounted = true;
+        const timeoutId = setTimeout(() => {
+            if (isMounted) {
+                console.warn("[Agenda] Safety timeout atingido.");
+                setIsLoading(false);
+                setIsLoadingEvents(false);
+            }
+        }, 12000);
+
         try {
             setIsLoading(true);
             setIsLoadingEvents(true);
             
-            // 1. Carrega solicitações primeiro (Supabase é muito rápido)
-            const solicitacoesData = await getSolicitacoesAgenda();
-            setSolicitacoes(solicitacoesData);
+            // 1. Carrega solicitações primeiro
+            const solicitacoesData = await getSolicitacoesAgenda().catch(() => []);
+            if (isMounted) setSolicitacoes(solicitacoesData);
             
             // 2. Carrega eventos em paralelo. Google Events costuma ser o gargalo.
             const [eventosData, googleEventsData] = await Promise.all([
-                getAgendaEventos(),
-                getGoogleEvents()
+                getAgendaEventos().catch(() => []),
+                getGoogleEvents().catch(() => [])
             ]);
 
-            const electoralEvents = getElectoralEvents();
-            setEventos([...eventosData, ...googleEventsData, ...electoralEvents]);
-            setError(null);
+            if (isMounted) {
+                const electoralEvents = getElectoralEvents();
+                setEventos([...(eventosData || []), ...(googleEventsData || []), ...electoralEvents]);
+                setError(null);
+            }
         } catch (err) {
             console.error("Erro no fetchData:", err);
-            setError("Alguns dados da agenda podem não ter sido carregados.");
+            if (isMounted) setError("Alguns dados da agenda podem não ter sido carregados.");
         } finally {
-            setIsLoading(false);
-            setIsLoadingEvents(false);
+            if (isMounted) {
+                setIsLoading(false);
+                setIsLoadingEvents(false);
+                clearTimeout(timeoutId);
+            }
         }
     };
 
@@ -702,7 +716,17 @@ const AgendaPage: React.FC<AgendaPageProps> = ({ navigateTo, params }) => {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                             {filteredSolicitacoes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-slate-400 text-sm italic">Nenhuma solicitação encontrada para os filtros aplicados.</td>
+                                    <td colSpan={6} className="px-6 py-12 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="size-16 rounded-full bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-slate-300 text-4xl">calendar_today</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-500 dark:text-slate-400 font-bold">Nenhuma solicitação encontrada</p>
+                                                <p className="text-slate-400 text-xs">Tente ajustar seus filtros ou cadastre uma nova solicitação.</p>
+                                            </div>
+                                        </div>
+                                    </td>
                                 </tr>
                             ) : (
                                 filteredSolicitacoes.map(s => (

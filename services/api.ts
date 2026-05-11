@@ -28,6 +28,76 @@ const mapMunicipio = (m: any) => ({
     votacaoAle: m.votacao_ale,
     votacaoLincoln: m.votacao_lincoln,
 });
+// --- Otimização Global ---
+export async function getDashboardCounts() {
+    try {
+        const response = await apiClient.post<any>('/api/admin/sql', {
+            sql: `
+                SELECT 
+                    (SELECT COUNT(*) FROM hub.municipios) as municipios_count,
+                    (SELECT COUNT(*) FROM hub.liderancas) as liderancas_count,
+                    (SELECT COUNT(*) FROM hub.assessores) as assessores_count,
+                    (SELECT SUM(valor) FROM hub.recursos) as recursos_total,
+                    (SELECT COUNT(*) FROM hub.demandas) as demandas_total,
+                    (SELECT COUNT(*) FROM hub.demandas WHERE origem = 'Alê Portela') as ale_demandas,
+                    (SELECT COUNT(*) FROM hub.demandas WHERE origem = 'Lincoln Portela') as lincoln_demandas
+            `
+        });
+        
+        if (response && response.rows && response.rows[0]) {
+            const row = response.rows[0];
+            return {
+                municipiosCount: parseInt(row.municipios_count) || 0,
+                liderancasCount: parseInt(row.liderancas_count) || 0,
+                assessoresCount: parseInt(row.assessores_count) || 0,
+                recursosTotal: parseFloat(row.recursos_total) || 0,
+                demandasTotal: parseInt(row.demandas_total) || 0,
+                aleDemandasCount: parseInt(row.ale_demandas) || 0,
+                lincolnDemandasCount: parseInt(row.lincoln_demandas) || 0
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('Erro ao buscar contagens do dashboard:', error);
+        return null;
+    }
+}
+
+export async function getMunicipiosSimples(): Promise<MunicipioDetalhado[]> {
+    try {
+        const data = await apiClient.get<any>('/api/municipios');
+        const list = (data && Array.isArray(data)) ? data : (data?.municipios || []);
+        return list.map((m: any) => mapMunicipio(m)) as any[];
+    } catch (error) {
+        console.error('Erro ao buscar municípios simples:', error);
+        return [];
+    }
+}
+
+
+export async function getDashboardLiderancas(): Promise<Lideranca[]> {
+    try {
+        const response = await apiClient.post<any>('/api/admin/sql', {
+            sql: 'SELECT id, nome, municipio_nome as municipio, regiao, partido, cargo, latitude, longitude FROM hub.liderancas'
+        });
+        return (response?.rows || []) as Lideranca[];
+    } catch (error) {
+        console.error('Erro ao buscar lideranças para o dashboard:', error);
+        return [];
+    }
+}
+
+export async function getDashboardAssessores(): Promise<Assessor[]> {
+    try {
+        const response = await apiClient.post<any>('/api/admin/sql', {
+            sql: 'SELECT id, nome, avatar_url, cargo, regiao_atuacao, latitude, longitude FROM hub.assessores'
+        });
+        return (response?.rows || []) as Assessor[];
+    } catch (error) {
+        console.error('Erro ao buscar assessores para o dashboard:', error);
+        return [];
+    }
+}
 
 // --- Municípios ---
 export const getMunicipios = async (): Promise<MunicipioDetalhado[]> => {
@@ -878,4 +948,17 @@ function parseCSV(text: string) {
         results.push(row);
     }
     return results;
+}
+
+// --- Helpers ---
+export function parseNum(val: any) {
+    if (!val) return 0;
+    if (typeof val === 'number') return val;
+    return parseFloat(val.toString().replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+export function isSim(val: any) {
+    if (!val) return false;
+    const s = val.toString().toLowerCase();
+    return s === 'sim' || s === 's' || s === 'true' || s === '1';
 }

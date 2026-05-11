@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getAllRecursos, createRecurso, getMunicipios, deleteRecurso } from '../services/api';
+import { getAllRecursos, createRecurso, getMunicipios, getMunicipiosSimples, deleteRecurso } from '../services/api';
 import { Recurso, Municipio } from '../types';
 import Loader from '../components/Loader';
 import MandatoBadge from '../components/MandatoBadge';
@@ -82,18 +82,32 @@ const GestaoRecursosPage: React.FC<{ navigateTo: (page: string, params?: any) =>
     const [filtroDeputado, setFiltroDeputado] = useState('Todos');
 
     const fetchData = async () => {
+        let isMounted = true;
+        const timeoutId = setTimeout(() => {
+            if (isMounted) {
+                console.warn("[Recursos] Safety timeout atingido.");
+                setIsLoading(false);
+            }
+        }, 12000);
+
         try {
             setIsLoading(true);
             const [recursosData, municipiosData] = await Promise.all([
-                getAllRecursos(),
-                getMunicipios()
+                getAllRecursos().catch(() => []),
+                getMunicipiosSimples().catch(() => [])
             ]);
-            setRecursos(recursosData as ExtendedRecurso[]);
-            setMunicipios(municipiosData);
+            
+            if (isMounted) {
+                setRecursos((recursosData as ExtendedRecurso[]) || []);
+                setMunicipios(municipiosData || []);
+            }
         } catch (err) {
-            console.error(err);
+            console.error("Erro ao carregar recursos:", err);
         } finally {
-            setIsLoading(false);
+            if (isMounted) {
+                setIsLoading(false);
+                clearTimeout(timeoutId);
+            }
         }
     };
 

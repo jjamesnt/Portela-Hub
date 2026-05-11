@@ -107,10 +107,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     const safetyTimeout = setTimeout(() => {
       if (isMounted.current && isLoadingAuth) {
-        console.warn("[AppContext] Safety Timeout acionado. Forçando fim do carregamento.");
+        console.warn("[AppContext] Safety Timeout acionado (8s). Forçando fim do carregamento.");
         setIsLoadingAuth(false);
       }
-    }, 15000);
+    }, 8000);
 
     return () => {
       isMounted.current = false;
@@ -210,11 +210,69 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setRolePermissions,
       roleDisplayNames,
       setRoleDisplayNames,
-      updateRolePermission: async () => {},
-      bulkUpdateRolePermissions: async () => {},
-      createRole: async () => {},
-      deleteRole: async () => {},
-      renameRole: async () => {}
+      updateRolePermission: async (role: string, itemLabel: string, active: boolean) => {
+        try {
+          const currentPermissions = rolePermissions[role] || [];
+          let newPermissions;
+          if (active) {
+            newPermissions = Array.from(new Set([...currentPermissions, itemLabel]));
+          } else {
+            newPermissions = currentPermissions.filter(p => p !== itemLabel);
+          }
+          
+          await roleService.updateAllowedItems(role, newPermissions);
+          setRolePermissions(prev => ({ ...prev, [role]: newPermissions }));
+        } catch (err) {
+          console.error('Erro ao atualizar permissão:', err);
+          throw err;
+        }
+      },
+      bulkUpdateRolePermissions: async (role: string, itemLabels: string[]) => {
+        try {
+          await roleService.updateAllowedItems(role, itemLabels);
+          setRolePermissions(prev => ({ ...prev, [role]: itemLabels }));
+        } catch (err) {
+          console.error('Erro ao atualizar permissões em massa:', err);
+          throw err;
+        }
+      },
+      createRole: async (name: string) => {
+        try {
+          const roleId = await roleService.createRole(name);
+          setRoleDisplayNames(prev => ({ ...prev, [roleId]: name }));
+          setRolePermissions(prev => ({ ...prev, [roleId]: ['Dashboard'] }));
+        } catch (err) {
+          console.error('Erro ao criar cargo:', err);
+          throw err;
+        }
+      },
+      deleteRole: async (roleId: string) => {
+        try {
+          await roleService.deleteRole(roleId);
+          setRolePermissions(prev => {
+            const next = { ...prev };
+            delete next[roleId];
+            return next;
+          });
+          setRoleDisplayNames(prev => {
+            const next = { ...prev };
+            delete next[roleId];
+            return next;
+          });
+        } catch (err) {
+          console.error('Erro ao excluir cargo:', err);
+          throw err;
+        }
+      },
+      renameRole: async (roleId: string, newName: string) => {
+        try {
+          await roleService.renameRole(roleId, newName);
+          setRoleDisplayNames(prev => ({ ...prev, [roleId]: newName }));
+        } catch (err) {
+          console.error('Erro ao renomear cargo:', err);
+          throw err;
+        }
+      }
     }}>
       {children}
     </AppContext.Provider>

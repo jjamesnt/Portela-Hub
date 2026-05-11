@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getAllDemandas, updateDemanda, createDemanda, getMunicipios, deleteDemanda } from '../services/api';
+import { getAllDemandas, updateDemanda, createDemanda, getMunicipios, getMunicipiosSimples, deleteDemanda } from '../services/api';
 import Loader from '../components/Loader';
 import MandatoBadge from '../components/MandatoBadge';
 import ConfirmModal from '../components/ConfirmModal';
@@ -76,18 +76,32 @@ const DemandasPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
     const [filtroMunicipio, setFiltroMunicipio] = useState('Todos');
 
     const fetchData = async () => {
+        let isMounted = true;
+        const timeoutId = setTimeout(() => {
+            if (isMounted) {
+                console.warn("[Demandas] Safety timeout atingido.");
+                setIsLoading(false);
+            }
+        }, 12000);
+
         try {
             setIsLoading(true);
             const [demandasData, municipiosData] = await Promise.all([
-                getAllDemandas(),
-                getMunicipios()
+                getAllDemandas().catch(() => []),
+                getMunicipiosSimples().catch(() => [])
             ]);
-            setDemandas(demandasData as DemandaRow[]);
-            setMunicipios(municipiosData.map(m => ({ id: m.id, nome: m.nome })));
+            
+            if (isMounted) {
+                setDemandas((demandasData as DemandaRow[]) || []);
+                setMunicipios(municipiosData.map(m => ({ id: m.id, nome: m.nome })) || []);
+            }
         } catch (err) {
-            console.error(err);
+            console.error("Erro ao carregar demandas:", err);
         } finally {
-            setIsLoading(false);
+            if (isMounted) {
+                setIsLoading(false);
+                clearTimeout(timeoutId);
+            }
         }
     };
 

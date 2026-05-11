@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useContext, useCallback, useRef } from 'react';
-import { getMunicipios, createMunicipio, getAssessores } from '../services/api';
+import { getMunicipios, getMunicipiosSimples, createMunicipio, getAssessores } from '../services/api';
 import { Municipio, Assessor } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { AppContext } from '../context/AppContext';
@@ -122,21 +122,34 @@ const MunicipiosPage: React.FC<MunicipiosPageProps> = ({ navigateTo }) => {
 
     useEffect(() => {
         const fetchData = async () => {
+            let isMounted = true;
+            const timeoutId = setTimeout(() => {
+                if (isMounted) {
+                    console.warn("[Municipios] Safety timeout atingido.");
+                    setIsLoading(false);
+                }
+            }, 12000);
+
             try {
                 setIsLoading(true);
                 const [municipiosData, assessoresData] = await Promise.all([
-                    getMunicipios(),
-                    getAssessores()
+                    getMunicipiosSimples().catch(() => []),
+                    getAssessores().catch(() => [])
                 ]);
-                setMunicipios(municipiosData);
-                setAssessores(assessoresData);
-                setError(null);
-
-
+                
+                if (isMounted) {
+                    setMunicipios(municipiosData || []);
+                    setAssessores(assessoresData || []);
+                    setError(null);
+                }
             } catch (err) {
-                setError('Falha ao carregar os dados.');
+                console.error("Erro ao carregar municípios:", err);
+                if (isMounted) setError('Falha ao carregar os dados.');
             } finally {
-                setIsLoading(false);
+                if (isMounted) {
+                    setIsLoading(false);
+                    clearTimeout(timeoutId);
+                }
             }
         };
         fetchData();

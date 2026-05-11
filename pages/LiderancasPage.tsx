@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
-import { getMunicipios, getLiderancas, deleteLideranca, upsertLideranca } from '../services/api';
+import { getMunicipios, getMunicipiosSimples, getLiderancas, deleteLideranca, upsertLideranca } from '../services/api';
 import { Lideranca, Municipio } from '../types';
 import Loader from '../components/Loader';
 import ImageUpload from '../components/ImageUpload';
@@ -57,29 +57,52 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
     }, [viewMode]);
 
     useEffect(() => {
+        let isMounted = true;
+        const timeoutId = setTimeout(() => {
+            if (isMounted) {
+                console.warn("Fetch data timeout reached");
+                setIsLoading(false);
+            }
+        }, 10000); // 10 seconds safety timeout
+
         const fetchData = async () => {
             try {
                 setIsLoading(true);
                 const [municipiosData, liderancasData] = await Promise.all([
-                    getMunicipios().catch(() => []),
-                    getLiderancas().catch(() => [])
+                    getMunicipiosSimples().catch(err => {
+                        console.error("Erro ao buscar municípios:", err);
+                        return [];
+                    }),
+                    getLiderancas().catch(err => {
+                        console.error("Erro ao buscar lideranças:", err);
+                        return [];
+                    })
                 ]);
 
-                setMunicipios(municipiosData);
-                setLiderancas(liderancasData);
-                setIsLoading(false);
+                if (isMounted) {
+                    setMunicipios(municipiosData || []);
+                    setLiderancas(liderancasData || []);
 
-                // Verificar se deve abrir o modal de nova liderança
-                if (params?.action === 'new') {
-                    setEditingLideranca({});
-                    setIsModalOpen(true);
+                    // Verificar se deve abrir o modal de nova liderança
+                    if (params?.action === 'new') {
+                        setEditingLideranca({});
+                        setIsModalOpen(true);
+                    }
                 }
             } catch (err) {
-                console.error("Erro ao carregar dados", err);
-                setIsLoading(false);
+                console.error("Erro crítico ao carregar dados:", err);
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                    clearTimeout(timeoutId);
+                }
             }
         };
         fetchData();
+        return () => {
+            isMounted = false;
+            clearTimeout(timeoutId);
+        };
     }, [params]);
     
     // Close suggestions when clicking outside
@@ -114,13 +137,19 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
 
     const liderancasFiltradas = useMemo(() => {
         return liderancas.filter(l => {
-            const correspondeBusca = l.nome.toLowerCase().includes(busca.toLowerCase()) ||
-                l.municipio.toLowerCase().includes(busca.toLowerCase());
-            const correspondeRegiao = filtroRegiao === 'Todos' || l.regiao === filtroRegiao;
-            const correspondeMunicipio = filtroMunicipio === 'Todos' || l.municipio === filtroMunicipio;
+            const nome = l.nome || '';
+            const municipio = l.municipio || '';
+            const regiao = l.regiao || '';
+            const partido = l.partido || '';
+            const cargo = l.cargo || '';
+
+            const correspondeBusca = nome.toLowerCase().includes(busca.toLowerCase()) ||
+                municipio.toLowerCase().includes(busca.toLowerCase());
+            const correspondeRegiao = filtroRegiao === 'Todos' || regiao === filtroRegiao;
+            const correspondeMunicipio = filtroMunicipio === 'Todos' || municipio === filtroMunicipio;
             const correspondeMandato = selectedMandato === 'Todos' || l.origem === selectedMandato;
-            const correspondePartido = filtroPartido === 'Todos' || l.partido === filtroPartido;
-            const correspondeCargo = filtroCargo === 'Todos' || l.cargo === filtroCargo;
+            const correspondePartido = filtroPartido === 'Todos' || partido === filtroPartido;
+            const correspondeCargo = filtroCargo === 'Todos' || cargo === filtroCargo;
 
             return correspondeBusca && correspondeRegiao && correspondeMunicipio && correspondeMandato && correspondePartido && correspondeCargo;
         });
@@ -398,7 +427,32 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                 )}
             </div>
 
-            {isLoading ? <Loader /> : (
+            {isLoading ? (
+                <div className="flex items-center justify-center py-20">
+                    <Loader />
+                </div>
+            ) : liderancasFiltradas.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 md:p-24 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-500">
+                    <div className="size-20 md:size-24 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mb-6">
+                        <span className="material-symbols-outlined text-4xl md:text-5xl text-slate-300">group_off</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-navy-dark dark:text-white mb-2">Nenhuma liderança encontrada</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-center max-w-md text-sm md:text-base">
+                        {busca || filtroRegiao !== 'Todas' || filtroMunicipio !== 'Todas' || filtroPartido !== 'Todas' || filtroCargo !== 'Todos'
+                            ? "Não encontramos resultados para os filtros aplicados. Tente ajustar sua busca."
+                            : "Ainda não há lideranças cadastradas no sistema. Comece adicionando uma nova liderança no botão acima."}
+                    </p>
+                    {(busca || filtroRegiao !== 'Todas' || filtroMunicipio !== 'Todas' || filtroPartido !== 'Todas' || filtroCargo !== 'Todos') && (
+                        <button 
+                            onClick={clearFilters}
+                            className="mt-6 text-turquoise font-bold hover:underline flex items-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">filter_alt_off</span>
+                            Limpar Filtros
+                        </button>
+                    )}
+                </div>
+            ) : (
                 <div className={viewMode === 'grid' 
                     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6"
                     : "flex flex-col gap-3"

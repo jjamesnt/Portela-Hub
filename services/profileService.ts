@@ -3,17 +3,18 @@ import { Profile } from '../types';
 
 export const profileService = {
   /**
-   * Busca todos os perfis cadastrados no sistema.
+   * Busca todos os usuários cadastrados no sistema.
    */
   async getProfiles(): Promise<Profile[]> {
-    return apiClient.get<Profile[]>('/api/profiles');
+    const response = await apiClient.get<{ users: Profile[] }>('/api/users');
+    return response.users;
   },
 
   /**
    * Busca o perfil de um usuário específico pelo ID.
    */
   async getProfile(userId: string): Promise<Profile | null> {
-    return apiClient.get<Profile>(`/api/profiles/${userId}`);
+    return apiClient.get<Profile>(`/api/users/${userId}`);
   },
 
   /**
@@ -27,31 +28,29 @@ export const profileService = {
    * Atualiza as informações de um perfil.
    */
   async updateProfile(userId: string, updates: Partial<Profile>) {
-    return apiClient.put<Profile>(`/api/profiles/${userId}`, updates);
+    return apiClient.put<Profile>(`/api/users/${userId}`, updates);
   },
 
   /**
    * Altera o status (ativo/bloqueado) de um usuário.
    */
   async updateStatus(userId: string, status: 'active' | 'blocked' | 'pending') {
-    return apiClient.put<any>(`/api/profiles/${userId}/status`, { status });
+    return apiClient.put<any>(`/api/users/${userId}/status`, { status });
   },
 
   /**
    * Altera o cargo/nível de acesso de um usuário.
    */
   async updateRole(userId: string, role: string) {
-    return apiClient.put<any>(`/api/profiles/${userId}/role`, { role });
+    return apiClient.put<any>(`/api/users/${userId}`, { role });
   },
 
   async createUser(userData: {
     email: string;
     password?: string;
-    full_name: string;
-    phone: string;
+    nome: string;
     role: string;
-    status: string;
   }) {
-    return apiClient.post<any>('/api/profiles', userData);
+    return apiClient.post<any>('/api/users', userData);
   }
 };

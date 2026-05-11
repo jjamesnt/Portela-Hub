@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useContext } from 'react';
-import { getMunicipios, getAssessores, syncSpreadsheetData } from '../services/api';
+import { getMunicipios, getMunicipiosSimples, getAssessores, syncSpreadsheetData } from '../services/api';
 import { AppContext } from '../context/AppContext';
 import { Municipio, Assessor, Apoiador } from '../types';
 import Loader from '../components/Loader';
@@ -38,20 +38,34 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
     const [lastSyncTime, setLastSyncTime] = useState<string | null>(localStorage.getItem('portela_hub_last_sync') || null);
 
     const fetchData = async () => {
+        let isMounted = true;
+        const timeoutId = setTimeout(() => {
+            if (isMounted) {
+                console.warn("Fetch data timeout reached (Apoiadores)");
+                setIsLoading(false);
+            }
+        }, 10000);
+
         try {
             setIsLoading(true);
             const [munData, assData, apoData] = await Promise.all([
-                getMunicipios(),
-                getAssessores(),
-                import('../services/api').then(m => m.getApoiadores())
+                getMunicipiosSimples().catch(() => []),
+                getAssessores().catch(() => []),
+                import('../services/api').then(m => m.getApoiadores()).catch(() => [])
             ]);
-            setMunicipios(munData);
-            setAssessores(assData);
-            setApoiadoresTotal(apoData);
+            
+            if (isMounted) {
+                setMunicipios(munData || []);
+                setAssessores(assData || []);
+                setApoiadoresTotal(apoData || []);
+            }
         } catch (err) {
             console.error("Erro ao carregar dados de apoiadores", err);
         } finally {
-            setIsLoading(false);
+            if (isMounted) {
+                setIsLoading(false);
+                clearTimeout(timeoutId);
+            }
         }
     };
 
@@ -312,7 +326,25 @@ const ApoiadoresPage: React.FC<ApoiadoresPageProps> = ({ navigateTo }) => {
                 </div>
             </div>
 
-            {isLoading ? <Loader /> : viewMode === 'table' ? (
+            {isLoading ? <Loader /> : apoiadoresFiltrados.length === 0 ? (
+                <div className="py-20 text-center bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <div className="size-20 rounded-full bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center mx-auto mb-4">
+                        <span className="material-symbols-outlined text-slate-300 text-5xl">groups</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-600 dark:text-slate-300">Nenhum apoiador encontrado</h3>
+                    <p className="text-slate-400 text-sm max-w-xs mx-auto mt-2">
+                        Não existem apoiadores cadastrados ou os filtros aplicados não retornaram resultados.
+                    </p>
+                    {(busca !== '' || filtroRegiao !== 'Todos' || filtroAssessor !== 'Todos' || filtroStatusPrefeito !== 'Todos') && (
+                        <button 
+                            onClick={clearFilters}
+                            className="mt-6 px-6 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
+                        >
+                            Limpar Filtros
+                        </button>
+                    )}
+                </div>
+            ) : viewMode === 'table' ? (
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">

@@ -47,18 +47,35 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
     }, [viewMode]);
 
     useEffect(() => {
+        let isMounted = true;
+        const timeoutId = setTimeout(() => {
+            if (isMounted) {
+                console.warn("Fetch data timeout reached (Assessores)");
+                setIsLoading(false);
+            }
+        }, 10000);
+
         const fetchData = async () => {
             try {
                 setIsLoading(true);
                 const data = await getAssessores();
-                setAssessores(data);
-                setIsLoading(false);
+                if (isMounted) {
+                    setAssessores(data || []);
+                }
             } catch (err) {
                 console.error("Erro ao carregar assessores", err);
-                setIsLoading(false);
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                    clearTimeout(timeoutId);
+                }
             }
         };
         fetchData();
+        return () => {
+            isMounted = false;
+            clearTimeout(timeoutId);
+        };
     }, []);
 
     const { selectedMandato } = useAppContext();
@@ -358,7 +375,29 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                 )}
             </div>
 
-            {isLoading ? <Loader /> : (
+            {isLoading ? (
+                <div className="flex items-center justify-center py-20">
+                    <Loader />
+                </div>
+            ) : assessoresFiltrados.length === 0 ? (
+                <div className="py-20 text-center bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <div className="size-20 rounded-full bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center mx-auto mb-4">
+                        <span className="material-symbols-outlined text-slate-300 text-5xl">badge</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-600 dark:text-slate-300">Nenhum assessor encontrado</h3>
+                    <p className="text-slate-400 text-sm max-w-xs mx-auto mt-2">
+                        Não existem assessores cadastrados ou os filtros aplicados não retornaram resultados.
+                    </p>
+                    {(busca !== '' || filtroRegiao !== 'Todos' || filtroCargo !== 'Todos') && (
+                        <button 
+                            onClick={clearFilters}
+                            className="mt-6 px-6 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
+                        >
+                            Limpar Filtros
+                        </button>
+                    )}
+                </div>
+            ) : (
                 <div className={viewMode === 'grid' 
                     ? "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6"
                     : "flex flex-col gap-3"
@@ -412,14 +451,14 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                             className="p-2 text-slate-400 hover:text-turquoise transition-colors"
                                             title="Editar"
                                         >
-                                            <span className="material-symbols-outlined text-xl">edit</span>
+                                            <span className="material-symbols-outlined text-[20px]">edit</span>
                                         </button>
                                         <button
-                                            onClick={() => handleDeleteClick(assessor)}
+                                            onClick={() => { setItemToDelete(assessor); setIsConfirmDeleteOpen(true); }}
                                             className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
                                             title="Excluir"
                                         >
-                                            <span className="material-symbols-outlined text-xl">delete</span>
+                                            <span className="material-symbols-outlined text-[20px]">delete</span>
                                         </button>
                                     </div>
                                 </div>
@@ -427,23 +466,24 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                         }
 
                         return (
-                            <div key={assessor.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 md:p-5 hover:shadow-md transition-all group relative overflow-hidden">
-                                <button
-                                    onClick={() => { setEditingAssessor(assessor); setIsModalOpen(true); }}
-                                    className="absolute top-2 right-10 md:top-4 md:right-12 text-slate-300 hover:text-turquoise transition-colors z-10"
-                                >
-                                    <span className="material-symbols-outlined text-sm md:text-xl">edit</span>
-                                </button>
+                            <div key={assessor.id} className="bg-white dark:bg-slate-800 rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-xl hover:border-turquoise/30 transition-all duration-300 group relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-2 md:p-4 flex gap-1 md:gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+                                    <button 
+                                        onClick={() => { setEditingAssessor(assessor); setIsModalOpen(true); }}
+                                        className="size-8 md:size-10 rounded-xl bg-white dark:bg-slate-700 shadow-lg border border-slate-100 dark:border-slate-600 text-slate-400 hover:text-turquoise flex items-center justify-center transition-all"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px] md:text-[20px]">edit</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => { setItemToDelete(assessor); setIsConfirmDeleteOpen(true); }}
+                                        className="size-8 md:size-10 rounded-xl bg-white dark:bg-slate-700 shadow-lg border border-slate-100 dark:border-slate-600 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-all"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px] md:text-[20px]">delete</span>
+                                    </button>
+                                </div>
 
-                                <button
-                                    onClick={() => handleDeleteClick(assessor)}
-                                    className="absolute top-2 right-3 md:top-4 md:right-4 text-slate-300 hover:text-rose-500 transition-colors z-10"
-                                >
-                                    <span className="material-symbols-outlined text-sm md:text-xl">delete</span>
-                                </button>
-
-                                <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4 mb-3 md:mb-4 text-center md:text-left">
-                                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden border-2 border-white dark:border-slate-700 shadow-sm md:shadow-md shrink-0 bg-slate-100 dark:bg-slate-700">
+                                <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 mb-4 md:mb-6">
+                                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden shrink-0 border-2 border-white dark:border-slate-700 shadow-xl bg-slate-100 dark:bg-slate-700 group-hover:scale-105 transition-transform duration-500">
                                         {assessor.avatarUrl && !assessor.avatarUrl.includes('placeholder') && !assessor.avatarUrl.includes('via.placeholder') ? (
                                             <img
                                                 src={assessor.avatarUrl}
@@ -456,14 +496,14 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="min-w-0 w-full">
+                                    <div className="min-w-0 w-full text-center md:text-left">
                                         <h3 className="text-xs md:text-base font-bold text-navy-dark dark:text-white truncate">{assessor.nome}</h3>
                                         <div className="flex flex-wrap justify-center md:justify-start gap-1 mt-0.5 md:mt-1">
                                             <span className={`px-1 md:px-2 py-0.5 rounded text-[7px] md:text-[10px] uppercase font-black tracking-wider ${assessor.origem === 'Lincoln Portela' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
                                                 {assessor.origem.split(' ')[0]}
                                             </span>
+                                            <p className="text-[9px] md:text-xs text-slate-400 mt-0.5 md:mt-1 truncate opacity-80">{assessor.cargo}</p>
                                         </div>
-                                        <p className="text-[9px] md:text-xs text-slate-400 mt-0.5 md:mt-1 truncate opacity-80">{assessor.cargo}</p>
                                     </div>
                                 </div>
 

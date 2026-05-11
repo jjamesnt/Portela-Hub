@@ -3,7 +3,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import KpiCard from '../components/KpiCard';
 import Loader from '../components/Loader';
-import { getMunicipios, getLiderancas, getAssessores, getAgendaEventos, getRecursosTotais, getDemandasTotais, getAllRecursos, getGoogleEvents } from '../services/api';
+import { getMunicipios, getMunicipiosSimples, getDashboardCounts, getDashboardLiderancas, getDashboardAssessores, getLiderancas, getAssessores, getAgendaEventos, getRecursosTotais, getDemandasTotais, getAllRecursos, getGoogleEvents } from '../services/api';
 import { getElectoralEvents } from '../services/electoralCalendarService';
 import ElectoralTimeline from '../components/ElectoralTimeline';
 
@@ -567,57 +567,27 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { selectedMandato, setSelectedMandato } = useContext(AppContext)!;
+    const isMounted = React.useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
 
     const fetchDashboardData = async (agendaOnly = false) => {
         try {
             if (agendaOnly) setIsAgendaRefreshing(true);
             else setIsLoading(true);
 
-            const [
-                municipiosData,
-                liderancasData,
-                assessoresData,
-                agendaData,
-                recursosTotaisData,
-                demandasTotaisData,
-                aleDemandasCount,
-                lincolnDemandasCount,
-                recursosData
-            ] = await Promise.all([
-                (agendaOnly ? Promise.resolve(data?.municipios || []) : getMunicipios()).catch(err => { console.error("Erro Municípios:", err); return []; }),
-                (agendaOnly ? Promise.resolve(data?.liderancas || []) : getLiderancas()).catch(err => { console.error("Erro Lideranças:", err); return []; }),
-                (agendaOnly ? Promise.resolve(data?.assessores || []) : getAssessores()).catch(err => { console.error("Erro Assessores:", err); return []; }),
-                getAgendaEventos().catch(err => { console.error("Erro Agenda:", err); return []; }),
-                (agendaOnly ? Promise.resolve(data?.recursosTotais || 0) : getRecursosTotais()).catch(err => { console.error("Erro Recursos Totais:", err); return 0; }),
-                (agendaOnly ? Promise.resolve(data?.demandasTotais || 0) : getDemandasTotais()).catch(err => { console.error("Erro Demandas Totais:", err); return 0; }),
-                (agendaOnly ? Promise.resolve(data?.aleDemandasCount || 0) : getDemandasTotais('Alê Portela')).catch(err => { console.error("Erro Demandas Alê:", err); return 0; }),
-                (agendaOnly ? Promise.resolve(data?.lincolnDemandasCount || 0) : getDemandasTotais('Lincoln Portela')).catch(err => { console.error("Erro Demandas Lincoln:", err); return 0; }),
-                (agendaOnly ? Promise.resolve(data?.recursos || []) : getAllRecursos()).catch(err => { console.error("Erro Lista Recursos:", err); return []; })
-            ]);
-
-            const combinedLiderancas = agendaOnly ? (data?.liderancas || []) : liderancasData.map(l => {
-                if (l.latitude == null) {
-                    const mock = mockLider.find(ml => ml.id === l.id || ml.nome === l.nome);
-                    if (mock) return { ...l, latitude: mock.latitude, longitude: mock.longitude };
-                }
-                return l;
-            });
-
-            const combinedAssessores = agendaOnly ? (data?.assessores || []) : assessoresData.map(a => {
-                if (a.latitude == null) {
-                    const mock = mockAsse.find(ma => ma.id === a.id || ma.nome === a.nome);
-                    if (mock) return { ...a, latitude: mock.latitude, longitude: mock.longitude };
-                }
-                return a;
-            });
-
+            // Helpers para datas
             const today = new Date();
             const twoDaysAgo = new Date(today);
             twoDaysAgo.setDate(today.getDate() - 2);
             const fifteenDaysAhead = new Date(today);
             fifteenDaysAhead.setDate(today.getDate() + 15);
 
-            // Correção: Usar data local para evitar bug de fim de dia (UTC)
             const formatLocalISO = (d: Date) => {
                 const year = d.getFullYear();
                 const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -627,12 +597,6 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
 
             const startDate = formatLocalISO(twoDaysAgo);
             const endDate = formatLocalISO(fifteenDaysAhead);
-
-            const electoralEvents = getElectoralEvents();
-            const nextElectoralEvents = electoralEvents
-                .filter(e => e.data >= startDate)
-                .sort((a, b) => a.data.localeCompare(b.data))
-                .slice(0, 2);
 
             const helperFilterAndSortAgenda = (items: EventoAgenda[]) => {
                 return items
@@ -649,26 +613,93 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                     .slice(0, 15);
             };
 
-            const initialAgenda = helperFilterAndSortAgenda([...agendaData, ...nextElectoralEvents]);
+            // 1. CARGA RÁPIDA (KPIs e Dados Essenciais)
+            const [
+                municipiosSimples,
+                liderancasData,
+                assessoresData,
+                agendaData,
+                countsData
+            ] = await Promise.all([
+                (agendaOnly ? Promise.resolve(data?.municipios || []) : getMunicipiosSimples()).catch(err => { console.error("Erro Municípios Simples:", err); return []; }),
+                (agendaOnly ? Promise.resolve(data?.liderancas || []) : getDashboardLiderancas()).catch(err => { console.error("Erro Lideranças:", err); return []; }),
+                (agendaOnly ? Promise.resolve(data?.assessores || []) : getDashboardAssessores()).catch(err => { console.error("Erro Assessores:", err); return []; }),
+                getAgendaEventos().catch(err => { console.error("Erro Agenda:", err); return []; }),
+                (agendaOnly ? Promise.resolve(null) : getDashboardCounts()).catch(err => { console.error("Erro Counts:", err); return null; })
+            ]);
+            
+            // Atribui os counts se disponíveis
+            const recursosTotaisData = countsData?.recursosTotal ?? (data?.recursosTotais || 0);
+            const demandasTotaisData = countsData?.demandasTotal ?? (data?.demandasTotais || 0);
+            const municipiosCount = countsData?.municipiosCount ?? (data?.municipios?.length || 0);
+            const liderancasCount = countsData?.liderancasCount ?? (data?.liderancas?.length || 0);
+            const assessoresCount = countsData?.assessoresCount ?? (data?.assessores?.length || 0);
+            const aleDemandasCount = countsData?.aleDemandasCount ?? (data?.aleDemandasCount || 0);
+            const lincolnDemandasCount = countsData?.lincolnDemandasCount ?? (data?.lincolnDemandasCount || 0);
 
-            setData({
-                municipios: agendaOnly ? (data?.municipios || []) : municipiosData,
-                liderancas: combinedLiderancas,
-                assessores: combinedAssessores,
-                agenda: initialAgenda,
-                recursosTotais: agendaOnly ? (data?.recursosTotais || 0) : recursosTotaisData,
-                demandasTotais: agendaOnly ? (data?.demandasTotais || 0) : demandasTotaisData,
-                aleDemandasCount: agendaOnly ? (data?.aleDemandasCount || 0) : aleDemandasCount,
-                lincolnDemandasCount: agendaOnly ? (data?.lincolnDemandasCount || 0) : lincolnDemandasCount,
-                recursos: agendaOnly ? (data?.recursos || []) : recursosData.map(r => ({
-                    ...r,
-                    municipio_nome: (municipiosData || data?.municipios).find(m => m.id === r.municipioId)?.nome || 'Desconhecido'
-                }))
-            });
+            const electoralEvents = getElectoralEvents();
+            const nextElectoralEvents = electoralEvents
+                .filter(e => e.data >= startDate)
+                .sort((a, b) => a.data.localeCompare(b.data))
+                .slice(0, 2);
 
-            // Disparar Google Events em background sem travar o render principal
+            if (isMounted.current) {
+                setData({
+                    municipios: municipiosSimples,
+                    liderancas: liderancasData.map(l => {
+                        if (l.latitude == null) {
+                            const mock = mockLider.find(ml => ml.id === l.id || ml.nome === l.nome);
+                            if (mock) return { ...l, latitude: mock.latitude, longitude: mock.longitude };
+                        }
+                        return l;
+                    }),
+                    assessores: assessoresData.map(a => {
+                        if (a.latitude == null) {
+                            const mock = mockAsse.find(ma => ma.id === a.id || ma.nome === a.nome);
+                            if (mock) return { ...a, latitude: mock.latitude, longitude: mock.longitude };
+                        }
+                        return a;
+                    }),
+                    agenda: helperFilterAndSortAgenda([...agendaData, ...nextElectoralEvents]),
+                    recursosTotais: recursosTotaisData,
+                    demandasTotais: demandasTotaisData,
+                    aleDemandasCount: aleDemandasCount,
+                    lincolnDemandasCount: lincolnDemandasCount,
+                    recursos: data?.recursos || []
+                });
+                setIsLoading(false); // Libera a UI agora!
+                setError(null);
+            }
+
+            // 2. CARGA PESADA EM BACKGROUND (Municípios Detalhados, Lideranças Completas, Assessores e Lista de Recursos)
+            if (!agendaOnly) {
+                Promise.all([
+                    getMunicipios(),
+                    getLiderancas(),
+                    getAssessores(),
+                    getAllRecursos()
+                ]).then(([fullMunicipios, fullLiderancas, fullAssessores, fullRecursos]) => {
+                    if (isMounted.current) {
+                        setData(prev => {
+                            if (!prev) return null;
+                            return {
+                                ...prev,
+                                municipios: fullMunicipios,
+                                liderancas: fullLiderancas,
+                                assessores: fullAssessores,
+                                recursos: fullRecursos.map(r => ({
+                                    ...r,
+                                    municipio_nome: fullMunicipios.find(m => m.id === r.municipioId)?.nome || 'Desconhecido'
+                                }))
+                            };
+                        });
+                    }
+                }).catch(err => console.error("Erro no carregamento pesado:", err));
+            }
+
+            // 3. GOOGLE CALENDAR EM BACKGROUND
             getGoogleEvents().then(googleEventsData => {
-                if (googleEventsData.length > 0) {
+                if (googleEventsData.length > 0 && isMounted.current) {
                     setData(prev => {
                         if (!prev) return null;
                         const existingIds = new Set(prev.agenda.map(e => e.id));
@@ -681,29 +712,35 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                     });
                 }
             }).catch(err => console.error("Erro secundário Google Agenda:", err));
-            setError(null);
+
         } catch (err: any) {
             console.error("Dashboard fetch error:", err);
-            setError(err.message || 'Erro ao carregar dados do dashboard');
+            if (isMounted.current) {
+                setError(err.message || 'Erro ao carregar dados do dashboard');
+            }
         } finally {
-            if (agendaOnly) setIsAgendaRefreshing(false);
-            else setIsLoading(false);
+            if (isMounted.current) {
+                setIsAgendaRefreshing(false);
+                setIsLoading(false);
+            }
         }
     };
 
     useEffect(() => {
+        // Safety timeout agressivo para o Dashboard (8 segundos)
+        const timer = setTimeout(() => {
+            if (isMounted.current && isLoading) {
+                console.warn("[Dashboard] Carregamento forçado via safety timeout (8s).");
+                setIsLoading(false);
+            }
+        }, 8000);
+
         fetchDashboardData();
 
-        // Safety timeout para o Dashboard
-        const timer = setTimeout(() => {
-            setIsLoading(prev => {
-                if (prev) console.warn("[Dashboard] Carregamento forçado via safety timeout.");
-                return false;
-            });
-        }, 15000);
-
         // Auto-refresh every 5 minutes
-        const intervalId = setInterval(() => fetchDashboardData(true), 5 * 60 * 1000);
+        const intervalId = setInterval(() => {
+            if (isMounted.current) fetchDashboardData(true);
+        }, 5 * 60 * 1000);
 
         return () => {
             clearTimeout(timer);
@@ -761,18 +798,42 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
                 const filteredData = data ? {
                     ...data,
                     municipios: data.municipios, // Municípios são compartilhados
-                    liderancas: selectedMandato === 'Todos' ? data.liderancas : data.liderancas.filter(l => (l.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && l.origem === ('Alê' as any))),
+                    liderancas: selectedMandato === 'Todos' ? data.liderancas : data.liderancas.filter(l => {
+                        const origem = (l.origem as string || '').toLowerCase();
+                        const filter = selectedMandato.toLowerCase();
+                        return origem.includes(filter) || 
+                               (filter.includes('ale') && origem.includes('ale')) ||
+                               (filter.includes('lincoln') && origem.includes('lincoln')) ||
+                               (filter.includes('marilda') && origem.includes('marilda'));
+                    }),
                     assessores: data.assessores, // Assessores são compartilhados
                     agenda: selectedMandato === 'Todos' ? data.agenda : data.agenda.filter(e => {
+                        const origem = (e.origem as string || '').toLowerCase();
+                        const filter = selectedMandato.toLowerCase();
                         const isMandatoMatch = !selectedMandato ||
                             selectedMandato === 'Ambos' ||
-                            (e.origem as string) === selectedMandato ||
-                            (selectedMandato === 'Alê Portela' && (e.origem as string) === 'Alê') ||
-                            (selectedMandato === 'Lincoln Portela' && (e.origem as string) === 'Lincoln');
+                            origem.includes(filter) ||
+                            (filter.includes('ale') && origem.includes('ale')) ||
+                            (filter.includes('lincoln') && origem.includes('lincoln')) ||
+                            (filter.includes('marilda') && origem.includes('marilda'));
                         return e.origem === 'Google Calendar' || isMandatoMatch;
                     }),
-                    recursos: selectedMandato === 'Todos' ? data.recursos : data.recursos.filter(r => (r.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && r.origem === ('Alê' as any))),
-                    recursosTotais: selectedMandato === 'Todos' ? data.recursosTotais : data.recursos.filter(r => (r.origem as any)?.includes(selectedMandato) || (selectedMandato === 'Alê Portela' && r.origem === ('Alê' as any))).reduce((acc, r) => acc + r.valor, 0),
+                    recursos: selectedMandato === 'Todos' ? data.recursos : data.recursos.filter(r => {
+                        const origem = (r.origem as string || '').toLowerCase();
+                        const filter = selectedMandato.toLowerCase();
+                        return origem.includes(filter) || 
+                               (filter.includes('ale') && origem.includes('ale')) ||
+                               (filter.includes('lincoln') && origem.includes('lincoln')) ||
+                               (filter.includes('marilda') && origem.includes('marilda'));
+                    }),
+                    recursosTotais: selectedMandato === 'Todos' ? data.recursosTotais : data.recursos.filter(r => {
+                        const origem = (r.origem as string || '').toLowerCase();
+                        const filter = selectedMandato.toLowerCase();
+                        return origem.includes(filter) || 
+                               (filter.includes('ale') && origem.includes('ale')) ||
+                               (filter.includes('lincoln') && origem.includes('lincoln')) ||
+                               (filter.includes('marilda') && origem.includes('marilda'));
+                    }).reduce((acc, r) => acc + r.valor, 0),
                     demandasTotais: selectedMandato === 'Todos' ? data.demandasTotais : (selectedMandato === 'Alê Portela' ? data.aleDemandasCount : (selectedMandato === 'Lincoln Portela' ? data.lincolnDemandasCount : 0)),
                 } : null;
 

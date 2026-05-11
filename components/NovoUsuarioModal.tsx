@@ -28,10 +28,8 @@ export const NovoUsuarioModal: React.FC<NovoUsuarioModalProps> = ({ isOpen, onCl
             await profileService.createUser({
                 email,
                 password,
-                full_name: fullName,
-                phone,
-                role,
-                status: 'active'
+                nome: fullName,
+                role
             });
 
             onSuccess();

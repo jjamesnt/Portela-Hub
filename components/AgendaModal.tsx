@@ -39,7 +39,8 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                     origem: eventToEdit.origem || 'Alê Portela',
                     privacidade: eventToEdit.privacidade || 'Público',
                     local: eventToEdit.local || '',
-                    descricao: eventToEdit.descricao || ''
+                    descricao: eventToEdit.descricao || '',
+                    observacoes_aprovacao: ''
                 });
             } else if (solicitacaoToApprove) {
                 setFormData({
@@ -52,7 +53,8 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                             solicitacaoToApprove.origem.includes('Lincoln') ? 'Lincoln Portela' : 'Marilda Portela') as any,
                     privacidade: 'Público',
                     local: solicitacaoToApprove.local || '',
-                    descricao: solicitacaoToApprove.descricao || ''
+                    descricao: solicitacaoToApprove.descricao || '',
+                    observacoes_aprovacao: ''
                 });
             } else {
                 setFormData({
@@ -63,7 +65,8 @@ const AgendaModal: React.FC<AgendaModalProps> = ({ isOpen, initialDate, eventToE
                     origem: 'Alê Portela',
                     privacidade: 'Público',
                     local: '',
-                    descricao: ''
+                    descricao: '',
+                    observacoes_aprovacao: ''
                 });
             }
         }
