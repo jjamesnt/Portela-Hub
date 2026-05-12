@@ -13,6 +13,12 @@ export default defineConfig(({ mode }) => {
                     target: 'https://hub-api.portela.app',
                     changeOrigin: true,
                     secure: true,
+                },
+                '/core': {
+                    target: 'https://core-api.portela.app',
+                    changeOrigin: true,
+                    secure: true,
+                    rewrite: (path) => path.replace(/^\/core/, '/api')
                 }
             }
         },
