@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>portela.app — briefing (wireframe atualizado)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --verde-deep:    #001a38;
+    --verde-main:    #002147;
+    --verde-mid:     #008B8B;
+    --verde-light:   #007a7a;
+    --verde-pale:    #e6f3f3;
+    --verde-ghost:   #f5f8f8;
+    --ouro:          #f59e0b;
+    --bg:            #f5f6f4;
+    --bg-card:       #ffffff;
+    --border:        #e2e6e0;
+    --text-1:        #1a2418;
+    --text-2:        #4a5548;
+    --text-3:        #8a9488;
+    --text-4:        #a0aba0;
+    --red:           #dc2626;
+    --amber:         #d97706;
+    --radius-md:     8px;
+  }
+
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-1); height: 100vh; overflow: hidden; font-size: 13px; }
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── SIDEBAR (ESQUERDA) ── */
+  .sb { width: 212px; min-width: 212px; background: var(--verde-deep); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,.06); }
+  .sb-brand { padding: 18px 16px 14px; border-bottom: 1px solid rgba(255,255,255,.07); }
+  .sb-brand-name { font-size: 17px; font-weight: 600; color: #fff; letter-spacing: -.04em; }
+  .sb-brand-dot { color: var(--ouro); }
+  .sb-brand-sub { font-size: 8.5px; color: rgba(255,255,255,.35); margin-top: 4px; letter-spacing: .12em; }
+  .sb-nav { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .sb-sec { font-size: 8.5px; color: rgba(255,255,255,.25); padding: 12px 16px 4px; letter-spacing: .1em; font-weight: 500; }
+  .sb-item { display: flex; align-items: center; gap: 9px; padding: 10px 16px; margin: 4px 12px; cursor: pointer; color: rgba(255,255,255,.5); position: relative; transition: all .2s ease; border-radius: 12px; text-decoration: none; }
+  .sb-item:hover { background: rgba(255,255,255,.04); color: rgba(255,255,255,.85); }
+  .sb-item.on { background: rgba(255,255,255,.08); color: #fff; font-weight: 500; }
+  .sb-item.on::before { content: ''; position: absolute; left: -12px; top: 6px; bottom: 6px; width: 4px; background: var(--verde-mid); border-radius: 0 4px 4px 0; }
+  .sb-ico { width: 16px; height: 16px; flex-shrink: 0; opacity: .6; transition: opacity .12s; }
+  .sb-item.on .sb-ico, .sb-item:hover .sb-ico { opacity: 1; color: var(--verde-mid); }
+  .sb-lbl { font-size: 13px; }
+  /* ── AÇÕES RÁPIDAS E PERFIL NOVO ── */
+  .sb-quick-actions { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.07); margin-top: auto; position: relative; }
+  .sb-qa-header { display: flex; align-items: center; justify-content: space-between; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: 0px; padding: 8px 0; }
+  .sb-qa-header svg { width: 14px; height: 14px; color: var(--verde-mid); transition: transform 0.3s ease; }
+  .sb-quick-actions:hover .sb-qa-header svg:last-child { transform: rotate(-180deg); }
+  .sb-qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 0; opacity: 0; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .sb-quick-actions:hover .sb-qa-grid { max-height: 200px; opacity: 1; margin-top: 12px; }
+  .qa-btn { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: all .2s; }
+  .qa-btn:hover { background: rgba(255,255,255,.08); transform: translateY(-2px); }
+  .qa-btn.red { border-color: rgba(220,38,38,.4); color: #fca5a5; }
+  .qa-btn.red svg { color: #fca5a5; }
+  .qa-btn.teal { border-color: rgba(0,139,139,.4); color: var(--verde-mid); }
+  .qa-btn.teal svg { color: var(--verde-mid); }
+  .qa-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; text-align: center; line-height: 1.2; letter-spacing: 0.05em;}
+  
+  .sb-foot-new { border-top: 1px solid rgba(255,255,255,.07); padding: 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .sb-user-row { display: flex; align-items: center; gap: 10px; }
+  .sb-av-new { width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; color: var(--verde-mid); }
+  .sb-user-info { flex: 1; }
+  .sb-user-title { font-size: 13px; font-weight: 700; color: #fff; }
+  .sb-user-email { font-size: 10px; color: rgba(255,255,255,.4); margin-top: 2px; }
+  .sb-user-exit { color: rgba(255,255,255,.4); cursor: pointer; transition: color .15s; }
+  .sb-user-exit:hover { color: #fff; }
+  .sb-master-badge { background: rgba(245, 158, 11, .15); border: 1px solid rgba(245, 158, 11, .4); color: var(--ouro); font-size: 9px; font-weight: 700; padding: 4px 10px; border-radius: 12px; align-self: flex-start; letter-spacing: 0.05em; }
+
+
+  /* ── MAIN ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fafafa; }
+  
+  .topbar { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 16px; }
+  .parl-filter { display: flex; align-items: center; gap: 4px; background: var(--bg); border-radius: 20px; padding: 4px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+  .pf-btn { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--text-3); display: flex; align-items: center; gap: 6px; transition: all .2s ease; }
+  .pf-btn:hover { color: var(--text-2); background: rgba(0,0,0,0.03); }
+  .pf-btn.active { background: var(--verde-deep); color: #fff; box-shadow: 0 2px 8px rgba(0,33,71,0.2); }
+  .pf-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .scroll { flex: 1; overflow-y: auto; padding: 30px 24px; display: flex; justify-content: center; }
+
+  .layout-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+    gap: 40px;
+    width: 100%;
+    max-width: 1400px;
+    align-items: start;
+  }
+
+  /* ── CENTRO: PAUTAS DA SEMANA ── */
+  .pautas-header { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .ph-title { font-size: 28px; font-weight: 700; color: #111; letter-spacing: -.03em; }
+  .ph-title span { font-weight: 300; color: var(--text-3); }
+  .ph-sub { font-size: 13px; color: var(--text-2); margin-top: 8px; max-width: 600px; line-height: 1.4; }
+  .ph-stats { text-align: right; }
+  .ph-stats-date { font-size: 9px; color: var(--text-3); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+  .ph-stats-num { font-size: 24px; font-weight: 700; color: #111; line-height: 1; margin: 4px 0; }
+  .ph-stats-lbl { font-size: 9px; color: var(--text-4); letter-spacing: .05em; }
+
+  .date-separator { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  .ds-date { font-size: 14px; font-weight: 600; color: #111; }
+  .ds-badge { background: #111; color: #fff; font-size: 9px; font-weight: 600; padding: 3px 8px; border-radius: 12px; letter-spacing: .05em; }
+  .ds-count { font-size: 11px; color: var(--text-3); }
+
+  .pautas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .pcard { background: var(--bg-card); border: none; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.03); transition: all .2s ease; cursor: pointer; }
+  .pcard:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,.06); }
+  .pcard-top { display: flex; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid rgba(0,0,0,.03); }
+  .pc-tag { font-size: 9px; font-weight: 700; letter-spacing: .08em; display: flex; align-items: center; gap: 6px; text-transform: uppercase; }
+  .pc-prio { font-size: 9px; font-weight: 700; letter-spacing: .05em; }
+  .prio-alta { color: #dc2626; }
+  .prio-media { color: #d97706; }
+  
+  .pcard-body { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .pc-title { font-size: 14px; font-weight: 700; color: #111; line-height: 1.3; }
+  .pc-desc { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+  
+  .pc-action-box { background: #f8fafc; border-radius: 6px; padding: 10px 12px; margin-top: auto; border: 1px solid #e2e8f0; }
+  .pc-action-txt { font-size: 11px; color: #334155; line-height: 1.4; font-weight: 500; }
+  .pc-action-txt::before { content: '→ '; color: #94a3b8; }
+  
+  .pcard-foot { padding: 12px 16px; border-top: 1px solid var(--border); background: #fafafa; }
+  .btn-dark { background: #111; color: #fff; border: none; padding: 6px 14px; border-radius: 20px; font-size: 10px; font-weight: 600; cursor: pointer; transition: background .15s; }
+  .btn-dark:hover { background: #333; }
+
+  /* ── DIREITA: FERRAMENTAS INTEGRADAS ── */
+  .tools-section { display: flex; flex-direction: column; gap: 24px; }
+  
+  .th-title { font-size: 18px; font-weight: 700; color: #111; letter-spacing: -.02em; }
+  .th-sub { font-size: 9px; font-weight: 600; color: var(--text-3); letter-spacing: .1em; margin-top: 6px; text-transform: uppercase; }
+
+  .tool-cat { margin-bottom: 20px; }
+  .tc-title { font-size: 9px; color: var(--text-4); font-weight: 600; letter-spacing: .15em; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+
+  .tool-cards-list { display: flex; flex-direction: column; gap: 10px; }
+  
+  .tcard { background: var(--bg-card); border: none; border-radius: 16px; padding: 20px; transition: all .2s ease; box-shadow: 0 4px 20px rgba(0,0,0,.03); cursor: pointer; }
+  .tcard:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,.06); }
+  .tcard-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .tcard-name { font-size: 13px; font-weight: 700; color: #111; }
+  
+  .tcard-badge { font-size: 9px; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
+  .badge-opal { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
+  .badge-gem { background: #fce7f3; color: #db2777; border: 1px solid #fbcfe8; }
+  
+  .tcard-desc { font-size: 11px; color: var(--text-2); line-height: 1.4; margin-bottom: 12px; }
+  .tcard-actions { display: flex; gap: 8px; }
+  
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--verde-main); padding: 5px 12px; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .btn-outline.opal { color: #0369a1; border-color: #bae6fd; background: #f0f9ff; }
+  .btn-outline.gem { color: #be185d; border-color: #fbcfe8; background: #fdf2f8; }
+  
+  .tcard-add { border: 1px dashed var(--border-mid); background: #fafafa; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; cursor: pointer; color: var(--text-3); transition: all .15s; }
+  .tcard-add:hover { border-color: var(--verde-mid); color: var(--verde-mid); background: #f0fdfa; }
+  .add-icon { font-size: 20px; margin-bottom: 4px; font-weight: 300; }
+  .add-title { font-size: 12px; font-weight: 600; }
+  .add-sub { font-size: 10px; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ── SIDEBAR ── -->
+  <div class="sb">
+    <div class="sb-brand">
+      <div class="sb-brand-name">portela<span class="sb-brand-dot">.</span>app</div>
+      <div class="sb-brand-sub">INTELIGÊNCIA POLÍTICA</div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-sec">PAINEL</div>
+      <a href="dashboard.html" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></svg>
+        <span class="sb-lbl">Dashboard</span>
+      </a>
+      <a href="briefing.html" class="sb-item on">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M2 12V4l6-2 6 2v8l-6 2-6-2z" stroke="currentColor" stroke-width="1.2"/><path d="M8 2v12" stroke="currentColor" stroke-width="1.2"/></svg>
+        <span class="sb-lbl">Briefing</span>
+      </a>
+
+      <div class="sb-sec">TERRITÓRIOS</div>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M2 13L6 3l4 6 2-3 2 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="sb-lbl">Mapa político</span>
+      </a>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M8 2C5.24 2 3 4.24 3 7c0 4.25 5 9 5 9s5-4.75 5-9c0-2.76-2.24-5-5-5z" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="7" r="1.5" fill="currentColor" opacity=".6"/></svg>
+        <span class="sb-lbl">Municípios</span>
+      </a>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M8 8a3 3 0 100-6 3 3 0 000 6z" fill="currentColor" opacity=".5"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Lideranças</span>
+      </a>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.2"/><circle cx="11" cy="5" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M1 13c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M11 8c1.66 0 3 1.34 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Apoiadores</span>
+      </a>
+
+      <div class="sb-sec">OPERAÇÃO</div>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 6h14" stroke="currentColor" stroke-width="1.2"/><circle cx="4" cy="4.5" r=".7" fill="currentColor"/><circle cx="7" cy="4.5" r=".7" fill="currentColor"/></svg>
+        <span class="sb-lbl">Contatos</span>
+        <span class="sb-badge green">3 novos</span>
+      </a>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 3V2M11 3V2M2 7h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Agenda</span>
+      </a>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 8h6M5 5h6M5 11h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Demandas</span>
+        <span class="sb-badge red">7</span>
+      </a>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M2 10V6l6-4 6 4v4l-6 4-6-4z" stroke="currentColor" stroke-width="1.2"/></svg>
+        <span class="sb-lbl">Assessores</span>
+      </a>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h10M3 12h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M12 10.5V12l1 1" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Recursos</span>
+      </a>
+
+      <div class="sb-sec">FERRAMENTAS</div>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" fill="currentColor" opacity=".5"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2M4.1 4.1l1.4 1.4M10.5 10.5l1.4 1.4M10.5 4.1l-1.4 1.4M5.5 10.5l-1.4 1.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Ferramentas IA</span>
+      </a>
+      <a href="#" class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M13 7H3M13 7l-3-3M13 7l-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="sb-lbl">Envios</span>
+        <span class="sb-badge amber">2</span>
+      </a>
+    </div>
+    
+    <!-- Ações Rápidas Accordion -->
+    <div class="sb-quick-actions">
+      <div class="sb-qa-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 2L3 9h4l-1 5 6-7H8l1-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          Ações Rápidas
+        </div>
+        <svg viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sb-qa-grid">
+        <div class="qa-btn red">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+          <span class="qa-lbl">Novo<br>Apoiador</span>
+        </div>
+        <div class="qa-btn teal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+          <span class="qa-lbl">Nova<br>Liderança</span>
+        </div>
+        <div class="qa-btn teal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span class="qa-lbl">Importar<br>CSV</span>
+        </div>
+        <div class="qa-btn teal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          <span class="qa-lbl">Gerar<br>PDF</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Profile New -->
+    <div class="sb-foot-new">
+      <div class="sb-user-row">
+        <div class="sb-av-new">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <div class="sb-user-info">
+          <div class="sb-user-title">Usuário</div>
+          <div class="sb-user-email">master@portela.app</div>
+        </div>
+        <div class="sb-user-exit">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </div>
+      </div>
+      <div class="sb-master-badge">MASTER ADMIN</div>
+    </div>
+  </div>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="main">
+    
+    <!-- TOPBAR FILTERS -->
+    <div class="topbar">
+      <div class="parl-filter">
+        <div class="pf-btn active">Todos</div>
+        <div class="pf-btn"><div class="pf-dot" style="background:#4a5548;"></div> Lincoln</div>
+        <div class="pf-btn"><div class="pf-dot" style="background:#db2777;"></div> Marilda</div>
+        <div class="pf-btn"><div class="pf-dot" style="background:#d97706;"></div> Alê</div>
+      </div>
+    </div>
+
+    <!-- SCROLL AREA -->
+    <div class="scroll">
+      <div class="layout-grid">
+        
+        <!-- ── CENTRO: PAUTAS DA SEMANA ── -->
+        <div>
+          <!-- Header Pautas -->
+          <div class="pautas-header">
+            <div>
+              <div class="ph-title">Pautas da <span>Semana</span></div>
+              <div class="ph-sub">Lincoln pressiona bancos por segurança de idosos enquanto Marilda fiscaliza manutenção urbana e saúde em BH</div>
+            </div>
+            <div class="ph-stats">
+              <div class="ph-stats-date">Sexta-feira, 29 de Maio de 2026</div>
+              <div class="ph-stats-num">16</div>
+              <div class="ph-stats-lbl">PAUTAS ESTA SEMANA</div>
+            </div>
+          </div>
+
+          <!-- Separator Line -->
+          <div class="date-separator">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="ds-date">terça-feira, 28 de abril de 2026</span>
+              <span class="ds-badge">MAIS RECENTE</span>
+            </div>
+            <span class="ds-count">4 pautas</span>
+          </div>
+
+          <!-- Grid de Cards Pautas -->
+          <div class="pautas-grid">
+            
+            <div class="pcard">
+              <div class="pcard-top">
+                <span class="pc-tag" style="color:#4a5548;"><div class="pf-dot" style="background:#4a5548;"></div> LINCOLN</span>
+                <span class="pc-prio prio-alta">ALTA</span>
+              </div>
+              <div class="pcard-body">
+                <div class="pc-title">O Escudo do Idoso contra fraudes bancárias</div>
+                <div class="pc-desc">Lincoln lidera pressão contra bancos que ignoram fraudes contra idosos. Ele requer audiência pública conjunta Segurança e Idoso para exigir protocolos de segurança digital rigorosos.</div>
+                <div class="pc-action-box">
+                  <span class="pc-action-txt">Usar Lei 13.228 como prova social que dobra pena para estelionato contra maiores de 60 anos</span>
+                </div>
+              </div>
+              <div class="pcard-foot">
+                <button class="btn-dark">Copiar texto</button>
+              </div>
+            </div>
+
+            <div class="pcard">
+              <div class="pcard-top">
+                <span class="pc-tag" style="color:#4a5548;"><div class="pf-dot" style="background:#4a5548;"></div> LINCOLN</span>
+                <span class="pc-prio prio-alta">ALTA</span>
+              </div>
+              <div class="pcard-body">
+                <div class="pc-title">Xerife Patrimonial bancário</div>
+                <div class="pc-desc">Lincoln lidera requerimento 23/2026 na Comissão do Idoso para punir bancos que facilitam golpes por falta de segurança digital. Posicionamento de direita protegendo bolso do trabalhador.</div>
+                <div class="pc-action-box">
+                  <span class="pc-action-txt">Pressionar aprovação do requerimento de audiência pública REQ 23/26</span>
+                </div>
+              </div>
+              <div class="pcard-foot">
+                <button class="btn-dark">Copiar texto</button>
+              </div>
+            </div>
+
+            <div class="pcard">
+              <div class="pcard-top">
+                <span class="pc-tag" style="color:#db2777;"><div class="pf-dot" style="background:#db2777;"></div> MARILDA</span>
+                <span class="pc-prio prio-media">MÉDIA</span>
+              </div>
+              <div class="pcard-body">
+                <div class="pc-title">Zelo Real nas praças e ruas da Regional Nordeste</div>
+                <div class="pc-desc">Saiu cronograma de manutenção urbana para Regional Nordeste. Marilda vai fiscalizar para que praças e ruas recebam o zelo prometido conforme Diário BH.</div>
+                <div class="pc-action-box">
+                  <span class="pc-action-txt">Acompanhar cronograma de manutenção urbana e publicar relatórios de fiscalização</span>
+                </div>
+              </div>
+              <div class="pcard-foot">
+                <button class="btn-dark">Copiar texto</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── DIREITA: FERRAMENTAS ── -->
+        <div class="tools-section">
+          <div>
+            <div class="th-title">Ferramentas Integradas</div>
+            <div class="th-sub">ACESSO DIRETO AO ECOSSISTEMA PORTELA</div>
+          </div>
+
+          <div class="tool-cat">
+            <div class="tc-title">GOOGLE OPAL</div>
+            <div class="tool-cards-list">
+              
+              <div class="tcard">
+                <div class="tcard-top">
+                  <span class="tcard-name">Emendas Lincoln</span>
+                  <span class="tcard-badge badge-opal">Opal</span>
+                </div>
+                <div class="tcard-desc">Monitoramento de emendas parlamentares federais.</div>
+                <div class="tcard-actions">
+                  <button class="btn-outline opal">↗ ABRIR</button>
+                </div>
+              </div>
+
+              <div class="tcard">
+                <div class="tcard-top">
+                  <span class="tcard-name">Geral Lincoln</span>
+                  <span class="tcard-badge badge-opal">Opal</span>
+                </div>
+                <div class="tcard-desc">Painel geral do mandato federal Lincoln Portela.</div>
+                <div class="tcard-actions">
+                  <button class="btn-outline opal">↗ ABRIR</button>
+                </div>
+              </div>
+
+              <div class="tcard">
+                <div class="tcard-top">
+                  <span class="tcard-name">Geral Marilda</span>
+                  <span class="tcard-badge badge-opal">Opal</span>
+                </div>
+                <div class="tcard-desc">Painel geral do mandato municipal Marilda Portela.</div>
+                <div class="tcard-actions">
+                  <button class="btn-outline opal">↗ ABRIR</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="tool-cat">
+            <div class="tc-title">GEMS GEMINI</div>
+            <div class="tool-cards-list">
+              
+              <div class="tcard">
+                <div class="tcard-top">
+                  <span class="tcard-name">Especialista Lincoln</span>
+                  <span class="tcard-badge badge-gem">Gem</span>
+                </div>
+                <div class="tcard-desc">IA especializada no mandato federal.</div>
+                <div class="tcard-actions">
+                  <button class="btn-outline gem">↗ ABRIR</button>
+                </div>
+              </div>
+
+              <div class="tcard">
+                <div class="tcard-top">
+                  <span class="tcard-name">Especialista Marilda</span>
+                  <span class="tcard-badge badge-gem">Gem</span>
+                </div>
+                <div class="tcard-desc">IA especializada no mandato municipal.</div>
+                <div class="tcard-actions">
+                  <button class="btn-outline gem">↗ ABRIR</button>
+                </div>
+              </div>
+
+              <div class="tcard">
+                <div class="tcard-top">
+                  <span class="tcard-name">Especialista Alê</span>
+                  <span class="tcard-badge badge-gem">Gem</span>
+                </div>
+                <div class="tcard-desc">IA especializada no mandato do deputado estadual.</div>
+                <div class="tcard-actions">
+                  <button class="btn-outline gem">↗ ABRIR</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="tool-cat">
+            <div class="tc-title">FERRAMENTAS ADICIONADAS</div>
+            <div class="tool-cards-list">
+              <div class="tcard tcard-add">
+                <span class="add-icon">⊕</span>
+                <span class="add-title">Adicionar ferramenta</span>
+                <span class="add-sub">Link externo ou API própria</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

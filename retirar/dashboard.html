@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>portela.app — painel v5</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --verde-deep:    #001a38;
+    --verde-main:    #002147;
+    --verde-mid:     #008B8B;
+    --verde-light:   #007a7a;
+    --verde-pale:    #e6f3f3;
+    --verde-ghost:   #f5f8f8;
+    --ouro:          #f59e0b;
+    --ouro-pale:     #fffbeb;
+    --bg:            #f5f6f4;
+    --bg-card:       #ffffff;
+    --bg-hover:      #eef1ec;
+    --border:        #e2e6e0;
+    --border-mid:    #cdd4ca;
+    --text-1:        #1a2418;
+    --text-2:        #4a5548;
+    --text-3:        #8a9488;
+    --red:           #dc2626;
+    --red-pale:      #fef2f2;
+    --amber:         #d97706;
+    --amber-pale:    #fffbeb;
+    --blue:          #0369a1;
+    --blue-pale:     #eff6ff;
+    --radius-sm:     4px;
+    --radius-md:     8px;
+    --radius-lg:     12px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-1);
+    height: 100vh;
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  /* ── APP SHELL ── */
+  .app {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sb {
+    width: 212px;
+    min-width: 212px;
+    background: var(--verde-deep);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255,255,255,.06);
+  }
+
+  .sb-brand {
+    padding: 18px 16px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+  .sb-brand-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -.04em;
+    line-height: 1;
+  }
+  .sb-brand-dot { color: var(--ouro); }
+  .sb-brand-sub {
+    font-size: 8.5px;
+    color: rgba(255,255,255,.35);
+    margin-top: 4px;
+    letter-spacing: .12em;
+    font-weight: 400;
+  }
+
+  .sb-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    scrollbar-width: none;
+  }
+  .sb-nav::-webkit-scrollbar { display: none; }
+
+  .sb-sec {
+    font-size: 8.5px;
+    color: rgba(255,255,255,.25);
+    padding: 12px 16px 4px;
+    letter-spacing: .1em;
+    font-weight: 500;
+  }
+
+  .sb-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 16px;
+    margin: 4px 12px;
+    cursor: pointer;
+    color: rgba(255,255,255,.5);
+    position: relative;
+    transition: all .2s ease;
+    border-radius: 12px;
+  }
+  .sb-item:hover {
+    background: rgba(255,255,255,.04);
+    color: rgba(255,255,255,.85);
+  }
+  .sb-item.on {
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    font-weight: 500;
+  }
+  .sb-item.on::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 6px;
+    bottom: 6px;
+    width: 4px;
+    background: var(--verde-mid);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .sb-ico {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    opacity: .6;
+    transition: opacity .12s;
+  }
+  .sb-item.on .sb-ico, .sb-item:hover .sb-ico { opacity: 1; color: var(--verde-mid); }
+  .sb-lbl { font-size: 13px; }
+
+  .sb-badge {
+    margin-left: auto;
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .sb-badge.red { background: rgba(220,38,38,.25); color: #fca5a5; }
+  .sb-badge.amber { background: rgba(217,119,6,.2); color: #fcd34d; }
+  .sb-badge.green { background: rgba(74,103,65,.4); color: #86efac; }
+
+  .sb-foot {
+    border-top: 1px solid rgba(255,255,255,.07);
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .sb-av {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--verde-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(255,255,255,.15);
+  }
+  .sb-u-name { font-size: 11px; font-weight: 500; color: rgba(255,255,255,.85); }
+  .sb-u-role { font-size: 9px; color: rgba(255,255,255,.3); margin-top: 1px; }
+
+  /* ── AÇÕES RÁPIDAS E PERFIL NOVO ── */
+  .sb-quick-actions {
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255,255,255,.07);
+    margin-top: auto;
+    position: relative;
+  }
+  .sb-qa-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 0px;
+    padding: 8px 0;
+  }
+  .sb-qa-header svg { width: 14px; height: 14px; color: var(--verde-mid); transition: transform 0.3s ease; }
+  .sb-quick-actions:hover .sb-qa-header svg:last-child { transform: rotate(-180deg); }
+  .sb-qa-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sb-quick-actions:hover .sb-qa-grid {
+    max-height: 200px;
+    opacity: 1;
+    margin-top: 12px;
+  }
+  .qa-btn {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 12px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .qa-btn:hover { background: rgba(255,255,255,.08); transform: translateY(-2px); }
+  .qa-btn.red { border-color: rgba(220,38,38,.4); color: #fca5a5; }
+  .qa-btn.red svg { color: #fca5a5; }
+  .qa-btn.teal { border-color: rgba(0,139,139,.4); color: var(--verde-mid); }
+  .qa-btn.teal svg { color: var(--verde-mid); }
+  .qa-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; text-align: center; line-height: 1.2; letter-spacing: 0.05em;}
+  
+  .sb-foot-new {
+    border-top: 1px solid rgba(255,255,255,.07);
+    padding: 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .sb-user-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sb-av-new {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--verde-mid);
+  }
+  .sb-user-info { flex: 1; }
+  .sb-user-title { font-size: 13px; font-weight: 700; color: #fff; }
+  .sb-user-email { font-size: 10px; color: rgba(255,255,255,.4); margin-top: 2px; }
+  .sb-user-exit { color: rgba(255,255,255,.4); cursor: pointer; transition: color .15s; }
+  .sb-user-exit:hover { color: #fff; }
+  .sb-master-badge {
+    background: rgba(245, 158, 11, .15);
+    border: 1px solid rgba(245, 158, 11, .4);
+    color: var(--ouro);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    align-self: flex-start;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── MAIN ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+    background: var(--bg);
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    flex-shrink: 0;
+    gap: 12px;
+  }
+
+  .tb-left { display: flex; flex-direction: column; gap: 2px; }
+  .tb-title { font-size: 13px; font-weight: 500; color: var(--text-1); }
+  .tb-sub { font-size: 10px; color: var(--text-3); }
+
+  .tb-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Seletor parlamentares — agora no topo direito */
+  .parl-switcher {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg);
+    border-radius: 20px;
+    padding: 4px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+  }
+  .parl-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-3);
+    transition: all .2s ease;
+    border: none;
+  }
+  .parl-btn:hover { color: var(--text-2); background: rgba(0,0,0,0.03); }
+  .parl-btn.on {
+    background: var(--verde-deep);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,33,71,0.2);
+  }
+  .parl-btn.on-lp { background: var(--verde-deep); }
+  .parl-btn.on-ap { background: #1e3a3a; }
+  .parl-btn.on-mp { background: #3a1e3a; }
+
+  .parl-av {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .av-todos { background: var(--border); color: var(--text-2); font-size: 9px; }
+  .av-lp { background: var(--verde-pale); color: var(--verde-main); }
+  .av-ap { background: #d8e4e8; color: #1e3a3a; }
+  .av-mp { background: #e8d8e8; color: #3a1e3a; }
+  .parl-btn.on .parl-av { opacity: .9; }
+
+  .tb-divider { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
+
+  .tb-icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: var(--bg-card);
+    color: var(--text-2);
+    position: relative;
+    transition: all .12s;
+  }
+  .tb-icon-btn:hover { background: var(--bg); border-color: var(--border-mid); }
+  .tb-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--amber);
+    border: 1.5px solid var(--bg-card);
+  }
+
+  .tb-config-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-2);
+    cursor: pointer;
+    background: var(--bg-card);
+    transition: all .12s;
+  }
+  .tb-config-btn:hover { background: var(--bg); }
+
+  /* ── SCROLL AREA ── */
+  .scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* ── KPIs ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .kpi {
+    background: var(--bg-card);
+    border: none;
+    border-radius: 16px;
+    padding: 16px 20px;
+    position: relative;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    transition: all .2s ease;
+  }
+  .kpi:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
+  .kpi-pencil {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 9px;
+    color: var(--text-3);
+    opacity: 0;
+    transition: opacity .12s;
+  }
+  .kpi:hover .kpi-pencil { opacity: 1; }
+  .kpi-val { font-size: 28px; font-weight: 700; color: var(--verde-deep); line-height: 1; letter-spacing: -.03em; }
+  .kpi-lbl { font-size: 11px; font-weight: 600; color: var(--text-3); margin-top: 8px; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi-delta { font-size: 10px; margin-top: 6px; font-weight: 600; }
+  .up { color: var(--verde-mid); } .warn { color: var(--amber); } .red { color: var(--red); } .neu { color: var(--text-3); }
+
+  /* ── ROW ── */
+  .row { display: flex; gap: 16px; min-width: 0; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--bg-card);
+    border: none;
+    border-radius: 16px;
+    padding: 20px;
+    min-width: 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  }
+  .card-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 9px;
+  }
+  .card-title {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--text-3);
+    letter-spacing: .07em;
+  }
+  .card-title-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-badge {
+    font-size: 8.5px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  .card-badge.live {
+    background: rgba(220,38,38,.1);
+    color: var(--red);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--red);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .card-link { font-size: 10px; color: var(--verde-mid); cursor: pointer; }
+  .card-link:hover { color: var(--verde-main); }
+
+  /* ── MAPA PLACEHOLDER ── */
+  .mapa-card {
+    background: var(--bg-card);
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  }
+  .mapa-header {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .mapa-body {
+    height: 320px;
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 50%, #94a3b8 100%);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mapa-mg {
+    opacity: .25;
+    width: 160px;
+    height: 140px;
+  }
+  .mapa-pins {
+    position: absolute;
+    inset: 0;
+  }
+  .pin {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  .pin.verde { background: var(--verde-main); }
+  .pin.amber { background: var(--amber); }
+  .pin.red { background: var(--red); }
+  .mapa-legend {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(255,255,255,.9);
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 8.5px;
+    color: var(--text-2);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .mapa-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(30,51,32,.04);
+  }
+  .mapa-tag {
+    background: rgba(255,255,255,.85);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 10px;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  /* ── BRIEFING CARDS ── */
+  .brief-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .bc {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: var(--verde-ghost);
+    transition: border-color .12s;
+  }
+  .bc:hover { border-color: var(--verde-light); }
+  .bc-tag { font-size: 8.5px; color: var(--text-3); letter-spacing: .05em; margin-bottom: 3px; font-weight: 500; }
+  .bc-title { font-size: 11px; font-weight: 600; color: var(--text-1); line-height: 1.3; margin-bottom: 2px; }
+  .bc-desc { font-size: 10px; color: var(--text-2); line-height: 1.4; }
+  .bc-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .prio-a { font-size: 8.5px; padding: 1px 5px; border-radius: 3px; background: #fef3c7; color: #92400e; font-weight: 600; }
+  .prio-m { font-size: 8.5px; padding: 1px 5px; border-radius: 3px; background: #dbeafe; color: #1e40af; font-weight: 600; }
+  .bc-copy { font-size: 9px; color: var(--verde-mid); cursor: pointer; }
+
+  /* ── NOTÍCIAS ── */
+  .news-item { padding: 5px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-start; }
+  .news-item:last-child { border-bottom: none; }
+  .news-src { font-size: 8.5px; color: var(--text-3); min-width: 46px; flex-shrink: 0; padding-top: 1px; font-family: 'DM Mono', monospace; }
+  .news-txt { font-size: 11px; color: var(--text-1); line-height: 1.35; flex: 1; }
+  .news-time { font-size: 8.5px; color: var(--text-3); flex-shrink: 0; padding-top: 1px; }
+
+  /* ── AGENDA ── */
+  .ag-item { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .ag-item:last-child { border-bottom: none; }
+  .ag-time { font-size: 9.5px; font-weight: 500; color: var(--text-2); min-width: 40px; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+  .ag-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; }
+  .ag-dot.v { background: var(--verde-mid); }
+  .ag-dot.r { background: var(--amber); }
+  .ag-dot.p { background: var(--text-3); }
+  .ag-title { font-size: 11px; font-weight: 500; color: var(--text-1); }
+  .ag-local { font-size: 9px; color: var(--text-3); }
+  .ag-m { font-size: 9px; color: var(--text-3); margin-left: auto; flex-shrink: 0; padding-top: 1px; }
+
+  /* ── ALERTAS ── */
+  .alert-item { display: flex; gap: 7px; padding: 5px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .alert-dot.r { background: var(--red); }
+  .alert-dot.y { background: var(--amber); }
+  .alert-txt { font-size: 11px; color: var(--text-1); line-height: 1.35; flex: 1; }
+  .alert-time { font-size: 8.5px; color: var(--text-3); flex-shrink: 0; padding-top: 1px; }
+
+  /* ── FERRAMENTAS IA ── */
+  .ferr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .ferr-item { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; cursor: pointer; transition: all .12s; }
+  .ferr-item:hover { background: var(--verde-ghost); border-color: var(--verde-light); }
+  .ferr-name { font-size: 11px; font-weight: 600; color: var(--text-1); margin-bottom: 2px; }
+  .ferr-desc { font-size: 10px; color: var(--text-2); line-height: 1.3; }
+  .ferr-status { display: flex; align-items: center; gap: 4px; margin-top: 5px; }
+  .ferr-dot { width: 5px; height: 5px; border-radius: 50%; background: #2d7a2d; }
+  .ferr-dot.off { background: var(--text-3); }
+  .ferr-st { font-size: 9px; color: var(--text-3); }
+
+  /* ── LABEL ROW ── */
+  .label-row { display: flex; align-items: center; justify-content: space-between; }
+  .label-txt { font-size: 9.5px; color: var(--text-3); letter-spacing: .05em; font-weight: 500; }
+  .label-action { font-size: 9.5px; color: var(--verde-mid); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sb">
+    <div class="sb-brand">
+      <div class="sb-brand-name">portela<span class="sb-brand-dot">.</span>app</div>
+      <div class="sb-brand-sub">INTELIGÊNCIA POLÍTICA</div>
+    </div>
+
+    <div class="sb-nav">
+      <div class="sb-sec">PAINEL</div>
+      <div class="sb-item on">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></svg>
+        <span class="sb-lbl">Visão geral</span>
+      </div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M2 12V4l6-2 6 2v8l-6 2-6-2z" stroke="currentColor" stroke-width="1.2"/><path d="M8 2v12" stroke="currentColor" stroke-width="1.2"/></svg>
+        <span class="sb-lbl">Briefing</span>
+      </div>
+
+      <div class="sb-sec">TERRITÓRIOS</div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M2 13L6 3l4 6 2-3 2 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="sb-lbl">Mapa político</span>
+      </div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M8 2C5.24 2 3 4.24 3 7c0 4.25 5 9 5 9s5-4.75 5-9c0-2.76-2.24-5-5-5z" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="7" r="1.5" fill="currentColor" opacity=".6"/></svg>
+        <span class="sb-lbl">Municípios</span>
+      </div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M8 8a3 3 0 100-6 3 3 0 000 6z" fill="currentColor" opacity=".5"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Lideranças</span>
+      </div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.2"/><circle cx="11" cy="5" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M1 13c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M11 8c1.66 0 3 1.34 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Apoiadores</span>
+      </div>
+
+      <div class="sb-sec">OPERAÇÃO</div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 6h14" stroke="currentColor" stroke-width="1.2"/><circle cx="4" cy="4.5" r=".7" fill="currentColor"/><circle cx="7" cy="4.5" r=".7" fill="currentColor"/></svg>
+        <span class="sb-lbl">Contatos</span>
+        <span class="sb-badge green">3 novos</span>
+      </div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 3V2M11 3V2M2 7h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Agenda</span>
+      </div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 8h6M5 5h6M5 11h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Demandas</span>
+        <span class="sb-badge red">7</span>
+      </div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M2 10V6l6-4 6 4v4l-6 4-6-4z" stroke="currentColor" stroke-width="1.2"/></svg>
+        <span class="sb-lbl">Assessores</span>
+      </div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h10M3 12h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M12 10.5V12l1 1" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Recursos</span>
+      </div>
+
+      <div class="sb-sec">FERRAMENTAS</div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" fill="currentColor" opacity=".5"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2M4.1 4.1l1.4 1.4M10.5 10.5l1.4 1.4M10.5 4.1l-1.4 1.4M5.5 10.5l-1.4 1.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="sb-lbl">Ferramentas IA</span>
+      </div>
+      <div class="sb-item">
+        <svg class="sb-ico" viewBox="0 0 16 16" fill="none"><path d="M13 7H3M13 7l-3-3M13 7l-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="sb-lbl">Envios</span>
+        <span class="sb-badge amber">2</span>
+      </div>
+    </div>
+
+    <!-- Ações Rápidas Accordion -->
+    <div class="sb-quick-actions">
+      <div class="sb-qa-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 2L3 9h4l-1 5 6-7H8l1-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          Ações Rápidas
+        </div>
+        <svg viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sb-qa-grid">
+        <div class="qa-btn red">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+          <span class="qa-lbl">Novo<br>Apoiador</span>
+        </div>
+        <div class="qa-btn teal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+          <span class="qa-lbl">Nova<br>Liderança</span>
+        </div>
+        <div class="qa-btn teal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span class="qa-lbl">Importar<br>CSV</span>
+        </div>
+        <div class="qa-btn teal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          <span class="qa-lbl">Gerar<br>PDF</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Profile New -->
+    <div class="sb-foot-new">
+      <div class="sb-user-row">
+        <div class="sb-av-new">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <div class="sb-user-info">
+          <div class="sb-user-title">Usuário</div>
+          <div class="sb-user-email">master@portela.app</div>
+        </div>
+        <div class="sb-user-exit">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </div>
+      </div>
+      <div class="sb-master-badge">MASTER ADMIN</div>
+    </div>
+  </div>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+
+    <!-- TOPBAR com seletor de parlamentar -->
+    <div class="topbar">
+      <div class="tb-left">
+        <div class="tb-title">Bom dia — quarta-feira, 14 de maio de 2026</div>
+        <div class="tb-sub">Lincoln Portela · briefing às 07h14 · 7 demandas urgentes · 2 envios pendentes</div>
+      </div>
+      <div class="tb-right">
+        <!-- Seletor de parlamentar no topo direito -->
+        <div class="parl-switcher">
+          <div class="parl-btn">
+            <div class="parl-av av-todos">☰</div>
+            Todos
+          </div>
+          <div class="parl-btn on on-lp">
+            <div class="parl-av av-lp">LP</div>
+            Lincoln
+          </div>
+          <div class="parl-btn">
+            <div class="parl-av av-ap">AP</div>
+            Alê
+          </div>
+          <div class="parl-btn">
+            <div class="parl-av av-mp">MP</div>
+            Marilda
+          </div>
+        </div>
+        <div class="tb-divider"></div>
+        <div class="tb-config-btn">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 10a2 2 0 100-4 2 2 0 000 4z" stroke="currentColor" stroke-width="1.3"/><path d="M13.3 8a5.6 5.6 0 00-.1-1l1.4-1.1-1.4-2.4-1.7.7a5.5 5.5 0 00-1.7-1l-.3-1.8H8.5l-.3 1.8a5.5 5.5 0 00-1.7 1l-1.7-.7L3.4 5.9 4.8 7a5.6 5.6 0 000 2L3.4 10l1.4 2.4 1.7-.7a5.5 5.5 0 001.7 1l.3 1.8h2.8l.3-1.8a5.5 5.5 0 001.7-1l1.7.7 1.4-2.4-1.4-1.1a5.6 5.6 0 00.1-1z" stroke="currentColor" stroke-width="1.3"/></svg>
+          configurar painel
+        </div>
+        <div class="tb-icon-btn">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 00-5 5v2l-1 2h12l-1-2V7a5 5 0 00-5-5z" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 13a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.2"/></svg>
+          <div class="tb-dot"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTEÚDO -->
+    <div class="scroll">
+
+      <!-- KPIs editáveis -->
+      <div class="label-row">
+        <span class="label-txt">MEUS INDICADORES · clique para editar</span>
+        <span class="label-action">+ adicionar widget</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi">
+          <span class="kpi-pencil">✎</span>
+          <div class="kpi-val">47</div>
+          <div class="kpi-lbl">contatos este mês</div>
+          <div class="kpi-delta up">meta: 50 · 94%</div>
+        </div>
+        <div class="kpi">
+          <span class="kpi-pencil">✎</span>
+          <div class="kpi-val">855</div>
+          <div class="kpi-lbl">municípios monitorados</div>
+          <div class="kpi-delta up">MG completo</div>
+        </div>
+        <div class="kpi">
+          <span class="kpi-pencil">✎</span>
+          <div class="kpi-val">42.3k</div>
+          <div class="kpi-lbl">votos Lincoln · 2022</div>
+          <div class="kpi-delta neu">atualizar 2026</div>
+        </div>
+        <div class="kpi">
+          <span class="kpi-pencil">✎</span>
+          <div class="kpi-val">7</div>
+          <div class="kpi-lbl">demandas urgentes hoje</div>
+          <div class="kpi-delta red">prazo vencendo</div>
+        </div>
+      </div>
+
+      <!-- Linha 1: Mapa + Briefing + Alertas -->
+      <div class="row">
+
+        <!-- Mapa político -->
+        <div class="mapa-card" style="flex:1.1;">
+          <div class="mapa-header">
+            <span class="card-title">MAPA POLÍTICO · MG</span>
+            <span class="card-link">expandir →</span>
+          </div>
+          <div class="mapa-body" id="map" style="height: 320px; z-index: 1;">
+          </div>
+        </div>
+
+        <!-- Briefing do dia -->
+        <div class="card" style="flex:1.6;">
+          <div class="card-hd">
+            <div class="card-title-badge">
+              <span class="card-title">BRIEFING DO DIA · LINCOLN PORTELA</span>
+            </div>
+            <span class="card-link">ver completo →</span>
+          </div>
+          <div class="brief-grid">
+            <div class="bc">
+              <div class="bc-tag">CÂMARA FEDERAL</div>
+              <div class="bc-title">Votação do PL de infraestrutura</div>
+              <div class="bc-desc">Pauta confirmada. Posição do mandato pendente.</div>
+              <div class="bc-foot"><span class="prio-a">alta</span><span class="bc-copy">copiar →</span></div>
+            </div>
+            <div class="bc">
+              <div class="bc-tag">AGENDA · MG</div>
+              <div class="bc-title">Visita a Montes Claros</div>
+              <div class="bc-desc">Reunião com prefeito. Pauta: saúde e pavimentação.</div>
+              <div class="bc-foot"><span class="prio-m">média</span><span class="bc-copy">copiar →</span></div>
+            </div>
+            <div class="bc">
+              <div class="bc-tag">MÍDIA</div>
+              <div class="bc-title">Repercussão no Hoje em Dia</div>
+              <div class="bc-desc">Entrevista sobre habitação gerou engajamento positivo.</div>
+              <div class="bc-foot"><span class="prio-m">média</span><span class="bc-copy">copiar →</span></div>
+            </div>
+            <div class="bc">
+              <div class="bc-tag">AÇÃO RECOMENDADA</div>
+              <div class="bc-title">Publicar nota sobre pavimentação</div>
+              <div class="bc-desc">Texto sugerido pronto. Revisar antes de publicar.</div>
+              <div class="bc-foot"><span class="prio-a">alta</span><span class="bc-copy">copiar →</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Agenda da semana -->
+        <div class="card" style="flex:.9;">
+          <div class="card-hd">
+            <span class="card-title">AGENDA DA SEMANA</span>
+            <span class="card-link">abrir →</span>
+          </div>
+          <div class="ag-item">
+            <div class="ag-time">hoje 14h</div>
+            <div class="ag-dot v"></div>
+            <div><div class="ag-title">Reunião ALMG</div><div class="ag-local">Belo Horizonte</div></div>
+            <div class="ag-m">Lincoln</div>
+          </div>
+          <div class="ag-item">
+            <div class="ag-time">qui 09h</div>
+            <div class="ag-dot r"></div>
+            <div><div class="ag-title">Visita Montes Claros</div><div class="ag-local">Norte MG</div></div>
+            <div class="ag-m">Lincoln</div>
+          </div>
+          <div class="ag-item">
+            <div class="ag-time">qui 14h</div>
+            <div class="ag-dot v"></div>
+            <div><div class="ag-title">Plenário ALMG</div><div class="ag-local">BH</div></div>
+            <div class="ag-m">Alê</div>
+          </div>
+          <div class="ag-item">
+            <div class="ag-time">sex 10h</div>
+            <div class="ag-dot v"></div>
+            <div><div class="ag-title">Plenário Câmara</div><div class="ag-local">Brasília</div></div>
+            <div class="ag-m">Lincoln</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Linha 2: Notícias + Agenda + Ferramentas IA -->
+      <div class="row">
+
+        <!-- Notícias tempo real -->
+        <div class="card" style="flex:1.1;">
+          <div class="card-hd">
+            <div class="card-title-badge">
+              <span class="card-title">NOTÍCIAS · TEMPO REAL</span>
+              <span class="card-badge live"><div class="live-dot"></div>Grok</span>
+            </div>
+            <span class="card-link">ver mais →</span>
+          </div>
+          <div class="news-item">
+            <div class="news-src">G1 MG</div>
+            <div class="news-txt">ALMG aprova projeto de saneamento para o Norte de MG</div>
+            <div class="news-time">14min</div>
+          </div>
+          <div class="news-item">
+            <div class="news-src">Câmara</div>
+            <div class="news-txt">Bancada mineira articula apoio a emenda de infraestrutura rural</div>
+            <div class="news-time">1h</div>
+          </div>
+          <div class="news-item">
+            <div class="news-src">Hoje em Dia</div>
+            <div class="news-txt">Lincoln Portela defende ampliação de creches no Noroeste</div>
+            <div class="news-time">2h</div>
+          </div>
+          <div class="news-item">
+            <div class="news-src">Folha BH</div>
+            <div class="news-txt">Marilda propõe revisão do plano diretor de BH para 2026</div>
+            <div class="news-time">3h</div>
+          </div>
+        </div>
+
+        <!-- Feed RSS -->
+        <div class="card" style="flex:.9;">
+          <div class="card-hd">
+            <span class="card-title">FEED RSS</span>
+            <span class="card-link">todos →</span>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot y"></div>
+            <div class="alert-txt">Sessão plenária amanhã — votação sensível</div>
+            <div class="alert-time">agora</div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot r"></div>
+            <div class="alert-txt">Assessor sem acesso ao briefing há 2 dias</div>
+            <div class="alert-time">1h</div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot y"></div>
+            <div class="alert-txt">7 demandas com prazo vencendo hoje</div>
+            <div class="alert-time">3h</div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot r"></div>
+            <div class="alert-txt">Nota crítica publicada por veículo regional</div>
+            <div class="alert-time">5h</div>
+          </div>
+        </div>
+
+        <!-- Ferramentas IA -->
+        <div class="card" style="flex:1;">
+          <div class="card-hd">
+            <span class="card-title">FERRAMENTAS IA</span>
+            <span class="card-link">usar no campo →</span>
+          </div>
+          <div class="ferr-grid">
+            <div class="ferr-item">
+              <div class="ferr-name">Claude</div>
+              <div class="ferr-desc">Análise, redação e consultas políticas</div>
+              <div class="ferr-status"><div class="ferr-dot"></div><span class="ferr-st">ativo</span></div>
+            </div>
+            <div class="ferr-item">
+              <div class="ferr-name">Grok</div>
+              <div class="ferr-desc">Notícias e tendências em tempo real</div>
+              <div class="ferr-status"><div class="ferr-dot"></div><span class="ferr-st">ativo</span></div>
+            </div>
+            <div class="ferr-item">
+              <div class="ferr-name">Gemini</div>
+              <div class="ferr-desc">Especialistas por mandato</div>
+              <div class="ferr-status"><div class="ferr-dot"></div><span class="ferr-st">ativo</span></div>
+            </div>
+            <div class="ferr-item">
+              <div class="ferr-name">Meu painel</div>
+              <div class="ferr-desc">Igrejas · Norte MG</div>
+              <div class="ferr-status"><div class="ferr-dot"></div><span class="ferr-st">18 cadastros</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts Leaflet e Inicialização -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // Inicialização do Mapa Leaflet focado em Minas Gerais
+  var map = L.map('map', {
+    zoomControl: false,
+    attributionControl: false
+  }).setView([-18.5122, -44.5550], 5);
+
+  // Layer CartoDB Positron (claro) para estética corporativa limpa
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+  }).addTo(map);
+
+  // O polígono real de Minas Gerais (extraído do hub.portela.app)
+  var mgCoords = [
+    [-18.3561, -47.6797], [-18.4183, -47.7695], [-18.4402, -47.8605], [-18.4491, -47.8646], [-18.5, -47.9546], [-18.4361, -48.027], [-18.346, -48.2272], [-18.3294, -48.2718], [-18.3708, -48.3418], [-18.3428, -48.6538], [-18.3532, -48.7872], [-18.3059, -48.9177], [-18.3235, -48.9595], [-18.4026, -49.0538], [-18.4141, -49.2058], [-18.5228, -49.2493], [-18.5639, -49.2927], [-18.6348, -49.3734], [-18.5323, -49.4862], [-18.5396, -49.5476], [-18.6094, -49.723], [-18.6097, -49.7577], [-18.6438, -49.7946], [-18.6015, -50.0288], [-18.6719, -50.0798], [-18.6842, -50.27], [-18.7603, -50.3523], [-18.9214, -50.4732], [-19.0989, -50.5352], [-19.1348, -50.6457], [-19.187, -50.7331], [-19.2132, -50.7404], [-19.3108, -50.828], [-19.4228, -50.8754], [-19.4733, -50.8256], [-19.4675, -50.935], [-19.5903, -50.9306], [-19.6918, -51.0382], [-19.7907, -51.0335], [-20.0854, -51.0005], [-19.9904, -50.886], [-19.9676, -50.8441], [-19.9162, -50.6864], [-19.861, -50.6142], [-19.8136, -50.562], [-19.7862, -50.4541], [-19.8695, -50.3374], [-19.8755, -50.1718], [-19.8743, -50.1062], [-19.9164, -50.0441], [-19.9372, -49.9062], [-19.9247, -49.7494], [-19.92, -49.6132], [-19.9781, -49.4538], [-19.9693, -49.2501], [-20.1169, -49.3059], [-20.2297, -49.2652], [-20.2588, -49.2597], [-20.3147, -49.1836], [-20.2705, -49.1207], [-20.1535, -49.0659], [-20.1708, -48.986], [-20.4031, -48.963], [-20.4369, -48.8865], [-20.3989, -48.8671], [-20.2753, -48.8871], [-20.1615, -48.8221], [-20.1503, -48.7296], [-20.167, -48.6469], [-20.1336, -48.5374], [-20.1259, -48.4516], [-20.1279, -48.2186], [-20.0455, -48.2034], [-20.1484, -48.0768], [-20.0364, -47.9812], [-20.1257, -47.8994], [-20.0762, -47.8698], [-19.9898, -47.8509], [-19.986, -47.7626], [-20.0472, -47.6397], [-19.9938, -47.5492], [-19.9693, -47.4896], [-20.1153, -47.3292], [-20.2192, -47.2311], [-20.2275, -47.2326], [-20.2916, -47.2767], [-20.4187, -47.2935], [-20.4911, -47.2235], [-20.5408, -47.1442], [-20.5611, -47.1377], [-20.5656, -47.1428], [-20.682, -47.101], [-20.7314, -47.1862], [-20.8555, -47.2269], [-20.8565, -47.2274], [-20.9538, -47.1813], [-21.0355, -47.1479], [-21.1532, -47.1176], [-21.1859, -47.1185], [-21.2674, -47.0442], [-21.3573, -46.9967], [-21.4223, -47.0115], [-21.4072, -46.8846], [-21.3707, -46.7815], [-21.3601, -46.7647], [-21.3796, -46.6476], [-21.4303, -46.6161], [-21.4891, -46.5089], [-21.5654, -46.5118], [-21.6534, -46.5547], [-21.6765, -46.6145], [-21.7686, -46.6307], [-21.8376, -46.6907], [-21.995, -46.6179], [-22.0095, -46.6499], [-22.0833, -46.7195], [-22.1364, -46.5985], [-22.1806, -46.6456], [-22.1783, -46.6718], [-22.2165, -46.6803], [-22.3066, -46.7233], [-22.366, -46.6609], [-22.4386, -46.6163], [-22.4695, -46.5499], [-22.5217, -46.4565], [-22.5994, -46.4243], [-22.663, -46.3931], [-22.705, -46.4731], [-22.7661, -46.3326], [-22.8202, -46.3745], [-22.9052, -46.3449], [-22.8652, -46.1922], [-22.897, -46.0507], [-22.8498, -45.9565], [-22.8715, -45.871], [-22.836, -45.768], [-22.7698, -45.7122], [-22.7373, -45.8051], [-22.6517, -45.694], [-22.6187, -45.73], [-22.5733, -45.6787], [-22.6512, -45.6662], [-22.6017, -45.5765], [-22.6529, -45.5804], [-22.5905, -45.4804], [-22.6212, -45.4204], [-22.6537, -45.4], [-22.6114, -45.2691], [-22.5307, -45.1668], [-22.4972, -45.1244], [-22.4899, -45.1028], [-22.4752, -44.9659], [-22.4278, -44.8439], [-22.4056, -44.8094], [-22.4043, -44.8094], [-22.3937, -44.8035], [-22.3727, -44.6659], [-22.3805, -44.6619], [-22.3323, -44.5437], [-22.2576, -44.4571], [-22.254, -44.3596], [-22.268, -44.2599], [-22.2404, -44.1892], [-22.2285, -44.1794], [-22.1464, -43.9771], [-22.0632, -43.7644], [-22.0758, -43.7089], [-22.0861, -43.6684], [-22.0558, -43.5914], [-22.06, -43.437], [-22.0038, -43.3467], [-22.0078, -43.3266], [-22.0288, -43.2277], [-22.0292, -43.1312], [-22.035, -43.1306], [-22.1044, -43.1423], [-22.0328, -43.0022], [-21.9907, -42.9096], [-21.8733, -42.6653], [-21.8464, -42.606], [-21.7862, -42.4632], [-21.7848, -42.4597], [-21.7484, -42.3777], [-21.7145, -42.2666], [-21.5917, -42.3527], [-21.5827, -42.346], [-21.487, -42.2546], [-21.4275, -42.2754], [-21.3429, -42.2356], [-21.3378, -42.2242], [-21.2212, -42.2026], [-21.1603, -42.1953], [-21.1318, -42.1745], [-21.0748, -42.1185], [-21.0302, -42.0801], [-21.023, -42.0848], [-20.974, -42.1509], [-20.9355, -41.9759], [-20.8436, -41.9297], [-20.794, -41.9282], [-20.7659, -41.8747], [-20.6912, -41.8507], [-20.4833, -41.8254], [-20.477, -41.7995], [-20.4222, -41.8034], [-20.4091, -41.8366], [-20.3729, -41.8595], [-20.3109, -41.8221], [-20.2601, -41.775], [-20.2069, -41.7568], [-20.207, -41.666], [-20.2074, -41.4156], [-20.2061, -41.4119], [-19.9376, -41.2979], [-19.9422, -41.2714], [-19.8915, -41.187], [-19.7672, -41.1746], [-19.6722, -41.1685], [-19.5053, -40.9722], [-19.4236, -40.9664], [-19.2512, -40.9323], [-19.2227, -40.9354], [-19.1221, -40.9643], [-19.0565, -41.0608], [-18.9448, -41.065], [-18.8906, -41.1371], [-18.8538, -41.2432], [-18.7973, -41.2324], [-18.798, -41.1468], [-18.8372, -41.0254], [-18.8155, -40.9168], [-18.6907, -40.9415], [-18.6342, -41.0509], [-18.5276, -41.0258], [-18.5276, -41.0258], [-18.4573, -41.023], [-18.4396, -41.1818], [-18.4053, -41.1442], [-18.3082, -41.1589], [-18.1651, -41.0519], [-18.1076, -40.7733], [-17.9862, -40.9024], [-17.9569, -40.7985], [-18.0127, -40.662], [-17.8919, -40.527], [-17.9229, -40.3684], [-17.9804, -40.2224], [-17.8949, -40.2119], [-17.7343, -40.2237], [-17.7349, -40.2402], [-17.6156, -40.3441], [-17.6101, -40.4145], [-17.4885, -40.483], [-17.4474, -40.5195], [-17.3562, -40.6047], [-17.2837, -40.5478], [-17.1496, -40.5787], [-16.8874, -40.4923], [-16.8874, -40.4336], [-16.8987, -40.4077], [-16.8902, -40.4013], [-16.9012, -40.2816], [-16.6968, -40.307], [-16.6786, -40.3132], [-16.5734, -40.2755], [-16.5795, -40.1579], [-16.4493, -40.1102], [-16.3478, -40.0172], [-16.2843, -39.9178], [-16.1138, -39.8568], [-16.0, -39.9148], [-16.0018, -40.0044], [-15.9071, -40.1275], [-15.8035, -40.2357], [-15.8057, -40.425], [-15.7616, -40.45], [-15.7976, -40.5198], [-15.7289, -40.6449], [-15.6673, -40.7006], [-15.7141, -40.7677], [-15.6476, -40.8168], [-15.772, -41.1425], [-15.7433, -41.3302], [-15.6386, -41.3422], [-15.495, -41.3619], [-15.493, -41.3643], [-15.4103, -41.4561], [-15.138, -41.7599], [-15.1003, -41.8023], [-15.1014, -41.8103], [-15.1757, -41.9534], [-15.1707, -42.0485], [-15.086, -42.1733], [-15.125, -42.2656], [-15.1137, -42.2776], [-15.0142, -42.479], [-14.9829, -42.5157], [-14.9397, -42.6187], [-14.7647, -42.8721], [-14.708, -42.9389], [-14.6511, -43.175], [-14.6697, -43.3112], [-14.7903, -43.487], [-14.8155, -43.5308], [-14.8154, -43.531], [-14.7153, -43.7122], [-14.6525, -43.8835], [-14.5624, -43.8812], [-14.3877, -43.8184], [-14.3392, -43.7832], [-14.274, -43.9696], [-14.2838, -44.0457], [-14.2532, -44.296], [-14.2816, -44.4118], [-14.337, -44.5572], [-14.4671, -44.7414], [-14.4998, -44.8332], [-14.5992, -44.877], [-14.6805, -45.0403], [-14.753, -45.0958], [-14.7447, -45.2056], [-14.8337, -45.3057], [-15.0141, -45.6169], [-15.1204, -45.7398], [-15.1539, -45.9717], [-15.2647, -46.0771], [-14.9656, -45.9661], [-14.8747, -46.0376], [-14.8753, -46.0394], [-14.9494, -46.1768], [-14.9004, -46.3193], [-14.8146, -46.3222], [-14.7041, -46.5034], [-14.815, -46.5605], [-15.0509, -46.5027], [-15.0564, -46.5261], [-15.0895, -46.6254], [-15.0103, -46.8569], [-15.0575, -46.9251], [-15.205, -46.9373], [-15.2854, -46.8737], [-15.3732, -46.8495], [-15.4431, -46.9305], [-15.5633, -46.9461], [-15.6101, -46.8826], [-15.8706, -46.8062], [-15.9166, -46.9525], [-15.9274, -47.1366], [-16.0363, -47.31], [-16.05, -47.3085], [-16.2091, -47.3226], [-16.4646, -47.4544], [-16.5744, -47.4127], [-16.6258, -47.2955], [-16.7205, -47.2257], [-16.8747, -47.2084], [-16.9787, -47.1274], [-17.064, -47.1821], [-17.1665, -47.352], [-17.3487, -47.4886], [-17.3261, -47.5108], [-17.4119, -47.5246], [-17.4571, -47.5366], [-17.534, -47.4669], [-17.5434, -47.3131], [-17.6114, -47.2648], [-17.8313, -47.3712], [-18.0408, -47.2834], [-18.1419, -47.4079], [-18.1652, -47.4298], [-18.2462, -47.607], [-18.3157, -47.6102], [-18.3561, -47.6797]
+  ];
+
+  // Máscara invertida: Um grande quadrado ao redor do mundo, e a silhueta de MG recortada
+  var maskCoords = [
+    [[-90, -180], [90, -180], [90, 180], [-90, 180], [-90, -180]], // Mundo
+    mgCoords // Buraco
+  ];
+
+  // Adiciona o polígono da máscara para escurecer o resto e focar em MG
+  L.polygon(maskCoords, {
+    color: 'transparent',
+    fillColor: '#002147',
+    fillOpacity: 0.15,
+    weight: 0
+  }).addTo(map);
+
+  // Adiciona a borda exata de Minas Gerais
+  L.polyline(mgCoords, {
+    color: '#008B8B',
+    weight: 2,
+    opacity: 0.7
+  }).addTo(map);
+
+  // Adicionando alguns pins reais de exemplo sobre o mapa Leaflet (semelhante ao HTML antigo)
+  var greenIcon = L.divIcon({className: 'pin verde', iconSize: [10,10]});
+  var amberIcon = L.divIcon({className: 'pin amber', iconSize: [10,10]});
+  var redIcon = L.divIcon({className: 'pin red', iconSize: [10,10]});
+
+  L.marker([-19.9167, -43.9345], {icon: greenIcon}).addTo(map); // BH
+  L.marker([-18.8514, -41.9461], {icon: greenIcon}).addTo(map); // Valadares
+  L.marker([-16.735, -43.8617], {icon: amberIcon}).addTo(map); // Montes Claros
+  L.marker([-21.2485, -45.0013], {icon: verdeIcon = L.divIcon({className: 'pin verde', iconSize: [10,10]})}).addTo(map); // Lavras
+  L.marker([-19.4678, -42.5367], {icon: redIcon}).addTo(map); // Ipatinga
+  L.marker([-21.7664, -43.3444], {icon: greenIcon}).addTo(map); // JF
+
+</script>
+</body>
+</html>
