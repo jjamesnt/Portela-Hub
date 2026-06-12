@@ -768,7 +768,7 @@ const DashboardPage: React.FC<DashboardProps> = ({ navigateTo }) => {
         <div className="p-4 md:p-8 space-y-6 md:space-y-8 pb-24 md:pb-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4">
                 <div className="min-w-0">
-                    <h2 className="text-xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white truncate">Dashboard Geral</h2>
+                    <h2 className="text-xl md:text-3xl font-black tracking-tight text-navy-dark dark:text-white truncate">Dashboard Geral.</h2>
                     <p className="text-slate-500 dark:text-slate-400 text-[10px] md:text-base">Visão estratégica e indicadores.</p>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] md:text-sm text-slate-500 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm w-fit">
