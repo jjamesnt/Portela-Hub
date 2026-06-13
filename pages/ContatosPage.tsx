@@ -3,6 +3,7 @@ import { AppContext } from '../context/AppContext';
 import { getLiderancas, getAssessores, getApoiadores } from '../services/api';
 import { Lideranca, Assessor, Apoiador } from '../types';
 import Loader from '../components/Loader';
+import ContatoModal from '../components/ContatoModal';
 
 interface UnifiedContact {
     id: string;
@@ -25,6 +26,7 @@ const ContatosPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<string>('Todos');
     const [currentPage, setCurrentPage] = useState(1);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const itemsPerPage = 50;
     
     const [contatos, setContatos] = useState<UnifiedContact[]>([]);
@@ -160,12 +162,22 @@ const ContatosPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
                     <p className="text-sm text-slate-500 font-medium mt-1">Gestão unificada de lideranças, assessores e base política.</p>
                 </div>
                 <button 
+                    onClick={() => setIsModalOpen(true)}
                     className="bg-turquoise text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm shadow-turquoise/30 hover:bg-turquoise-dark transition-all flex items-center gap-2"
                 >
                     <span className="material-symbols-outlined text-[18px]">person_add</span>
                     Novo Contato
                 </button>
             </div>
+
+            <ContatoModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={() => {
+                    // Force refresh
+                    window.location.reload();
+                }}
+            />
 
             {/* Filters Area */}
             <div className="flex flex-col md:flex-row gap-4">
