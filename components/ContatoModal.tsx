@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AppContext } from '../context/AppContext';
 import { upsertLideranca, upsertAssessor, upsertApoiador, getMunicipiosSimples } from '../services/api';
 import { MunicipioDetalhado } from '../types';
 import ImageUpload from './ImageUpload';
@@ -10,6 +11,10 @@ interface ContatoModalProps {
 }
 
 const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess }) => {
+    const context = useContext(AppContext);
+    const role = context?.profile?.role || '';
+    const canCreateAll = role === 'Master' || role === 'Coordenador';
+
     const [tipo, setTipo] = useState<'Liderança' | 'Assessor' | 'Apoiador'>('Liderança');
     const [formData, setFormData] = useState<any>({
         nome: '',
@@ -128,7 +133,7 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                     <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl flex flex-col gap-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de Contato</label>
                         <div className="flex gap-2 mt-1">
-                            {['Liderança', 'Assessor', 'Apoiador'].map((t) => (
+                            {['Liderança', ...(canCreateAll ? ['Assessor', 'Apoiador'] : [])].map((t) => (
                                 <button
                                     key={t}
                                     onClick={() => setTipo(t as any)}
