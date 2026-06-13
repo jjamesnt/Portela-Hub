@@ -46,6 +46,8 @@ jobs:
               npm run build
             fi
             
+            chmod -R 755 dist || true
+            
             # Se for backend/PM2, reiniciar o serviço. Se for apenas Nginx servindo estático, o build basta.
             # pm2 restart portela-hub
             echo "Deploy concluído com sucesso na branch $BRANCH!"
