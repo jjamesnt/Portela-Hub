@@ -66,9 +66,9 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
         if (val.length > 5) val = val.substring(0, 5) + '-' + val.substring(5, 8);
         setFormData((prev: any) => ({ ...prev, cep: val }));
 
-        if (val.length === 8) {
+        if (val.length === 9) {
             try {
-                const res = await fetch(`https://viacep.com.br/ws/${val}/json/`);
+                const res = await fetch(`https://viacep.com.br/ws/${val.replace('-', '')}/json/`);
                 const data = await res.json();
                 if (!data.erro) {
                     const enderecoBase = `${data.logradouro}, Nº , ${data.bairro}, ${data.localidade} - ${data.uf}`;
