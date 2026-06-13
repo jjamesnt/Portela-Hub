@@ -31,7 +31,7 @@ jobs:
             fi
             
             cd $TARGET_DIR
-            git remote set-url origin https://github.com/$GITHUB_REPOSITORY.git
+            git remote set-url origin https://github.com/jjamesnt/Portela-Hub.git
             git fetch origin
             git checkout -B $BRANCH origin/$BRANCH || git checkout -b $BRANCH
             git pull origin $BRANCH || git pull origin main
