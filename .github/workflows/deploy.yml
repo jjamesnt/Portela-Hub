@@ -37,7 +37,11 @@ jobs:
             npm install
             
             # Fazer o build de produção (para Vite/React)
-            npm run build
+            if [ "$BRANCH" = "integracao" ]; then
+              npm run build -- --base=/integracao/
+            else
+              npm run build
+            fi
             
             # Se for backend/PM2, reiniciar o serviço. Se for apenas Nginx servindo estático, o build basta.
             # pm2 restart portela-hub
