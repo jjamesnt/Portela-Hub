@@ -41,6 +41,10 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
     
     const [isSaving, setIsSaving] = useState(false);
     const [municipios, setMunicipios] = useState<MunicipioDetalhado[]>([]);
+    
+    // UX enhancements
+    const [cepSuccess, setCepSuccess] = useState(false);
+    const numeroRef = React.useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -101,6 +105,10 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                             }));
                         }
                     }
+
+                    setCepSuccess(true);
+                    setTimeout(() => setCepSuccess(false), 1000);
+                    setTimeout(() => numeroRef.current?.focus(), 100);
                 }
             } catch (err) {
                 console.error("Erro ao buscar CEP", err);
@@ -240,7 +248,12 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CEP</label>
+                            <div className="flex items-center gap-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CEP</label>
+                                <span className="text-[9px] text-turquoise font-bold flex items-center bg-turquoise/10 px-1.5 py-0.5 rounded ml-1">
+                                    <span className="material-symbols-outlined text-[10px] mr-0.5">auto_awesome</span> Automático
+                                </span>
+                            </div>
                             <input 
                                 type="text"
                                 value={formData.cep || ''}
@@ -255,9 +268,9 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                             <input 
                                 type="text"
                                 value={formData.logradouro || ''}
-                                onChange={e => setFormData((prev: any) => ({ ...prev, logradouro: e.target.value }))}
-                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise outline-none transition-all"
-                                placeholder="Ex: Av. Afonso Pena"
+                                readOnly
+                                className={`w-full mt-1 p-2.5 rounded-xl text-sm font-bold border transition-all cursor-not-allowed ${cepSuccess ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-100/70 border-slate-200/50 text-slate-500 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-400'}`}
+                                placeholder="Preenchido pelo CEP"
                             />
                         </div>
                     </div>
@@ -266,6 +279,7 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Número</label>
                             <input 
+                                ref={numeroRef}
                                 type="text"
                                 value={formData.numero || ''}
                                 onChange={e => setFormData((prev: any) => ({ ...prev, numero: e.target.value }))}
@@ -288,9 +302,9 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                             <input 
                                 type="text"
                                 value={formData.bairro || ''}
-                                onChange={e => setFormData((prev: any) => ({ ...prev, bairro: e.target.value }))}
-                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise outline-none transition-all"
-                                placeholder="Centro"
+                                readOnly
+                                className={`w-full mt-1 p-2.5 rounded-xl text-sm font-bold border transition-all cursor-not-allowed ${cepSuccess ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-100/70 border-slate-200/50 text-slate-500 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-400'}`}
+                                placeholder="Preenchido pelo CEP"
                             />
                         </div>
                     </div>
@@ -322,8 +336,9 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                                     <input 
                                         type="text"
                                         value={formData.municipio_nome || ''}
-                                        onChange={e => setFormData((prev: any) => ({ ...prev, municipio_nome: e.target.value }))}
-                                        className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold"
+                                        readOnly
+                                        className={`w-full mt-1 p-2.5 rounded-xl text-sm font-bold border transition-all cursor-not-allowed ${cepSuccess ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-100/70 border-slate-200/50 text-slate-500 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-400'}`}
+                                        placeholder="Preenchido pelo CEP"
                                     />
                                 </div>
                                 <div>
@@ -331,8 +346,9 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                                     <input 
                                         type="text"
                                         value={formData.regiao || ''}
-                                        onChange={e => setFormData((prev: any) => ({ ...prev, regiao: e.target.value }))}
-                                        className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold"
+                                        readOnly
+                                        className={`w-full mt-1 p-2.5 rounded-xl text-sm font-bold border transition-all cursor-not-allowed ${cepSuccess ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-100/70 border-slate-200/50 text-slate-500 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-400'}`}
+                                        placeholder="Preenchida pelo CEP"
                                     />
                                 </div>
                                 <div>
@@ -353,9 +369,9 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                                 <input 
                                     type="text"
                                     value={formData.regiaoAtuacao || ''}
-                                    onChange={e => setFormData((prev: any) => ({ ...prev, regiaoAtuacao: e.target.value }))}
-                                    className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold"
-                                    placeholder="Ex: Zona da Mata, Triângulo..."
+                                    readOnly
+                                    className={`w-full mt-1 p-2.5 rounded-xl text-sm font-bold border transition-all cursor-not-allowed ${cepSuccess ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-100/70 border-slate-200/50 text-slate-500 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-400'}`}
+                                    placeholder="Preenchida pelo CEP"
                                 />
                             </div>
                         )}
@@ -366,7 +382,7 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                                 <select 
                                     value={formData.municipioId || ''}
                                     onChange={e => setFormData((prev: any) => ({ ...prev, municipioId: e.target.value }))}
-                                    className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold"
+                                    className={`w-full mt-1 p-2.5 rounded-xl text-sm font-bold border transition-all ${cepSuccess ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-50 dark:bg-slate-900 border-slate-200'}`}
                                 >
                                     <option value="">Selecione um município...</option>
                                     {municipios.sort((a,b)=>a.nome.localeCompare(b.nome)).map(m => (
