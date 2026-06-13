@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
+import ImportCsvModal from './ImportCsvModal';
 
 interface SidebarProps {
     activePage: string;
@@ -25,6 +26,7 @@ export const navItems = [
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
     const { profile, signOut } = useAppContext();
+    const [isImportModalOpen, setImportModalOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const isActive = (itemLabel: string) => {
@@ -112,7 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
                             <span className="qa-lbl">Nova<br/>Liderança</span>
                         </div>
-                        <div className="qa-btn teal">
+                        <div className="qa-btn teal" onClick={() => setImportModalOpen(true)}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                             <span className="qa-lbl">Importar<br/>CSV</span>
                         </div>
@@ -142,6 +144,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                     </div>
                 </div>
             </div>
+            
+            <ImportCsvModal isOpen={isImportModalOpen} onClose={() => setImportModalOpen(false)} />
         </>
     );
 };

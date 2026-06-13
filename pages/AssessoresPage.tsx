@@ -6,6 +6,7 @@ import ImageUpload from '../components/ImageUpload';
 import { getAssessores, upsertAssessor, deleteAssessor } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import ErrorModal from '../components/ErrorModal';
+import RestrictedAccessModal from '../components/RestrictedAccessModal';
 
 interface AssessoresPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
@@ -21,6 +22,12 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [formErrors, setFormErrors] = useState<string[]>([]);
     const [errorDetails, setErrorDetails] = useState<{ title: string; message: string; tech?: string } | null>(null);
+    const [cepSuccess, setCepSuccess] = useState(false);
+    const [isRestrictedModalOpen, setRestrictedModalOpen] = useState(false);
+
+    const { profile, selectedMandato } = useAppContext();
+    const role = (profile?.role || 'user').toLowerCase();
+    const isCommonUser = role === 'user' || role === 'comum' || role === '';
 
     // Refs para Foco em Erros
     const nomeRef = React.useRef<HTMLInputElement>(null);
@@ -33,6 +40,7 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
     const bairroRef = React.useRef<HTMLInputElement>(null);
     const cidadeRef = React.useRef<HTMLInputElement>(null);
     const ufRef = React.useRef<HTMLInputElement>(null);
+    const numeroRef = React.useRef<HTMLInputElement>(null);
 
     // Filtros
     const [busca, setBusca] = useState('');
@@ -78,8 +86,6 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
         };
     }, []);
 
-    const { selectedMandato } = useAppContext();
-
     // Extrair Regiões e Cargos Únicos
     const regioes = useMemo(() => Array.from(new Set(assessores.map(a => a.regiaoAtuacao))).sort(), [assessores]);
     const cargos = useMemo(() => Array.from(new Set(assessores.map(a => a.cargo))).sort(), [assessores]);
@@ -95,12 +101,7 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
         });
     }, [assessores, busca, filtroRegiao, filtroCargo, selectedMandato]);
 
-    const handleImageUpdate = (id: string, newImage: string) => {
-        setAssessores(prev => prev.map(a => a.id === id ? { ...a, avatarUrl: newImage } : a));
-    };
-
     const handleSaveAssessor = async () => {
-        // Validação de Campos Obrigatórios
         const errors = [];
         if (!editingAssessor.nome?.trim()) errors.push("nome");
         if (!editingAssessor.cargo) errors.push("cargo");
@@ -173,25 +174,6 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
         }
     };
 
-    const handleDeleteClick = (assessor: Assessor) => {
-        setItemToDelete(assessor);
-        setIsConfirmDeleteOpen(true);
-    };
-
-    const handleConfirmDelete = async () => {
-        if (!itemToDelete) return;
-        try {
-            await deleteAssessor(itemToDelete.id);
-            setAssessores(prev => prev.filter(a => a.id !== itemToDelete.id));
-            setIsConfirmDeleteOpen(false);
-            setItemToDelete(null);
-        } catch (error) {
-            console.error("Erro ao deletar assessor:", error);
-            // Em um cenário real, poderíamos disparar um toast de erro aqui
-            setIsConfirmDeleteOpen(false);
-        }
-    };
-
     const updateEndereco = (field: string, value: string) => {
         setEditingAssessor(prev => ({
             ...prev,
@@ -204,8 +186,7 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
 
     const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         let value = e.target.value.replace(/\D/g, '');
-        if (value.length > 8) value = value.slice(0, 8);
-        if (value.length > 5) value = `${value.slice(0, 5)}-${value.slice(5)}`;
+        if (value.length > 5) value = `${value.slice(0, 5)}-${value.slice(5, 8)}`;
 
         updateEndereco('cep', value);
 
@@ -228,9 +209,12 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                             }
                         };
                     });
+                    setCepSuccess(true);
+                    setTimeout(() => setCepSuccess(false), 1000);
+                    setTimeout(() => numeroRef.current?.focus(), 100);
                 }
-            } catch (error) {
-                console.error("Erro ao buscar CEP:", error);
+            } catch (err) {
+                console.error("Erro ao buscar CEP", err);
             }
         }
     };
@@ -243,7 +227,6 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
         setFiltroCargo('Todos');
     };
 
-    // Componente Reutilizável para Select com Botão de Limpar (Logic on Hover)
     const FilterSelect = ({ value, onChange, options, placeholder }: { value: string, onChange: (val: string) => void, options: string[], placeholder: string }) => (
         <div className="relative group">
             <select
@@ -255,13 +238,9 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                 <option value="Todos" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{placeholder}</option>
                 {options.map(opt => <option key={opt} value={opt} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{opt}</option>)}
             </select>
-
             <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                {/* Seta (Sempre visível se for 'Todos', ou se não estiver com hover no 'Active') */}
                 <span className={`material-symbols-outlined text-[20px] transition-all duration-200 ${value !== 'Todos' ? 'text-white opacity-100 group-hover:opacity-0 group-hover:scale-75' : 'text-slate-400'}`}>expand_more</span>
             </div>
-
-            {/* Botão Limpar (Só aparece se val != Todos E Hover) */}
             {value !== 'Todos' && (
                 <button
                     onClick={(e) => { e.stopPropagation(); onChange('Todos'); }}
@@ -282,7 +261,6 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                    {/* Toggle Visualização Premium */}
                     <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-700/50 h-11 md:h-12 shadow-inner">
                         <button
                             onClick={() => setViewMode('grid')}
@@ -298,21 +276,23 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                         </button>
                     </div>
 
-                    <button
-                        onClick={() => { 
-                            setEditingAssessor({
-                                cargo: 'Assessor Regional',
-                                origem: 'Alê Portela',
-                                endereco: { logradouro: '', numero: '', bairro: '', cidade: '', uf: '', cep: '' }
-                            }); 
-                            setFormErrors([]);
-                            setIsModalOpen(true); 
-                        }}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20 active:scale-95 h-10 md:h-12"
-                    >
-                        <span className="material-symbols-outlined text-lg md:text-xl">add</span>
-                        <span className="whitespace-nowrap">Novo Assessor</span>
-                    </button>
+                    {!isCommonUser && (
+                        <button
+                            onClick={() => { 
+                                setEditingAssessor({
+                                    cargo: 'Assessor Regional',
+                                    origem: 'Alê Portela',
+                                    endereco: { logradouro: '', numero: '', bairro: '', cidade: '', uf: '', cep: '' }
+                                }); 
+                                setFormErrors([]);
+                                setIsModalOpen(true); 
+                            }}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20 active:scale-95 h-10 md:h-12"
+                        >
+                            <span className="material-symbols-outlined text-lg md:text-xl">add</span>
+                            <span className="whitespace-nowrap">Novo Assessor</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -440,26 +420,31 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                             </div>
                                             <div className="flex items-center gap-1 text-[10px] md:text-xs text-slate-500">
                                                 <span className="material-symbols-outlined text-[14px]">call</span>
-                                                {assessor.telefone}
+                                                {isCommonUser ? '(••) •••••-••••' : assessor.telefone}
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
-                                            onClick={() => { setEditingAssessor(assessor); setIsModalOpen(true); }}
+                                            onClick={() => { 
+                                                if (isCommonUser) setRestrictedModalOpen(true); 
+                                                else { setEditingAssessor(assessor); setIsModalOpen(true); } 
+                                            }}
                                             className="p-2 text-slate-400 hover:text-turquoise transition-colors"
-                                            title="Editar"
+                                            title={isCommonUser ? "Ver Perfil" : "Editar"}
                                         >
-                                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                                            <span className="material-symbols-outlined text-[20px]">{isCommonUser ? 'visibility' : 'edit'}</span>
                                         </button>
-                                        <button
-                                            onClick={() => { setItemToDelete(assessor); setIsConfirmDeleteOpen(true); }}
-                                            className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
-                                            title="Excluir"
-                                        >
-                                            <span className="material-symbols-outlined text-[20px]">delete</span>
-                                        </button>
+                                        {!isCommonUser && (
+                                            <button
+                                                onClick={() => { setItemToDelete(assessor); setIsConfirmDeleteOpen(true); }}
+                                                className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                                                title="Excluir"
+                                            >
+                                                <span className="material-symbols-outlined text-[20px]">delete</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -469,17 +454,22 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                             <div key={assessor.id} className="bg-white dark:bg-slate-800 rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-xl hover:border-turquoise/30 transition-all duration-300 group relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-2 md:p-4 flex gap-1 md:gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
                                     <button 
-                                        onClick={() => { setEditingAssessor(assessor); setIsModalOpen(true); }}
+                                        onClick={() => { 
+                                            if (isCommonUser) setRestrictedModalOpen(true);
+                                            else { setEditingAssessor(assessor); setIsModalOpen(true); }
+                                        }}
                                         className="size-8 md:size-10 rounded-xl bg-white dark:bg-slate-700 shadow-lg border border-slate-100 dark:border-slate-600 text-slate-400 hover:text-turquoise flex items-center justify-center transition-all"
                                     >
-                                        <span className="material-symbols-outlined text-[18px] md:text-[20px]">edit</span>
+                                        <span className="material-symbols-outlined text-[18px] md:text-[20px]">{isCommonUser ? 'visibility' : 'edit'}</span>
                                     </button>
-                                    <button 
-                                        onClick={() => { setItemToDelete(assessor); setIsConfirmDeleteOpen(true); }}
-                                        className="size-8 md:size-10 rounded-xl bg-white dark:bg-slate-700 shadow-lg border border-slate-100 dark:border-slate-600 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-all"
-                                    >
-                                        <span className="material-symbols-outlined text-[18px] md:text-[20px]">delete</span>
-                                    </button>
+                                    {!isCommonUser && (
+                                        <button 
+                                            onClick={() => { setItemToDelete(assessor); setIsConfirmDeleteOpen(true); }}
+                                            className="size-8 md:size-10 rounded-xl bg-white dark:bg-slate-700 shadow-lg border border-slate-100 dark:border-slate-600 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-all"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px] md:text-[20px]">delete</span>
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 mb-4 md:mb-6">
@@ -514,7 +504,7 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                     </div>
                                     <div className="flex items-center gap-1.5 md:gap-2 text-[9px] md:text-xs text-slate-600 dark:text-slate-400">
                                         <span className="material-symbols-outlined text-[13px] md:text-[16px] text-slate-400">call</span>
-                                        <span className="truncate">{assessor.telefone}</span>
+                                        <span className="truncate">{isCommonUser ? '(••) •••••-••••' : assessor.telefone}</span>
                                     </div>
                                 </div>
                             </div>
@@ -653,13 +643,16 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                             type="text"
                                             value={editingAssessor.endereco?.cep || ''}
                                             onChange={handleCepChange}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all ${cepSuccess ? 'ring-2 ring-emerald-500/50 border-emerald-500 bg-emerald-50/30' : ''}`}
                                             placeholder="00000-000"
                                             maxLength={9}
                                         />
                                     </div>
-                                    <div className="col-span-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Logradouro <span className="text-rose-500">*</span></label>
+                                    <div className="col-span-2 relative">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Logradouro <span className="text-rose-500">*</span></label>
+                                            {editingAssessor.endereco?.logradouro && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">[Auto]</span>}
+                                        </div>
                                         <input
                                             ref={logradouroRef}
                                             type="text"
@@ -668,7 +661,8 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                                 updateEndereco('logradouro', e.target.value);
                                                 if (formErrors.includes("logradouro")) setFormErrors(prev => prev.filter(f => f !== "logradouro"));
                                             }}
-                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("logradouro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl ${editingAssessor.endereco?.logradouro ? 'bg-slate-100/70 text-slate-600 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400' : 'bg-slate-50 dark:bg-slate-900/50'} ${formErrors.includes("logradouro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            readOnly={!!editingAssessor.endereco?.logradouro}
                                         />
                                     </div>
                                 </div>
@@ -676,14 +670,18 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                     <div>
                                         <label className="text-xs font-bold text-slate-500 uppercase">Número</label>
                                         <input
+                                            ref={numeroRef}
                                             type="text"
                                             value={editingAssessor.endereco?.numero || ''}
                                             onChange={e => updateEndereco('numero', e.target.value)}
                                             className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Bairro <span className="text-rose-500">*</span></label>
+                                    <div className="relative">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Bairro <span className="text-rose-500">*</span></label>
+                                            {editingAssessor.endereco?.bairro && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">[Auto]</span>}
+                                        </div>
                                         <input
                                             ref={bairroRef}
                                             type="text"
@@ -692,13 +690,17 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                                 updateEndereco('bairro', e.target.value);
                                                 if (formErrors.includes("bairro")) setFormErrors(prev => prev.filter(f => f !== "bairro"));
                                             }}
-                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("bairro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl ${editingAssessor.endereco?.bairro ? 'bg-slate-100/70 text-slate-600 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400' : 'bg-slate-50 dark:bg-slate-900/50'} ${formErrors.includes("bairro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            readOnly={!!editingAssessor.endereco?.bairro}
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
-                                    <div className="col-span-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Cidade <span className="text-rose-500">*</span></label>
+                                    <div className="col-span-2 relative">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Cidade <span className="text-rose-500">*</span></label>
+                                            {editingAssessor.endereco?.cidade && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">[Auto]</span>}
+                                        </div>
                                         <input
                                             ref={cidadeRef}
                                             type="text"
@@ -707,11 +709,15 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                                 updateEndereco('cidade', e.target.value);
                                                 if (formErrors.includes("cidade")) setFormErrors(prev => prev.filter(f => f !== "cidade"));
                                             }}
-                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("cidade") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl ${editingAssessor.endereco?.cidade ? 'bg-slate-100/70 text-slate-600 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400' : 'bg-slate-50 dark:bg-slate-900/50'} ${formErrors.includes("cidade") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            readOnly={!!editingAssessor.endereco?.cidade}
                                         />
                                     </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">UF <span className="text-rose-500">*</span></label>
+                                    <div className="relative">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">UF <span className="text-rose-500">*</span></label>
+                                            {editingAssessor.endereco?.uf && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">[Auto]</span>}
+                                        </div>
                                         <input
                                             ref={ufRef}
                                             type="text"
@@ -720,7 +726,8 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                                                 updateEndereco('uf', e.target.value);
                                                 if (formErrors.includes("uf")) setFormErrors(prev => prev.filter(f => f !== "uf"));
                                             }}
-                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("uf") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl ${editingAssessor.endereco?.uf ? 'bg-slate-100/70 text-slate-600 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400' : 'bg-slate-50 dark:bg-slate-900/50'} ${formErrors.includes("uf") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            readOnly={!!editingAssessor.endereco?.uf}
                                         />
                                     </div>
                                 </div>
@@ -761,6 +768,11 @@ const AssessoresPage: React.FC<AssessoresPageProps> = ({ navigateTo }) => {
                 title={errorDetails?.title || ''}
                 message={errorDetails?.message || ''}
                 technicalDetails={errorDetails?.tech}
+            />
+
+            <RestrictedAccessModal 
+                isOpen={isRestrictedModalOpen} 
+                onClose={() => setRestrictedModalOpen(false)} 
             />
         </div>
     );

@@ -18,7 +18,7 @@ import RecursosRelatorioPage from './pages/RecursosRelatorioPage';
 import ApoiadoresPage from './pages/ApoiadoresPage';
 import ApoiadorPerfilPage from './pages/ApoiadorPerfilPage';
 import BriefingPage from './pages/BriefingPage';
-import ContatosPage from './pages/ContatosPage';
+import { ContatosPage, ContatoPerfilDetalhado } from './src/features/contatos';
 import MapaPoliticoPage from './pages/MapaPoliticoPage';
 import IAPage from './pages/IAPage';
 import EnviosPage from './pages/EnviosPage';
@@ -56,6 +56,10 @@ const AppContent: React.FC = () => {
     if (path.includes('/apoiador/')) return { page: 'ApoiadorPerfil', params: { id: path.split('/apoiador/')[1], ...urlParams } };
     if (path.includes('/apoiadores')) return { page: 'Apoiadores', params: urlParams };
     if (path.includes('/briefing')) return { page: 'Briefing', params: urlParams };
+    if (path.includes('/contato/')) {
+        const id = path.split('/contato/')[1];
+        return { page: 'ContatoPerfil', params: { id, ...urlParams } };
+    }
     if (path.includes('/contatos')) return { page: 'Contatos', params: urlParams };
     if (path.includes('/ia')) return { page: 'Ferramentas IA', params: urlParams };
     if (path.includes('/envios')) return { page: 'Envios', params: urlParams };
@@ -114,6 +118,8 @@ const AppContent: React.FC = () => {
       window.history.pushState({}, '', pathMap[page]);
     } else if (page === 'ApoiadorPerfil' && params?.id) {
       window.history.pushState({}, '', `/apoiador/${params.id}`);
+    } else if (page === 'ContatoPerfil' && params?.id) {
+      window.history.pushState({}, '', `/contato/${params.id}`);
     }
   };
 
@@ -132,7 +138,8 @@ const AppContent: React.FC = () => {
       'MunicipioDetalhes': 'Municípios',
       'RecursosRelatorio': 'Recursos',
       'DemandaMunicipio': 'Demandas',
-      'ApoiadorPerfil': 'Apoiadores'
+      'ApoiadorPerfil': 'Apoiadores',
+      'ContatoPerfil': 'Contatos'
     };
 
     const currentModule = subPageMap[currentPage.page] || currentPage.page;
@@ -184,6 +191,8 @@ const AppContent: React.FC = () => {
         return <BriefingPage navigateTo={navigateTo} />;
       case 'Contatos':
         return <ContatosPage navigateTo={navigateTo} />;
+      case 'ContatoPerfil':
+        return <ContatoPerfilDetalhado contatoId={currentPage.params?.id} tipo={currentPage.params?.type} navigateTo={navigateTo} />;
       case 'Ferramentas IA':
         return <IAPage navigateTo={navigateTo} />;
       case 'Envios':

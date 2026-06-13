@@ -6,6 +6,7 @@ import Loader from '../components/Loader';
 import ImageUpload from '../components/ImageUpload';
 import ErrorModal from '../components/ErrorModal';
 import ConfirmModal from '../components/ConfirmModal';
+import RestrictedAccessModal from '../components/RestrictedAccessModal';
 
 interface LiderancasPageProps {
     navigateTo: (page: string, params?: { [key: string]: any }) => void;
@@ -51,6 +52,14 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
     const [itemToDelete, setItemToDelete] = useState<Lideranca | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [errorDetails, setErrorDetails] = useState<{ title: string; message: string; tech?: string } | null>(null);
+    const [cepSuccess, setCepSuccess] = useState(false);
+    const [isRestrictedModalOpen, setRestrictedModalOpen] = useState(false);
+
+    const numeroRef = React.useRef<HTMLInputElement>(null);
+
+    const { profile, selectedMandato } = useAppContext();
+    const role = (profile?.role || 'user').toLowerCase();
+    const isCommonUser = role === 'user' || role === 'comum' || role === '';
 
     useEffect(() => {
         localStorage.setItem('portela_hub_liderancas_view', viewMode);
@@ -128,7 +137,7 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
             .slice(0, 10);
     }, [editingLideranca.municipio, municipios]);
 
-    const { selectedMandato } = useAppContext();
+    const { selectedMandato: _ } = useAppContext(); // handled above
 
     // Extrair Regiões Únicas
     const regioes = useMemo(() => {
@@ -269,6 +278,41 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
         }));
     };
 
+    const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 5) value = `${value.slice(0, 5)}-${value.slice(5, 8)}`;
+
+        updateEndereco('cep', value);
+
+        if (value.replace(/\D/g, '').length === 8) {
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${value.replace(/\D/g, '')}/json/`);
+                const data = await response.json();
+                if (!data.erro) {
+                    setEditingLideranca(prev => {
+                        const currentEndereco = prev.endereco || { numero: '', logradouro: '', bairro: '', cidade: '', uf: '', cep: value };
+                        return {
+                            ...prev,
+                            endereco: {
+                                ...currentEndereco,
+                                logradouro: data.logradouro || currentEndereco.logradouro,
+                                bairro: data.bairro || currentEndereco.bairro,
+                                cidade: data.localidade || currentEndereco.cidade,
+                                uf: data.uf || currentEndereco.uf,
+                                cep: value
+                            }
+                        };
+                    });
+                    setCepSuccess(true);
+                    setTimeout(() => setCepSuccess(false), 1000);
+                    setTimeout(() => numeroRef.current?.focus(), 100);
+                }
+            } catch (err) {
+                console.error("Erro ao buscar CEP", err);
+            }
+        }
+    };
+
     const filtersActive = busca !== '' || filtroRegiao !== 'Todos' || filtroMunicipio !== 'Todos' || filtroPartido !== 'Todos' || filtroCargo !== 'Todos';
 
     const clearFilters = () => {
@@ -334,22 +378,24 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                         </button>
                     </div>
 
-                    <button
-                        onClick={() => { 
-                            setEditingLideranca({ 
-                                cargo: 'Vereador', 
-                                status: 'Ativo', 
-                                origem: 'Alê Portela',
-                                endereco: { logradouro: '', numero: '', bairro: '', cidade: '', uf: '', cep: '' }
-                            }); 
-                            setFormErrors([]);
-                            setIsModalOpen(true); 
-                        }}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20 active:scale-95 h-10 md:h-12"
-                    >
-                        <span className="material-symbols-outlined text-lg md:text-xl">add</span>
-                        <span className="whitespace-nowrap">Nova Liderança</span>
-                    </button>
+                    {!isCommonUser && (
+                        <button
+                            onClick={() => { 
+                                setEditingLideranca({ 
+                                    cargo: 'Vereador', 
+                                    status: 'Ativo', 
+                                    origem: 'Alê Portela',
+                                    endereco: { logradouro: '', numero: '', bairro: '', cidade: '', uf: '', cep: '' }
+                                }); 
+                                setFormErrors([]);
+                                setIsModalOpen(true); 
+                            }}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-turquoise text-white rounded-xl text-xs md:text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-turquoise/20 active:scale-95 h-10 md:h-12"
+                        >
+                            <span className="material-symbols-outlined text-lg md:text-xl">add</span>
+                            <span className="whitespace-nowrap">Nova Liderança</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -499,26 +545,31 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                                             </div>
                                             <div className="flex items-center gap-1 text-[10px] md:text-xs text-slate-500">
                                                 <span className="material-symbols-outlined text-[14px]">call</span>
-                                                {lideranca.contato}
+                                                {isCommonUser ? '(••) •••••-••••' : lideranca.contato}
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
-                                            onClick={() => { setEditingLideranca(lideranca); setIsModalOpen(true); }}
+                                            onClick={() => { 
+                                                if (isCommonUser) setRestrictedModalOpen(true);
+                                                else { setEditingLideranca(lideranca); setIsModalOpen(true); } 
+                                            }}
                                             className="p-2 text-slate-400 hover:text-turquoise transition-colors"
-                                            title="Editar"
+                                            title={isCommonUser ? "Ver Perfil" : "Editar"}
                                         >
-                                            <span className="material-symbols-outlined text-xl">edit</span>
+                                            <span className="material-symbols-outlined text-xl">{isCommonUser ? 'visibility' : 'edit'}</span>
                                         </button>
-                                        <button
-                                            onClick={() => handleDeleteClick(lideranca)}
-                                            className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
-                                            title="Excluir"
-                                        >
-                                            <span className="material-symbols-outlined text-xl">delete</span>
-                                        </button>
+                                        {!isCommonUser && (
+                                            <button
+                                                onClick={() => handleDeleteClick(lideranca)}
+                                                className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                                                title="Excluir"
+                                            >
+                                                <span className="material-symbols-outlined text-xl">delete</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -527,18 +578,23 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                         return (
                             <div key={lideranca.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 md:p-5 hover:shadow-md transition-all group relative overflow-hidden">
                                 <button
-                                    onClick={() => { setEditingLideranca(lideranca); setIsModalOpen(true); }}
+                                    onClick={() => { 
+                                        if (isCommonUser) setRestrictedModalOpen(true);
+                                        else { setEditingLideranca(lideranca); setIsModalOpen(true); }
+                                    }}
                                     className="absolute top-3 right-10 md:top-4 md:right-12 text-slate-300 hover:text-turquoise transition-colors z-10"
                                 >
-                                    <span className="material-symbols-outlined text-sm md:text-xl">edit</span>
+                                    <span className="material-symbols-outlined text-sm md:text-xl">{isCommonUser ? 'visibility' : 'edit'}</span>
                                 </button>
 
-                                <button
-                                    onClick={() => handleDeleteClick(lideranca)}
-                                    className="absolute top-3 right-3 md:top-4 md:right-4 text-slate-300 hover:text-rose-500 transition-colors z-10"
-                                >
-                                    <span className="material-symbols-outlined text-sm md:text-xl">delete</span>
-                                </button>
+                                {!isCommonUser && (
+                                    <button
+                                        onClick={() => handleDeleteClick(lideranca)}
+                                        className="absolute top-3 right-3 md:top-4 md:right-4 text-slate-300 hover:text-rose-500 transition-colors z-10"
+                                    >
+                                        <span className="material-symbols-outlined text-sm md:text-xl">delete</span>
+                                    </button>
+                                )}
 
                                 <div className="flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-4 mb-3 md:mb-4 text-center md:text-left">
                                     <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden border-2 border-white dark:border-slate-700 shadow-sm md:shadow-md shrink-0 bg-slate-100 dark:bg-slate-700">
@@ -575,7 +631,7 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                                     </div>
                                     <div className="flex items-center gap-2 text-[9px] md:text-xs text-slate-600 dark:text-slate-400">
                                         <span className="material-symbols-outlined text-[13px] md:text-[16px] text-slate-400">call</span>
-                                        <span className="truncate">{lideranca.contato}</span>
+                                        <span className="truncate">{isCommonUser ? '(••) •••••-••••' : lideranca.contato}</span>
                                     </div>
                                 </div>
                             </div>
@@ -746,8 +802,22 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
-                                    <div className="col-span-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Logradouro <span className="text-rose-500">*</span></label>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">CEP</label>
+                                        <input
+                                            type="text"
+                                            value={editingLideranca.endereco?.cep || ''}
+                                            onChange={handleCepChange}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all ${cepSuccess ? 'ring-2 ring-emerald-500/50 border-emerald-500 bg-emerald-50/30' : ''}`}
+                                            placeholder="00000-000"
+                                            maxLength={9}
+                                        />
+                                    </div>
+                                    <div className="col-span-2 relative">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Logradouro <span className="text-rose-500">*</span></label>
+                                            {editingLideranca.endereco?.logradouro && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">[Auto]</span>}
+                                        </div>
                                         <input
                                             ref={logradouroRef}
                                             type="text"
@@ -756,22 +826,27 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                                                 updateEndereco('logradouro', e.target.value);
                                                 if (formErrors.includes("logradouro")) setFormErrors(prev => prev.filter(f => f !== "logradouro"));
                                             }}
-                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("logradouro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none`}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl ${editingLideranca.endereco?.logradouro ? 'bg-slate-100/70 text-slate-600 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400' : 'bg-slate-50 dark:bg-slate-900/50'} ${formErrors.includes("logradouro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            readOnly={!!editingLideranca.endereco?.logradouro}
                                         />
                                     </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="text-xs font-bold text-slate-500 uppercase">Número</label>
                                         <input
+                                            ref={numeroRef}
                                             type="text"
                                             value={editingLideranca.endereco?.numero || ''}
                                             onChange={e => updateEndereco('numero', e.target.value)}
                                             className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
                                         />
                                     </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Bairro <span className="text-rose-500">*</span></label>
+                                    <div className="relative">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Bairro <span className="text-rose-500">*</span></label>
+                                            {editingLideranca.endereco?.bairro && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">[Auto]</span>}
+                                        </div>
                                         <input
                                             ref={bairroRef}
                                             type="text"
@@ -780,22 +855,17 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                                                 updateEndereco('bairro', e.target.value);
                                                 if (formErrors.includes("bairro")) setFormErrors(prev => prev.filter(f => f !== "bairro"));
                                             }}
-                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("bairro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">CEP</label>
-                                        <input
-                                            type="text"
-                                            value={editingLideranca.endereco?.cep || ''}
-                                            onChange={e => updateEndereco('cep', e.target.value)}
-                                            className="w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-turquoise/20 outline-none"
+                                            className={`w-full mt-1 p-2.5 border rounded-xl ${editingLideranca.endereco?.bairro ? 'bg-slate-100/70 text-slate-600 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400' : 'bg-slate-50 dark:bg-slate-900/50'} ${formErrors.includes("bairro") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            readOnly={!!editingLideranca.endereco?.bairro}
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
-                                    <div className="col-span-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Cidade <span className="text-rose-500">*</span></label>
+                                    <div className="col-span-2 relative">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Cidade <span className="text-rose-500">*</span></label>
+                                            {editingLideranca.endereco?.cidade && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">[Auto]</span>}
+                                        </div>
                                         <input
                                             ref={cidadeRef}
                                             type="text"
@@ -804,11 +874,15 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                                                 updateEndereco('cidade', e.target.value);
                                                 if (formErrors.includes("cidade")) setFormErrors(prev => prev.filter(f => f !== "cidade"));
                                             }}
-                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("cidade") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl ${editingLideranca.endereco?.cidade ? 'bg-slate-100/70 text-slate-600 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400' : 'bg-slate-50 dark:bg-slate-900/50'} ${formErrors.includes("cidade") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            readOnly={!!editingLideranca.endereco?.cidade}
                                         />
                                     </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">UF <span className="text-rose-500">*</span></label>
+                                    <div className="relative">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">UF <span className="text-rose-500">*</span></label>
+                                            {editingLideranca.endereco?.uf && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">[Auto]</span>}
+                                        </div>
                                         <input
                                             ref={ufRef}
                                             type="text"
@@ -817,7 +891,8 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                                                 updateEndereco('uf', e.target.value);
                                                 if (formErrors.includes("uf")) setFormErrors(prev => prev.filter(f => f !== "uf"));
                                             }}
-                                            className={`w-full mt-1 p-2.5 border rounded-xl bg-slate-50 dark:bg-slate-900/50 ${formErrors.includes("uf") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            className={`w-full mt-1 p-2.5 border rounded-xl ${editingLideranca.endereco?.uf ? 'bg-slate-100/70 text-slate-600 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400' : 'bg-slate-50 dark:bg-slate-900/50'} ${formErrors.includes("uf") ? 'border-rose-500 ring-2 ring-rose-500/10' : 'border-slate-200 dark:border-slate-700'} text-sm focus:ring-2 focus:ring-turquoise/20 outline-none transition-all`}
+                                            readOnly={!!editingLideranca.endereco?.uf}
                                         />
                                     </div>
                                 </div>
@@ -879,6 +954,11 @@ const LiderancasPage: React.FC<LiderancasPageProps> = ({ navigateTo, params }) =
                 title={errorDetails?.title || ''}
                 message={errorDetails?.message || ''}
                 technicalDetails={errorDetails?.tech}
+            />
+
+            <RestrictedAccessModal 
+                isOpen={isRestrictedModalOpen} 
+                onClose={() => setRestrictedModalOpen(false)} 
             />
 
             <ConfirmModal

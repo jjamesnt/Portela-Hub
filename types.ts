@@ -128,6 +128,7 @@ export interface Lideranca {
     };
     latitude?: number;
     longitude?: number;
+    cadastradoPorNome?: string;
 }
 
 export interface Assessor {
@@ -141,6 +142,7 @@ export interface Assessor {
     origem: 'Alê Portela' | 'Lincoln Portela' | 'Marilda Portela';
     telefone?: string;
     email?: string;
+    cadastradoPorNome?: string;
     endereco?: {
         logradouro: string;
         numero: string;
@@ -265,6 +267,7 @@ export interface Apoiador {
     email: string;
     fotoUrl: string;
     createdAt: string;
+    cadastradoPorNome?: string;
 }
 
 export interface Briefing {

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { optimizeImage, fileToBase64 } from './src/features/core/utils/imageOptimizer';
 
 interface ImageUploadProps {
     currentImage?: string;
@@ -9,44 +10,26 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ currentImage, onImageSelected
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [preview, setPreview] = useState<string | undefined>(currentImage);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 400; // Redimensionar para no máximo 400px de largura
-                const MAX_HEIGHT = 400;
-                let width = img.width;
-                let height = img.height;
+        try {
+            // Otimização padrão com WebP
+            const optimizedFile = await optimizeImage(file, {
+                maxWidth: 400,
+                maxHeight: 400,
+                quality: 0.6,
+                mimeType: 'image/webp'
+            });
 
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, width, height);
-
-                const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.6); // Qualidade 60%
-                setPreview(optimizedBase64);
-                onImageSelected(optimizedBase64);
-            };
-            img.src = event.target?.result as string;
-        };
-        reader.readAsDataURL(file);
+            // Converter para Base64 pois o backend antigo pode exigir
+            const base64 = await fileToBase64(optimizedFile);
+            setPreview(base64);
+            onImageSelected(base64);
+        } catch (error) {
+            console.error("Erro na otimização de imagem padrão:", error);
+        }
     };
 
     return (

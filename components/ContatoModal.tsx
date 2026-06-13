@@ -13,7 +13,9 @@ interface ContatoModalProps {
 const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const context = useContext(AppContext);
     const role = context?.profile?.role || '';
-    const canCreateAll = role === 'Master' || role === 'Coordenador';
+    const nome = context?.profile?.nome || '';
+    const normalizedRole = role.toLowerCase();
+    const canCreateAll = normalizedRole === 'master' || normalizedRole === 'coordenador' || normalizedRole === 'admin';
 
     const [tipo, setTipo] = useState<'Liderança' | 'Assessor' | 'Apoiador'>('Liderança');
     const [formData, setFormData] = useState<any>({
@@ -131,7 +133,8 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                     regiao: formData.regiao,
                     partido: formData.partido,
                     status: 'Ativo',
-                    avatarUrl: formData.fotoUrl
+                    avatarUrl: formData.fotoUrl,
+                    cadastradoPorNome: nome
                 });
             } else if (tipo === 'Assessor') {
                 await upsertAssessor({
@@ -141,7 +144,8 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                     email: formData.email,
                     origem: formData.origem,
                     regiaoAtuacao: formData.regiaoAtuacao,
-                    avatarUrl: formData.fotoUrl
+                    avatarUrl: formData.fotoUrl,
+                    cadastradoPorNome: nome
                 });
             } else if (tipo === 'Apoiador') {
                 await upsertApoiador({
@@ -151,7 +155,8 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                     email: formData.email,
                     endereco: `${formData.logradouro}, Nº ${formData.numero}${formData.complemento ? ' - ' + formData.complemento : ''}, ${formData.bairro} - ${formData.uf}`,
                     municipioId: formData.municipioId,
-                    fotoUrl: formData.fotoUrl
+                    fotoUrl: formData.fotoUrl,
+                    cadastradoPorNome: nome
                 });
             }
             onSuccess();

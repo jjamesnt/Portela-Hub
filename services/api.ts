@@ -213,7 +213,8 @@ export const upsertLideranca = async (lideranca: Partial<Lideranca>) => {
         avatar_url: lideranca.avatarUrl,
         endereco: lideranca.endereco,
         latitude: lideranca.latitude,
-        longitude: lideranca.longitude
+        longitude: lideranca.longitude,
+        cadastrado_por_nome: lideranca.cadastradoPorNome
     };
 
     let data;
@@ -259,7 +260,8 @@ export const upsertAssessor = async (assessor: Partial<Assessor>) => {
         origem: assessor.origem,
         telefone: assessor.telefone,
         email: assessor.email,
-        endereco: assessor.endereco
+        endereco: assessor.endereco,
+        cadastrado_por_nome: assessor.cadastradoPorNome
     };
 
     let data;
@@ -738,6 +740,7 @@ export const upsertApoiador = async (apoiador: Partial<Apoiador>) => {
         endereco: apoiador.endereco,
         email: apoiador.email,
         foto_url: apoiador.fotoUrl,
+        cadastrado_por_nome: apoiador.cadastradoPorNome
     };
 
     let data;
@@ -964,3 +967,101 @@ export function isSim(val: any) {
     const s = val.toString().toLowerCase();
     return s === 'sim' || s === 's' || s === 'true' || s === '1';
 }
+
+// --- BULK INSERTS FOR CSV IMPORT ---
+
+export const bulkInsertApoiadores = async (data: any[]) => {
+    if (!data.length) return;
+    
+    // First fetch all municipios to map "Cidade" to "municipio_id"
+    const municipios = await getMunicipiosSimples();
+    const mapMun = new Map(municipios.map(m => [m.nome.toLowerCase(), m.id]));
+
+    const values = data.map(d => {
+        const munId = mapMun.get(d.Cidade?.toLowerCase());
+        const munIdStr = munId ? `'${munId}'` : 'NULL';
+        const nome = d.Nome.replace(/'/g, "''");
+        const email = d.Email ? `'${d.Email.replace(/'/g, "''")}'` : 'NULL';
+        const telefone = d.Telefone ? `'${d.Telefone.replace(/'/g, "''")}'` : 'NULL';
+        const lidId = d.ID_Lideranca ? d.ID_Lideranca : 'NULL'; // assuming lidId is integer or string id
+        const endereco = `'{"cidade": "${d.Cidade.replace(/'/g, "''")}"}'`;
+
+        // Assuming columns: municipio_id, nome, email, telefone, endereco, lideranca_id
+        return `(${munIdStr}, '${nome}', ${email}, ${telefone}, ${endereco}, ${lidId})`;
+    }).join(',\n');
+
+    const sql = `
+        BEGIN;
+        INSERT INTO hub.apoiadores (municipio_id, nome, email, telefone, endereco, lideranca_id)
+        VALUES ${values};
+        COMMIT;
+    `;
+    
+    await apiClient.post<any>('/api/admin/sql', { sql });
+};
+
+export const bulkInsertLiderancas = async (data: any[]) => {
+    if (!data.length) return;
+    
+    const values = data.map(d => {
+        const nome = d.Nome.replace(/'/g, "''");
+        const regiao = `'${d.Regiao_Bairro.replace(/'/g, "''")}'`;
+        const telefone = `'${d.Telefone.replace(/'/g, "''")}'`;
+        const status = d.Status ? "'Ativo'" : "'Inativo'";
+
+        return `('${nome}', ${regiao}, ${telefone}, ${status})`;
+    }).join(',\n');
+
+    const sql = `
+        BEGIN;
+        INSERT INTO hub.liderancas (nome, regiao, telefone, status)
+        VALUES ${values};
+        COMMIT;
+    `;
+    
+    await apiClient.post<any>('/api/admin/sql', { sql });
+};
+
+export const bulkInsertAssessores = async (data: any[]) => {
+    if (!data.length) return;
+    
+    const values = data.map(d => {
+        const nome = d.Nome.replace(/'/g, "''");
+        const cargo = d.Cargo.replace(/'/g, "''");
+        const regiao = d.Regiao_Atuacao.replace(/'/g, "''");
+        const telefone = d.Telefone ? `'${d.Telefone.replace(/'/g, "''")}'` : 'NULL';
+        const email = d.Email ? `'${d.Email.replace(/'/g, "''")}'` : 'NULL';
+
+        return `('${nome}', '${cargo}', '${regiao}', ${telefone}, ${email})`;
+    }).join(',\n');
+
+    const sql = `
+        BEGIN;
+        INSERT INTO hub.assessores (nome, cargo, regiao_atuacao, telefone, email)
+        VALUES ${values};
+        COMMIT;
+    `;
+    
+    await apiClient.post<any>('/api/admin/sql', { sql });
+};
+
+export const bulkInsertMunicipios = async (data: any[]) => {
+    if (!data.length) return;
+
+    const values = data.map(d => {
+        const nome = d.Nome_Cidade.replace(/'/g, "''");
+        const regiao = d.Microregiao ? `'${d.Microregiao.replace(/'/g, "''")}'` : 'NULL';
+        const populacao = d.Populacao ? d.Populacao : 'NULL';
+
+        return `('${nome}', ${regiao}, ${populacao})`;
+    }).join(',\n');
+
+    const sql = `
+        BEGIN;
+        INSERT INTO hub.municipios (nome, regiao, populacao)
+        VALUES ${values};
+        COMMIT;
+    `;
+    
+    await apiClient.post<any>('/api/admin/sql', { sql });
+};

@@ -153,6 +153,31 @@ When auto-applying an agent, inform the user:
 
 ---
 
+## 🏗️ FEATURE-BASED ARCHITECTURE (MANDATÓRIO)
+
+> 🔴 **MANDATÓRIO:** TODO o desenvolvimento, refatoração e manutenção deve seguir estritamente uma Arquitetura Baseada em Recursos (Feature-Based Architecture). É PROIBIDA a criação de estruturas monolíticas ou god components.
+
+### 1. Estrutura de Pastas Global (Feature-Driven)
+O código deve ser organizado por domínios de negócio dentro de `src/features/`. Cada recurso do sistema (ex: apoiadores, liderancas, municipios) deve ser uma pasta autônoma.
+**Estrutura Estrita:**
+- `components/` : Componentes de UI exclusivos deste recurso
+- `hooks/`      : Hooks customizados e lógica de estado exclusivos
+- `services/`   : Chamadas de API, queries e mutations específicas
+- `schemas/`    : Validações estritas com Zod e tipos TypeScript
+- `utils/`      : Funções utilitárias isoladas
+- `index.ts`    : Ponto de entrada público do recurso (Barreling)
+
+### 2. Regras de Isolamento e Comunicação
+- **Isolamento de Domínio:** Um arquivo de uma feature NUNCA pode importar diretamente um arquivo interno de outra feature.
+- **Barreling (Ponto de Entrada):** Apenas o `index.ts` exporta o que é público. O resto é privado.
+- **Componentes Globais:** Elementos genéricos puros (botões, inputs, modais básicos) residem estritamente em `src/components/ui/`.
+
+### 3. Segurança, Tipagem e Tratamento de Erros
+- **Strict TypeScript:** Proibido uso de `any` ou `as unknown`. Todos os contratos usam validações Zod.
+- **Separação de Conceitos:** Componentes visuais são burros (presentational). Lógica e Supabase vão para Hooks.
+- **Operações Atômicas:** Fluxos com múltiplas tabelas exigem RPCs ou transações atômicas (Tudo ou Nada).
+
+---
 
 ## TIER 1: CODE RULES (When Writing Code)
 
@@ -249,6 +274,12 @@ When auto-applying an agent, inform the user:
 
 > **Design rules are in the specialist agents, NOT here.**
 
+### 🚫 PROIBIÇÃO GLOBAL: UI NATIVA DO NAVEGADOR
+> 🔴 **MANDATÓRIO:** É estritamente proibido utilizar componentes ou diálogos nativos padrão do navegador em qualquer interface gráfica gerada ou atualizada.
+1. **Listas/Dropdowns:** NUNCA utilize a tag HTML padrão `<select>`. Sempre crie ou utilize dropdowns customizados, grids de botões estilizados, listboxes do Radix/HeadlessUI ou similares que permitam estilização CSS completa.
+2. **Diálogos de Alerta/Confirmação:** É terminantemente PROIBIDO o uso de `alert()`, `confirm()` ou `prompt()` do JavaScript. Todas as mensagens, alertas e confirmações de ações (como deleção) devem usar modais customizados (como `ErrorModal`, `ConfirmModal`, etc.) ou toasts na UI.
+3. **Justificativa:** O design deve manter uma estética Premium consistente e moderna. A interface nativa quebra a imersão e o tema (Dark Mode/Light Mode) da aplicação.
+
 | Task         | Read                            |
 | ------------ | ------------------------------- |
 | Web UI/UX    | `.agent/frontend-specialist.md` |
@@ -278,5 +309,21 @@ When auto-applying an agent, inform the user:
 - **Scanners**: `security_scan.py`, `dependency_analyzer.py`
 - **Audits**: `ux_audit.py`, `mobile_audit.py`, `lighthouse_audit.py`, `seo_checker.py`
 - **Test**: `playwright_runner.py`, `test_runner.py`
+
+---
+
+## 🚀 AMBIENTES DE DEPLOY E INTEGRAÇÃO (PORTELA HUB)
+
+A estrutura de deploy na VPS será definida exclusivamente pela branch de destino no GitHub.
+
+1. **Ambiente de Testes (`portela.app/integracao`)**
+   - **Envio via Git**: `git push origin integracao` (ou comando: *"Envie para testes"*)
+   - **Caminho no servidor VPS**: `/opt/portela-integracao`
+
+2. **Ambiente de Produção (`portela.app`)**
+   - **Envio via Git**: `git push origin main` (ou comando: *"Envie para Produção"*)
+   - **Caminho no servidor VPS**: `/opt/portela-hub-frontend`
+
+> **Nota Automática**: O Github Actions usa o arquivo `.github/workflows/deploy.yml` juntamente com os secrets (`VPS_HOST`, `VPS_SSH_KEY`, `VPS_DEPLOY_PATH`, etc.) para realizar o pull do código e fazer o build estático diretamente nas pastas correspondentes da VPS.
 
 ---
