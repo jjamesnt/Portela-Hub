@@ -28,9 +28,8 @@ jobs:
             else
               TARGET_DIR="${{ secrets.VPS_DEPLOY_PATH_INTEGRACAO }}"
               BRANCH="integracao"
-            fi
-            
             cd $TARGET_DIR
+            git remote set-url origin https://github.com/$GITHUB_REPOSITORY.git
             git fetch origin
             git checkout -B $BRANCH origin/$BRANCH || git checkout -b $BRANCH
             git pull origin $BRANCH || git pull origin main
