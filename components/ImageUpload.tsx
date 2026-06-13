@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { optimizeImage, fileToBase64 } from './src/features/core/utils/imageOptimizer';
+import { optimizeImage, fileToBase64 } from '../src/features/core/utils/imageOptimizer';
 
 interface ImageUploadProps {
     currentImage?: string;
