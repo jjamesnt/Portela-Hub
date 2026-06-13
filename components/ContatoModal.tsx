@@ -21,6 +21,7 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
         cargo: '',
         telefone: '',
         email: '',
+        cep: '',
         enderecoStr: '',
         origem: 'Geral',
         // Lideranca
@@ -45,6 +46,7 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                 cargo: '',
                 telefone: '',
                 email: '',
+                cep: '',
                 enderecoStr: '',
                 origem: 'Geral',
                 municipio_nome: '',
@@ -58,6 +60,44 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
     }, [isOpen]);
 
     if (!isOpen) return null;
+
+    const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 5) val = val.substring(0, 5) + '-' + val.substring(5, 8);
+        setFormData((prev: any) => ({ ...prev, cep: val }));
+
+        if (val.length === 8) {
+            try {
+                const res = await fetch(`https://viacep.com.br/ws/${val}/json/`);
+                const data = await res.json();
+                if (!data.erro) {
+                    const enderecoBase = `${data.logradouro}, Nº , ${data.bairro}, ${data.localidade} - ${data.uf}`;
+                    setFormData((prev: any) => ({ 
+                        ...prev, 
+                        enderecoStr: enderecoBase,
+                        municipio_nome: data.localidade
+                    }));
+
+                    if (data.ibge) {
+                        const ibgeRes = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios/${data.ibge}`);
+                        const ibgeData = await ibgeRes.json();
+                        if (ibgeData && ibgeData.microrregiao && ibgeData.microrregiao.mesorregiao) {
+                            const mesorregiao = ibgeData.microrregiao.mesorregiao.nome;
+                            const matchedMunicipio = municipios.find(m => m.nome.toLowerCase() === data.localidade.toLowerCase());
+                            setFormData((prev: any) => ({ 
+                                ...prev, 
+                                regiao: mesorregiao,
+                                regiaoAtuacao: mesorregiao,
+                                municipioId: matchedMunicipio ? matchedMunicipio.id : prev.municipioId
+                            }));
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao buscar CEP", err);
+            }
+        }
+    };
 
     const handleSave = async () => {
         if (!formData.nome) return;
@@ -189,8 +229,19 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CEP</label>
+                            <input 
+                                type="text"
+                                value={formData.cep || ''}
+                                onChange={handleCepChange}
+                                maxLength={9}
+                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold"
+                                placeholder="00000-000"
+                            />
+                        </div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Endereço Completo</label>
                             <input 
                                 type="text"
@@ -200,6 +251,9 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                                 placeholder="Rua, Número, Bairro..."
                             />
                         </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {tipo !== 'Apoiador' && (
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Origem (Mandato)</label>
