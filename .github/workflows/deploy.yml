@@ -31,7 +31,9 @@ jobs:
             fi
             
             cd $TARGET_DIR
-            git pull origin $BRANCH
+            git fetch origin
+            git checkout -B $BRANCH origin/$BRANCH || git checkout -b $BRANCH
+            git pull origin $BRANCH || git pull origin main
             
             # Instalar dependências (caso haja novas)
             npm install
