@@ -9,7 +9,7 @@ interface SidebarProps {
 export const navItems = [
     { id: 'dashboard', label: 'Dashboard', section: 'PAINEL', iconPath: <><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></> },
     { id: 'briefing', label: 'Briefing', section: 'PAINEL', iconPath: <><path d="M2 12V4l6-2 6 2v8l-6 2-6-2z" stroke="currentColor" strokeWidth="1.2"/><path d="M8 2v12" stroke="currentColor" strokeWidth="1.2"/></> },
-    { id: 'mapa', label: 'Mapa político', section: 'TERRITÓRIOS', iconPath: <path d="M2 13L6 3l4 6 2-3 2 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/> },
+    { id: 'mapa', label: 'Mapa Político', section: 'TERRITÓRIOS', iconPath: <path d="M2 13L6 3l4 6 2-3 2 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/> },
     { id: 'municipios', label: 'Municípios', section: 'TERRITÓRIOS', iconPath: <><path d="M8 2C5.24 2 3 4.24 3 7c0 4.25 5 9 5 9s5-4.75 5-9c0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="1.2"/><circle cx="8" cy="7" r="1.5" fill="currentColor" opacity=".6"/></> },
     { id: 'liderancas', label: 'Lideranças', section: 'TERRITÓRIOS', iconPath: <><path d="M8 8a3 3 0 100-6 3 3 0 000 6z" fill="currentColor" opacity=".5"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></> },
     { id: 'apoiadores', label: 'Apoiadores', section: 'TERRITÓRIOS', iconPath: <><circle cx="6" cy="5" r="3" stroke="currentColor" strokeWidth="1.2"/><circle cx="11" cy="5" r="2" stroke="currentColor" strokeWidth="1.2"/><path d="M1 13c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><path d="M11 8c1.66 0 3 1.34 3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></> },
@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                                         const routeMap:any = {
                                             'Dashboard': 'Dashboard',
                                             'Briefing': 'Briefing',
-                                            'Mapa político': 'Mapa Político',
+                                            'Mapa Político': 'Mapa Político',
                                             'Municípios': 'Municípios',
                                             'Lideranças': 'Lideranças',
                                             'Apoiadores': 'Apoiadores',
