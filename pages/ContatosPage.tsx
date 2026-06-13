@@ -20,13 +20,18 @@ interface UnifiedContact {
 const ContatosPage: React.FC<{ navigateTo: (page: string, params?: any) => void }> = ({ navigateTo }) => {
     const context = useContext(AppContext);
     if (!context) return null;
-    const { selectedMandato } = context;
+    const { selectedMandato, profile } = context;
+
+    const role = (profile?.role || 'user').toLowerCase();
+    const isMasterOrAdmin = role === 'master' || role === 'admin' || role === 'coordenador';
+    const isRestricted = !isMasterOrAdmin;
 
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<string>('Todos');
     const [currentPage, setCurrentPage] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [restrictedModalOpen, setRestrictedModalOpen] = useState(false);
     const itemsPerPage = 50;
     
     const [contatos, setContatos] = useState<UnifiedContact[]>([]);
@@ -240,7 +245,7 @@ const ContatosPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
                                                     <div className="font-bold text-navy-dark dark:text-white text-sm">{contato.nome}</div>
                                                     <div className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1">
                                                         <span className="material-symbols-outlined text-[12px]">phone_iphone</span>
-                                                        {contato.telefone || 'Sem telefone'}
+                                                        {isRestricted ? (contato.telefone ? '(••) •••••-••••' : 'Sem telefone') : (contato.telefone || 'Sem telefone')}
                                                     </div>
                                                 </div>
                                             </div>
@@ -262,22 +267,31 @@ const ContatosPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
                                         <td className="py-3 px-6 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 {contato.telefone && (
-                                                    <a 
-                                                        href={`https://wa.me/55${contato.telefone.replace(/\D/g, '')}`} 
-                                                        target="_blank" 
-                                                        rel="noreferrer"
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            if (isRestricted) {
+                                                                e.preventDefault();
+                                                                setRestrictedModalOpen(true);
+                                                            } else {
+                                                                window.open(`https://wa.me/55${contato.telefone.replace(/\D/g, '')}`, '_blank');
+                                                            }
+                                                        }}
                                                         className="size-8 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors"
                                                         title="WhatsApp"
                                                     >
                                                         <span className="material-symbols-outlined text-[18px]">chat</span>
-                                                    </a>
+                                                    </button>
                                                 )}
                                                 <button 
                                                     className="size-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 flex items-center justify-center transition-colors"
                                                     title="Ver Perfil"
                                                     onClick={() => {
-                                                        if (contato.tipo === 'Apoiador') navigateTo('ApoiadorPerfil', { id: (contato as any).originalId });
-                                                        // if we had LiderancaPerfil or AssessorPerfil we would map here
+                                                        if (isRestricted) {
+                                                            setRestrictedModalOpen(true);
+                                                        } else {
+                                                            if (contato.tipo === 'Apoiador') navigateTo('ApoiadorPerfil', { id: (contato as any).originalId });
+                                                            // if we had LiderancaPerfil or AssessorPerfil we would map here
+                                                        }
                                                     }}
                                                 >
                                                     <span className="material-symbols-outlined text-[18px]">visibility</span>
@@ -316,6 +330,30 @@ const ContatosPage: React.FC<{ navigateTo: (page: string, params?: any) => void 
                 </div>
             </div>
 
+        </div>
+
+            {/* Restricted Modal */}
+            {restrictedModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center space-y-6 animate-in zoom-in-95 duration-300">
+                        <div className="size-20 bg-rose-50 dark:bg-rose-900/20 rounded-full flex items-center justify-center mx-auto">
+                            <span className="material-symbols-outlined text-4xl text-rose-500">lock</span>
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-black text-navy-dark dark:text-white">Acesso Restrito</h3>
+                            <p className="text-sm text-slate-500 font-medium mt-2 leading-relaxed">
+                                Como usuário padrão, você tem acesso apenas à visualização parcial. Para acessar telefones, e-mails e abrir o perfil detalhado dos contatos, solicite permissão ao <strong className="text-navy-dark dark:text-slate-300">administrador</strong>.
+                            </p>
+                        </div>
+                        <button 
+                            onClick={() => setRestrictedModalOpen(false)}
+                            className="w-full py-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                        >
+                            Entendi
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
