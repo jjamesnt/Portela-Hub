@@ -22,7 +22,11 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
         telefone: '',
         email: '',
         cep: '',
-        enderecoStr: '',
+        logradouro: '',
+        numero: '',
+        complemento: '',
+        bairro: '',
+        uf: '',
         origem: 'Geral',
         // Lideranca
         municipio_nome: '',
@@ -47,7 +51,11 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                 telefone: '',
                 email: '',
                 cep: '',
-                enderecoStr: '',
+                logradouro: '',
+                numero: '',
+                complemento: '',
+                bairro: '',
+                uf: '',
                 origem: 'Geral',
                 municipio_nome: '',
                 regiao: '',
@@ -71,10 +79,11 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                 const res = await fetch(`https://viacep.com.br/ws/${val.replace('-', '')}/json/`);
                 const data = await res.json();
                 if (!data.erro) {
-                    const enderecoBase = `${data.logradouro}, Nº , ${data.bairro}, ${data.localidade} - ${data.uf}`;
                     setFormData((prev: any) => ({ 
                         ...prev, 
-                        enderecoStr: enderecoBase,
+                        logradouro: data.logradouro || '',
+                        bairro: data.bairro || '',
+                        uf: data.uf || '',
                         municipio_nome: data.localidade
                     }));
 
@@ -132,7 +141,7 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                     cargo: formData.cargo,
                     telefone: formData.telefone,
                     email: formData.email,
-                    endereco: formData.enderecoStr,
+                    endereco: `${formData.logradouro}, Nº ${formData.numero}${formData.complemento ? ' - ' + formData.complemento : ''}, ${formData.bairro} - ${formData.uf}`,
                     municipioId: formData.municipioId,
                     fotoUrl: formData.fotoUrl
                 });
@@ -237,18 +246,51 @@ const ContatoModal: React.FC<ContatoModalProps> = ({ isOpen, onClose, onSuccess 
                                 value={formData.cep || ''}
                                 onChange={handleCepChange}
                                 maxLength={9}
-                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold"
+                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise outline-none transition-all"
                                 placeholder="00000-000"
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Endereço Completo</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rua / Logradouro</label>
                             <input 
                                 type="text"
-                                value={formData.enderecoStr || ''}
-                                onChange={e => setFormData((prev: any) => ({ ...prev, enderecoStr: e.target.value }))}
-                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold"
-                                placeholder="Rua, Número, Bairro..."
+                                value={formData.logradouro || ''}
+                                onChange={e => setFormData((prev: any) => ({ ...prev, logradouro: e.target.value }))}
+                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise outline-none transition-all"
+                                placeholder="Ex: Av. Afonso Pena"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Número</label>
+                            <input 
+                                type="text"
+                                value={formData.numero || ''}
+                                onChange={e => setFormData((prev: any) => ({ ...prev, numero: e.target.value }))}
+                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise outline-none transition-all"
+                                placeholder="Ex: 123"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Complemento</label>
+                            <input 
+                                type="text"
+                                value={formData.complemento || ''}
+                                onChange={e => setFormData((prev: any) => ({ ...prev, complemento: e.target.value }))}
+                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise outline-none transition-all"
+                                placeholder="Apto 12"
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bairro</label>
+                            <input 
+                                type="text"
+                                value={formData.bairro || ''}
+                                onChange={e => setFormData((prev: any) => ({ ...prev, bairro: e.target.value }))}
+                                className="w-full mt-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-turquoise/20 focus:border-turquoise outline-none transition-all"
+                                placeholder="Centro"
                             />
                         </div>
                     </div>
